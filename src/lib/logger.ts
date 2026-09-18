@@ -4,6 +4,11 @@
  * Every message and every context value is passed through
  * `redactPersonalData` first — see CLAUDE.md: caller names and phone numbers
  * must never be written in plain text.
+ *
+ * Pass personal data as context, never inside the message string. Phone
+ * numbers are caught anywhere, but a NAME is only redacted when it is the
+ * value of a known key: `logger.info('saved', { callerName })`, never
+ * `logger.info(`saved for ${callerName}`)`. See src/lib/redact.ts.
  */
 import { redactPersonalData } from './redact.js';
 

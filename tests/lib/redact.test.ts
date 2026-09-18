@@ -69,6 +69,26 @@ describe('redactPersonalData', () => {
     expect(redactPersonalData(undefined)).toBeUndefined();
   });
 
+  test('keeps both copies when the same object is referenced twice', () => {
+    const shared = { note: 'no personal data here' };
+
+    const redacted = redactPersonalData({ first: shared, second: shared }) as {
+      first: { note: string };
+      second: { note: string };
+    };
+
+    expect(redacted.first).toEqual({ note: 'no personal data here' });
+    expect(redacted.second).toEqual({ note: 'no personal data here' });
+  });
+
+  test('formats a Date instead of flattening it to an empty object', () => {
+    const redacted = redactPersonalData({ at: new Date('2026-09-18T00:00:00.000Z') }) as {
+      at: string;
+    };
+
+    expect(redacted.at).toBe('2026-09-18T00:00:00.000Z');
+  });
+
   test('survives a circular object', () => {
     const node: Record<string, unknown> = { clientId: 'sakura-seikotsuin' };
     node.self = node;

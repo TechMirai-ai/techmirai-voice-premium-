@@ -1,4 +1,6 @@
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 
 import { afterEach, describe, expect, test } from 'vitest';
 
@@ -56,6 +58,21 @@ describe('loadClient', () => {
     );
 
     expect(issueAt(issues, '(file)')).toMatch(/invalid YAML/);
+  });
+
+  test('refuses a client folder that is a symlink pointing outside clients/', () => {
+    // A valid-looking slug whose folder is really a link to somewhere else.
+    fixture = writeClientFixture('real-clinic', readSakuraDocument());
+    const outside = path.join(tmpdir(), `tmvp-outside-${Date.now()}`);
+    mkdirSync(path.join(outside, 'escaped-clinic'), { recursive: true });
+    writeFileSync(path.join(outside, 'escaped-clinic', 'client.yaml'), 'clientId: escaped\n');
+    symlinkSync(path.join(outside, 'escaped-clinic'), `${fixture.clientsDir}/escaped-clinic`);
+
+    const { issues } = captureIssues(() =>
+      loadClient('escaped-clinic', { clientsDir: fixture!.clientsDir }),
+    );
+
+    expect(issueAt(issues, 'clientId')).toMatch(/outside the clients directory/);
   });
 
   test('requires the clientId in the file to match the folder it lives in', () => {

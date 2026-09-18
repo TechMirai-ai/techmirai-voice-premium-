@@ -4,6 +4,17 @@
  * Callers' names and phone numbers are personal data under Japan's APPI
  * (Act on the Protection of Personal Information). Nothing may reach a log
  * sink without passing through here first — see src/lib/logger.ts.
+ *
+ * WHAT THIS CAN AND CANNOT DO
+ * Phone numbers are recognised anywhere, including inside free text, because
+ * they have a recognisable shape. NAMES DO NOT: they are only redacted when
+ * they arrive as the value of a known key (see SENSITIVE_KEYS). There is no
+ * reliable way to spot a Japanese name inside a sentence.
+ *
+ * So: always pass personal data as structured context —
+ *     logger.info('callback saved', { callerName, callerPhone })
+ * and never interpolate it into the message —
+ *     logger.info(`callback saved for ${callerName}`)   // LEAKS THE NAME
  */
 
 export const PHONE_MASK = '[redacted:phone]';
@@ -63,28 +74,36 @@ const isSensitiveKey = (key: string): boolean => SENSITIVE_KEYS.has(key.toLowerC
 export function redactPersonalData(value: string): string;
 export function redactPersonalData(value: unknown): unknown;
 export function redactPersonalData(value: unknown): unknown {
-  return redactValue(value, 0, new WeakSet());
+  return redactValue(value, 0, new Set());
 }
 
-function redactValue(value: unknown, depth: number, seen: WeakSet<object>): unknown {
+function redactValue(value: unknown, depth: number, ancestors: Set<object>): unknown {
   if (typeof value === 'string') return redactText(value);
   if (value === null || typeof value !== 'object') return value;
   if (depth >= MAX_DEPTH) return VALUE_MASK;
-  if (seen.has(value)) return '[circular]';
 
-  seen.add(value);
+  // Only the current branch counts as a cycle. A plain object referenced twice
+  // in the same payload is not circular and must still be logged in full.
+  if (ancestors.has(value)) return '[circular]';
 
-  if (Array.isArray(value)) {
-    return value.map((item) => redactValue(item, depth + 1, seen));
-  }
+  if (value instanceof Date) return value.toISOString();
   if (value instanceof Error) {
     return { name: value.name, message: redactText(value.message) };
   }
 
-  return Object.fromEntries(
-    Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
-      key,
-      isSensitiveKey(key) ? VALUE_MASK : redactValue(entry, depth + 1, seen),
-    ]),
-  );
+  ancestors.add(value);
+  try {
+    if (Array.isArray(value)) {
+      return value.map((item) => redactValue(item, depth + 1, ancestors));
+    }
+
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
+        key,
+        isSensitiveKey(key) ? VALUE_MASK : redactValue(entry, depth + 1, ancestors),
+      ]),
+    );
+  } finally {
+    ancestors.delete(value);
+  }
 }

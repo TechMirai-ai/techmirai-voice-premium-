@@ -6,7 +6,7 @@
  * ever touches the filesystem, and the resolved path is checked to be inside
  * the clients directory.
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -50,6 +50,22 @@ export function defaultClientsDir(): string {
   return cachedClientsDir;
 }
 
+/**
+ * True when `candidate` is really inside `root` once symlinks are followed.
+ * A path that does not exist yet is judged on its lexical form alone — the
+ * caller reports "no config found" for it a moment later.
+ */
+function isInsideRealPath(root: string, candidate: string): boolean {
+  try {
+    const realRoot = realpathSync(root);
+    if (!existsSync(candidate)) return true;
+    const realCandidate = realpathSync(candidate);
+    return realCandidate === realRoot || realCandidate.startsWith(realRoot + path.sep);
+  } catch {
+    return false;
+  }
+}
+
 /** Resolves the folder for a client id, rejecting anything that is not a slug. */
 export function clientDir(clientId: string, options: LoadClientOptions = {}): string {
   if (typeof clientId !== 'string' || !SLUG_PATTERN.test(clientId)) {
@@ -66,6 +82,15 @@ export function clientDir(clientId: string, options: LoadClientOptions = {}): st
 
   // Belt and braces: the slug pattern already excludes "." "/" and "\".
   if (resolved !== path.join(root, clientId) || !resolved.startsWith(root + path.sep)) {
+    throw new ClientConfigError(clientId, [
+      { path: 'clientId', message: 'resolves outside the clients directory' },
+    ]);
+  }
+
+  // The checks above are lexical, so a symlink inside clients/ pointing
+  // somewhere else would still pass them. Compare the real paths too, so the
+  // containment rule keeps holding once clientId can arrive over HTTP.
+  if (!isInsideRealPath(root, resolved)) {
     throw new ClientConfigError(clientId, [
       { path: 'clientId', message: 'resolves outside the clients directory' },
     ]);
