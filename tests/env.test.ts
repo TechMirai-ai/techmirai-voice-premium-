@@ -18,12 +18,15 @@ describe('loadEnv', () => {
     expect(env.NODE_ENV).toBe('test');
   });
 
-  test.each(['DATABASE_URL', 'PORT'])('fails fast and names %s when it is missing', (key) => {
-    const source = { ...base, [key]: undefined };
+  test.each(['DATABASE_URL', 'PORT', 'NODE_ENV'])(
+    'fails fast and names %s when it is missing',
+    (key) => {
+      const source = { ...base, [key]: undefined };
 
-    expect(() => load(source)).toThrow(EnvError);
-    expect(() => load(source)).toThrow(new RegExp(key));
-  });
+      expect(() => load(source)).toThrow(EnvError);
+      expect(() => load(source)).toThrow(new RegExp(key));
+    },
+  );
 
   test('treats the optional Vapi and tunnel variables as optional', () => {
     const env = load({ ...base, PUBLIC_BASE_URL: '', VAPI_API_KEY: '' });
