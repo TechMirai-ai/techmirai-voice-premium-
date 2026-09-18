@@ -6,7 +6,11 @@ import { logger } from './lib/logger.js';
 
 const env = loadEnv();
 const pool = createPool({ connectionString: env.DATABASE_URL });
-const app = createApp({ db: pool, isProduction: isProduction(env) });
+const app = createApp({
+  db: pool,
+  isProduction: isProduction(env),
+  vapiPublicKey: env.VAPI_PUBLIC_KEY,
+});
 
 const server = app.listen(env.PORT, () => {
   logger.info('server listening', { port: env.PORT, nodeEnv: env.NODE_ENV });

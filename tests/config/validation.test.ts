@@ -131,10 +131,23 @@ describe('client config validation', () => {
     ]);
   });
 
-  test('accepts transcriber: null until VP-2 chooses one', () => {
-    const { config } = parse(sakura);
+  test('still accepts transcriber: null for a client that has not chosen one yet', () => {
+    const document = withChanges(sakura, (draft) => {
+      draft.languages.settings.ja.transcriber = null;
+    });
+
+    const { config } = parse(document);
 
     expect(config.languages.settings.ja?.transcriber).toBeNull();
+  });
+
+  test('accepts the transcriber shape VP-2 actually configures (provider + language)', () => {
+    const { config } = parse(sakura);
+
+    expect(config.languages.settings.ja?.transcriber).toEqual({
+      provider: 'azure',
+      language: 'ja-JP',
+    });
   });
 
   test('collects several problems in one error instead of stopping at the first', () => {

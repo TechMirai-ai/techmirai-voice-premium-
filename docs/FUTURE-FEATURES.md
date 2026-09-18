@@ -14,6 +14,13 @@ For each one, the "Base must allow" list is binding NOW: current code must not m
 - The Vapi sync engine (VP-2) is idempotent and callable as a function from code, not only from the CLI.
 - Admin auth (VP-5) supports roles, so a "client editor" role can be added.
 
+**VP-2 note:** the FAQ is delivered inline in the system prompt (`promptTemplate.ts`), not through
+Vapi's Knowledge Base feature — with 10 entries, pasting them into the prompt gives the model full
+context for flexible matching and is far simpler to build/test/reason about than wiring file
+uploads to Knowledge Base. Revisit that decision if a client's FAQ list grows substantially (rough
+threshold: dozens of entries, or the prompt becoming noticeably large/slow) — Knowledge Base search
+scales better than a growing inline list.
+
 ## F-2 — Email and LINE notifications for callback requests
 **What:** When a caller leaves a callback request, staff are notified by email and/or LINE.
 **Why later:** Database storage plus the admin page is enough for v1.

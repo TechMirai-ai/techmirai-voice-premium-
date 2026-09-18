@@ -32,11 +32,12 @@ languages:
   settings:
     ja:
       voice: { provider: azure, voiceId: ja-JP-NanamiNeural }
-      transcriber: null          # chosen and verified in VP-2
+      # VP-2 (VAPI-FACTS.md R1): Azure's own supported-language table lists ja-JP directly.
+      transcriber: { provider: azure, language: ja-JP }
       switchKeywords: ["日本語", "Japanese"]   # 日本語 = "Japanese"
     en:
       voice: { provider: azure, voiceId: en-US-JennyNeural }
-      transcriber: null          # chosen and verified in VP-2
+      transcriber: { provider: azure, language: en-US }
       switchKeywords: ["English", "英語"]      # 英語 = "English"
 
 callback:

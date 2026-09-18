@@ -74,11 +74,11 @@ const businessSchema = z.strictObject({
 const languageSettingsSchema = z.strictObject({
   voice: z.strictObject({ provider: nonEmpty, voiceId: nonEmpty }),
   /**
-   * Deliberately permissive: the transcriber payload shape is provider-specific
-   * and is listed as NOT yet verified in docs/VAPI-FACTS.md. VP-2 chooses the
-   * provider and tightens this. `null` means "not chosen yet".
+   * VP-2 (VAPI-FACTS.md R1): chose Azure for every configured language, so
+   * `language` (e.g. "ja-JP") is required alongside `provider`. `null` means
+   * "not chosen yet" — see docs/VAPI-FACTS.md for what's still open.
    */
-  transcriber: z.looseObject({ provider: nonEmpty }).nullable(),
+  transcriber: z.strictObject({ provider: nonEmpty, language: nonEmpty }).nullable(),
   switchKeywords: z.array(nonEmpty).min(1, 'needs at least one keyword'),
 });
 

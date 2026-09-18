@@ -2,9 +2,10 @@
 
 Premium-tier AI voice receptionist for Japanese clinics, built on [Vapi](https://vapi.ai).
 
-This repository is the foundation (work order VP-1): the client configuration format,
-the database and its migrations, and a small Express server. **It does not talk to Vapi
-yet** — that starts in VP-2.
+This repository started as the foundation (work order VP-1): the client configuration format,
+the database and its migrations, and a small Express server. **From VP-2 onwards it talks to a
+real Vapi account** — the Japanese assistant for the demo client, a sync engine to build and push
+it, and a manual test page.
 
 ---
 
@@ -16,6 +17,8 @@ yet** — that starts in VP-2.
 | `src/config/`                    | Reads and validates a client config.                                                                                                            |
 | `src/knowledge/`                 | The only way the rest of the code may read FAQ content.                                                                                         |
 | `src/db/`                        | Connection pool and the migration runner.                                                                                                       |
+| `src/vapi/`                      | Prompt builder, payload renderer, sync engine/CLI, and manual test page for Vapi (VP-2).                                                        |
+| `.vapi-state.<clientId>.json`    | Committed name→UUID map for one client's Vapi resources — git is the rollback mechanism.                                                        |
 | `db/migrations/`                 | Plain `.sql` files, applied in filename order.                                                                                                  |
 | `docs/`                          | `FUTURE-FEATURES.md` (what we deliberately postponed) and `VAPI-FACTS.md` (Vapi facts verified against the docs).                               |
 
@@ -95,22 +98,57 @@ npm test
 ```
 
 The database tests need `TEST_DATABASE_URL` (it is in `.env.example`). If it is not set, those
-tests are skipped instead of failing, so the rest of the suite still runs.
+tests are skipped instead of failing, so the rest of the suite still runs. `npm test` never talks
+to the real Vapi API — all Vapi interaction in tests goes through a mocked client.
+
+### 9. Set up Vapi (from VP-2)
+
+1. **Get your Vapi keys.** Sign in to the [Vapi dashboard](https://dashboard.vapi.ai) and open
+   Settings → API Keys. Copy the **Private Key** into `VAPI_API_KEY` and the **Public Key** into
+   `VAPI_PUBLIC_KEY` in your `.env`. The private key is server-side only — never expose it to a
+   browser or commit it. The public key is safe to expose (it powers the test page below).
+2. **Start a tunnel** so Vapi can reach your local server, and put its HTTPS URL in
+   `PUBLIC_BASE_URL`:
+   ```bash
+   ngrok http 3000
+   # or: cloudflared tunnel --url http://localhost:3000
+   ```
+   `PUBLIC_BASE_URL` doesn't need to be reachable for `npm test` or a dry-run sync — only for a
+   real manual test call, where the callback tool's webhook will actually hit it.
+3. **Dry-run the sync first** — it prints a diff and makes zero API calls:
+   ```bash
+   npm run vapi:sync -- sakura-seikotsuin --language ja
+   ```
+4. **Apply it for real** once the diff looks right:
+   ```bash
+   npm run vapi:sync -- sakura-seikotsuin --language ja --apply
+   ```
+   This refuses to run if `.vapi-state.sakura-seikotsuin.json` has uncommitted changes (commit it
+   after every real sync, so git stays the rollback mechanism).
+5. **Open the test page** to place a real call by voice (with the server running via `npm run
+dev`, and only outside `NODE_ENV=production`):
+   ```
+   http://localhost:3000/vapi-test-call?clientId=sakura-seikotsuin&language=ja
+   ```
+   Click the microphone widget to start a call. Since the callback endpoint doesn't exist until
+   VP-4, asking something outside the FAQ is expected to end in the assistant speaking a graceful
+   failure message, not silence or an error.
 
 ---
 
 ## Everyday commands
 
-| Command                              | What it does                                      |
-| ------------------------------------ | ------------------------------------------------- |
-| `npm run dev`                        | Start the server and reload on changes            |
-| `npm test`                           | Run all tests once                                |
-| `npm run test:coverage`              | Run tests and report coverage (must stay at 80%+) |
-| `npm run typecheck`                  | Check the TypeScript types                        |
-| `npm run lint`                       | Check code style and common mistakes              |
-| `npm run format`                     | Reformat the code with Prettier                   |
-| `npm run db:migrate`                 | Apply new database migrations                     |
-| `npm run config:check -- <clientId>` | Validate one client's config                      |
+| Command                                                       | What it does                                      |
+| ------------------------------------------------------------- | ------------------------------------------------- |
+| `npm run dev`                                                 | Start the server and reload on changes            |
+| `npm test`                                                    | Run all tests once                                |
+| `npm run test:coverage`                                       | Run tests and report coverage (must stay at 80%+) |
+| `npm run typecheck`                                           | Check the TypeScript types                        |
+| `npm run lint`                                                | Check code style and common mistakes              |
+| `npm run format`                                              | Reformat the code with Prettier                   |
+| `npm run db:migrate`                                          | Apply new database migrations                     |
+| `npm run config:check -- <clientId>`                          | Validate one client's config                      |
+| `npm run vapi:sync -- <clientId> --language <code> [--apply]` | Dry-run (default) or apply the Vapi sync          |
 
 Run `npm test`, `npm run typecheck` and `npm run lint` before opening a pull request.
 

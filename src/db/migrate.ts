@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 import type pg from 'pg';
 
-import { loadEnv } from '../env.js';
+import { loadDatabaseUrl } from '../env.js';
 import { createPool } from './pool.js';
 
 export const MIGRATIONS_TABLE = 'schema_migrations';
@@ -141,8 +141,8 @@ export async function runMigrations(
 
 /** `npm run db:migrate` */
 async function main(): Promise<void> {
-  const env = loadEnv();
-  const pool = createPool({ connectionString: env.DATABASE_URL });
+  const databaseUrl = loadDatabaseUrl();
+  const pool = createPool({ connectionString: databaseUrl });
 
   try {
     const result = await runMigrations(pool, {
