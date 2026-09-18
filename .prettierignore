@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+package-lock.json
+
+# These files are specified verbatim by the work orders / are client content.
+# Reformatting them would change wording and whitespace we were told to keep.
+CLAUDE.md
+docs/
+clients/

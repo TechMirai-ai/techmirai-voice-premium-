@@ -1,0 +1,217 @@
+clientId: sakura-seikotsuin
+status: demo            # fictional business, dummy data only
+
+business:
+  type: seikotsuin      # 整骨院 (judo-therapy / bone-setting clinic)
+  name:
+    ja: さくら整骨院
+    en: Sakura Seikotsuin
+  address:
+    postalCode: "330-0000"
+    ja: 埼玉県さいたま市浦和区サンプル町1丁目2番3号
+    en: 1-2-3 Sample-cho, Urawa-ku, Saitama City, Saitama
+  phone:
+    display: "048-000-0000"
+    e164: "+81480000000"
+  website: https://sakura-seikotsuin.example.com
+  hours:
+    timezone: Asia/Tokyo
+    weekly:
+      mon: { open: "09:00", close: "19:00" }
+      tue: { open: "09:00", close: "19:00" }
+      wed: { open: "09:00", close: "19:00" }
+      thu: { open: "09:00", close: "19:00" }
+      fri: { open: "09:00", close: "19:00" }
+      sat: { open: "09:00", close: "19:00" }
+      sun: closed
+    closedOnNationalHolidays: true
+
+languages:
+  default: ja
+  supported: [ja, en]
+  settings:
+    ja:
+      voice: { provider: azure, voiceId: ja-JP-NanamiNeural }
+      transcriber: null          # chosen and verified in VP-2
+      switchKeywords: ["日本語", "Japanese"]   # 日本語 = "Japanese"
+    en:
+      voice: { provider: azure, voiceId: en-US-JennyNeural }
+      transcriber: null          # chosen and verified in VP-2
+      switchKeywords: ["English", "英語"]      # 英語 = "English"
+
+callback:
+  enabled: true
+  collect: [name, phone]
+  offerWhen:
+    - no_faq_match
+    - caller_asks_for_staff
+  notifiers: []                  # database only for now — see FUTURE-FEATURES F-2
+
+safety:
+  emergencyNumber: "119"
+  noMedicalAdvice: true
+
+scripts:
+  # Japanese assistant's first message. Includes the English option.
+  greeting:
+    en: >-
+      Thank you for calling [[clinicName]]. I'm the receptionist.
+      I can help you with information about the clinic and pass your details to our staff.
+      For English, please say "English". How can I help you today?
+    ja: >-
+      お電話ありがとうございます。[[clinicName]]の受付です。
+      当院に関するご案内や、スタッフへのお取り次ぎを承ります。
+      For English, please say "English". ご用件をお聞かせください。
+  # English assistant's first message after the handoff.
+  englishGreeting:
+    en: >-
+      Hello, this is the English receptionist for [[clinicName]].
+      How can I help you today?
+    ja: >-
+      こんにちは。[[clinicName]]の英語対応の受付です。ご用件をお聞かせください。
+  anythingElse:
+    en: Is there anything else I can help you with today?
+    ja: ほかに何かお手伝いできることはございますか？
+  noMatch:
+    en: >-
+      I'm sorry, I don't have that information right now.
+      I can pass your details to our staff so they can get back to you.
+      May I have your name, please?
+    ja: >-
+      申し訳ございません。その件については、ただいまお答えできる情報がございません。
+      スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。
+      お名前を伺ってもよろしいでしょうか？
+  staffContactOffer:
+    en: >-
+      Of course. I can pass your details to our staff so they can call you back.
+      May I have your name, please?
+    ja: >-
+      かしこまりました。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。
+      お名前を伺ってもよろしいでしょうか？
+  askPhone:
+    en: Thank you. May I have a phone number where our staff can reach you?
+    ja: ありがとうございます。スタッフからご連絡できるお電話番号を教えていただけますか？
+  confirmDetails:
+    en: Let me confirm. Your name is [[callerName]], and your phone number is [[callerPhone]]. Is that correct?
+    ja: 確認いたします。お名前は[[callerName]]様、お電話番号は[[callerPhone]]でよろしいでしょうか？
+  callbackSaved:
+    en: Thank you. I'll pass your information to our staff, and they will contact you soon.
+    ja: ありがとうございます。スタッフにお伝えいたしますので、折り返しのご連絡をお待ちください。
+  callbackFailed:
+    en: >-
+      I'm sorry, I wasn't able to save your details because of a system problem.
+      Please call the clinic directly at [[clinicPhone]].
+    ja: >-
+      申し訳ございません。システムの不具合により、お客様の情報を保存できませんでした。
+      お手数ですが、当院（[[clinicPhone]]）まで直接お電話ください。
+  didNotCatch:
+    en: I'm sorry, I didn't quite catch that. Could you say it again, please?
+    ja: 申し訳ございません。うまく聞き取れませんでした。もう一度おっしゃっていただけますか？
+  noMedicalAdvice:
+    en: >-
+      I'm sorry, I can't give medical advice.
+      Our staff can talk with you about your symptoms when you visit or contact the clinic.
+    ja: >-
+      申し訳ございません。症状についての医学的なアドバイスはいたしかねます。
+      ご来院の際や当院へのお問い合わせの際に、スタッフが詳しくお話を伺います。
+  emergency:
+    en: >-
+      If this is an emergency, such as a serious injury or severe pain,
+      please end this call and call [[emergencyNumber]] for an ambulance right away.
+    ja: >-
+      重いケガや強い痛みなど、緊急の場合は、この通話を終了して、
+      すぐに[[emergencyNumber]]番に連絡し、救急車を呼んでください。
+  goodbye:
+    en: Thank you for calling [[clinicName]]. Have a great day. Goodbye.
+    ja: "[[clinicName]]にお電話いただき、ありがとうございました。失礼いたします。"
+
+faq:
+  - id: hours
+    tags: [hours, open, closed, schedule]
+    question:
+      en: What are your opening hours?
+      ja: 受付時間を教えてください。
+    answer:
+      en: We are open Monday to Saturday, from 9:00 AM to 7:00 PM. We are closed on Sundays and national holidays.
+      ja: 当院の受付時間は、月曜日から土曜日の午前9時から午後7時までです。日曜日と祝日はお休みです。
+
+  - id: appointment-needed
+    tags: [appointment, reservation, walk-in]
+    question:
+      en: Do I need an appointment?
+      ja: 予約は必要ですか？
+    answer:
+      en: Appointments are recommended, especially for first-time visitors. However, walk-ins may also be accepted depending on availability.
+      ja: 初めてご来院の方は、事前のご予約をおすすめしています。ただし、予約状況によっては、予約なしでもご来院いただけます。
+
+  - id: how-to-book
+    tags: [appointment, reservation, booking]
+    question:
+      en: How can I make an appointment?
+      ja: 予約はどのようにできますか？
+    answer:
+      en: You can book through the online reservation form on our website, or by calling us at [[clinicPhone]].
+      ja: 当院ホームページのオンライン予約、またはお電話（[[clinicPhone]]）でご予約いただけます。
+
+  - id: fees
+    tags: [price, cost, fee]
+    question:
+      en: How much does a treatment cost?
+      ja: 施術料金はいくらですか？
+    answer:
+      en: Treatment fees depend on the type of treatment and your condition. Please check our website for pricing, or contact our staff for details.
+      ja: 施術料金は、施術内容やお身体の状態によって異なります。詳しい料金は、当院のホームページをご確認いただくか、当院スタッフまでお問い合わせください。
+
+  - id: back-pain
+    tags: [back pain, neck pain, shoulder pain, knee pain, joint pain, movement, discomfort]
+    question:
+      en: Do you treat back pain?
+      ja: 腰痛の施術はできますか？
+    answer:
+      en: Yes. We provide treatment for back pain, neck and shoulder pain, and other pain or movement-related discomfort.
+      ja: はい。腰痛や、首・肩の痛みなど、お身体の痛みや動かしにくさに関するお悩みに対して施術を行っています。
+
+  - id: sports-injuries
+    tags: [sports, injury, rehabilitation]
+    question:
+      en: Do you treat sports injuries?
+      ja: スポーツによるケガにも対応していますか？
+    answer:
+      en: Yes. We provide care and rehabilitation support for sports injuries, and help you return to your sport safely.
+      ja: はい。スポーツによるケガの施術やリハビリのサポートを行い、安全にスポーツへ復帰できるようお手伝いします。
+
+  - id: insurance
+    tags: [insurance, health insurance, coverage]
+    question:
+      en: Do you accept health insurance?
+      ja: 健康保険は使えますか？
+    answer:
+      en: Whether health insurance can be used depends on the type of injury and your situation. Please contact our staff for details.
+      ja: 健康保険が使えるかどうかは、ケガの種類や状況によって異なります。詳しくは当院スタッフまでお問い合わせください。
+
+  - id: location
+    tags: [address, location, access, directions, map]
+    question:
+      en: Where is the clinic located?
+      ja: 整骨院はどこにありますか？
+    answer:
+      en: We are located at [[clinicAddress]]. Please check our website for a map and directions.
+      ja: 当院は[[clinicAddress]]にございます。地図やアクセス方法は、当院のホームページをご確認ください。
+
+  - id: parking
+    tags: [parking, car]
+    question:
+      en: Is parking available?
+      ja: 駐車場はありますか？
+    answer:
+      en: Yes, parking is available near the clinic. Please contact our staff if you need details about where to park.
+      ja: はい、当院の近くに駐車場がございます。詳しい場所については、当院スタッフまでお問い合わせください。
+
+  - id: first-visit
+    tags: [first visit, bring, documents, insurance card]
+    question:
+      en: What should I bring to my first visit?
+      ja: 初めて来院するときは、何を持っていけばいいですか？
+    answer:
+      en: If applicable, please bring your My Number health insurance card or your eligibility certificate. It also helps to bring any information about previous treatments or injuries related to your current concern.
+      ja: 必要に応じて、マイナ保険証または資格確認書をお持ちください。また、今回のお悩みに関係する過去の治療やケガの情報があれば、あわせてお持ちいただくとスムーズです。

@@ -1,0 +1,50 @@
+# Local development databases only. Nothing here runs in production.
+# Start both with:  docker compose up -d
+services:
+  postgres-dev:
+    image: postgres:18-alpine
+    container_name: tmvp-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-voice}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-voice}
+      POSTGRES_DB: ${POSTGRES_DB:-techmirai_voice_premium}
+    ports:
+      - '${POSTGRES_DEV_PORT:-5433}:5432'
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${POSTGRES_USER:-voice} -d ${POSTGRES_DB:-techmirai_voice_premium}',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgres-test:
+    image: postgres:18-alpine
+    container_name: tmvp-postgres-test
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-voice}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-voice}
+      POSTGRES_DB: ${POSTGRES_TEST_DB:-techmirai_voice_premium_test}
+    ports:
+      - '${POSTGRES_TEST_PORT:-5434}:5432'
+    volumes:
+      - postgres-test-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${POSTGRES_USER:-voice} -d ${POSTGRES_TEST_DB:-techmirai_voice_premium_test}',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-dev-data:
+  postgres-test-data:

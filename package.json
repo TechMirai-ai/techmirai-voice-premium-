@@ -1,0 +1,50 @@
+{
+  "name": "techmirai-voice-premium",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Premium-tier AI voice receptionist for Japanese clinics, built on Vapi.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc --build",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "config:check": "tsx src/config/checkCli.ts"
+  },
+  "dependencies": {
+    "dotenv": "18.0.0",
+    "express": "5.2.1",
+    "helmet": "8.3.0",
+    "pg": "8.23.0",
+    "yaml": "2.9.1",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/express": "5.0.6",
+    "@types/node": "26.6.1",
+    "@types/pg": "8.23.1",
+    "@types/supertest": "7.2.1",
+    "@vitest/coverage-v8": "5.0.1",
+    "eslint": "10.10.0",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "17.12.0",
+    "prettier": "3.9.8",
+    "supertest": "7.2.2",
+    "tsx": "4.23.13",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.70.0",
+    "vitest": "5.0.1"
+  }
+}
