@@ -5,12 +5,12 @@
  * node:http, no Express, no helmet, no CSP header — serving
  * public/vapi-test-call/ (written by `npm run vapi:test-page`).
  *
- * Why this exists: web calls started from the page as served by the main
- * Express app failed to join the Daily room in every attempt (res.send(),
- * raw res.end() and express.static() all failed identically), while the same
- * page from a bare node:http / Python http.server joined successfully. See
- * docs/VAPI-FACTS.md, "KNOWN ISSUE: web-call join fails…". Internal QA tool,
- * bound to localhost only.
+ * Why this exists: while web calls from the main Express app's copy of the
+ * page failed to join the Daily room (cause then unknown), the same page from
+ * a bare node:http server joined. The main app now joins too when opened at
+ * http://127.0.0.1:3000 (docs/VAPI-FACTS.md, "KNOWN ISSUE", step 15), so this
+ * is a secondary fallback for when the main app isn't running. Internal QA
+ * tool, bound to localhost only.
  */
 import { createReadStream, existsSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';

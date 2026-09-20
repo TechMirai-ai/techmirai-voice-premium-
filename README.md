@@ -125,36 +125,40 @@ to the real Vapi API — all Vapi interaction in tests goes through a mocked cli
    ```
    This refuses to run if `.vapi-state.sakura-seikotsuin.json` has uncommitted changes (commit it
    after every real sync, so git stays the rollback mechanism).
-5. **Generate the test page**, then **serve it with the standalone test-page server** to place a
-   real call by voice:
+5. **Generate the test page**, then **open it on the running app** to place a real call by voice
+   (with the server running via `npm run dev`, and only outside `NODE_ENV=production`):
 
    ```bash
    npm run vapi:test-page -- sakura-seikotsuin --language ja   # writes public/vapi-test-call/
-   npm run vapi:test-page:serve                                # serves it on 127.0.0.1:3001
    ```
 
-   Then open `http://127.0.0.1:3001/vapi-test-call/sakura-seikotsuin--ja.html` and click the
-   microphone widget to start a call. Since the callback endpoint doesn't exist until VP-4, asking
-   something outside the FAQ is expected to end in the assistant speaking a graceful failure
-   message, not silence or an error.
+   Then open **`http://127.0.0.1:3000/vapi-test-call/sakura-seikotsuin--ja.html`** and click the
+   microphone widget to start a call. **Use `127.0.0.1`, not `localhost`** — the call failed to join
+   when the page was opened via `localhost` (see the note below). Since the callback endpoint
+   doesn't exist until VP-4, asking something outside the FAQ is expected to end in the assistant
+   speaking a graceful failure message, not silence or an error.
 
    **Re-run `npm run vapi:test-page` after every `vapi:sync --apply`** — the page has the
    assistant id written into it, and the id can change. The generated files hold the (browser-safe)
    public key and the assistant id, so `public/vapi-test-call/` is git-ignored.
 
-   **What the standalone server is, and why it exists.** It is a small plain `node:http` static
-   file server (`src/vapi/serveTestPage.ts`) — no Express, no helmet, no security headers — bound
-   to localhost only, serving nothing but the generated test page files. It exists because of a
-   known, **unresolved** issue: web calls started from the same page **when served by this
-   project's Express app** (`http://localhost:3000/vapi-test-call/…`) fail to join Vapi's call room
-   (`daily-call-join-error`, ~6.6s), whereas the identical page served from a bare `node:http`
-   server or a bare Express app joins. The `Content-Security-Policy` header on that route was
-   implicated (and is now deliberately not sent there — it's an internal QA page), but dropping it
-   did **not** fix the full app, so a further variable in the real app is still unidentified.
-   Full write-up and everything ruled out: [`docs/VAPI-FACTS.md`](docs/VAPI-FACTS.md), section
-   "KNOWN ISSUE". **Use the standalone server for test calls**; a second fallback is the
-   test-call feature in Vapi's own dashboard. Both the page and the server are internal QA tools
-   and are never mounted in production.
+   **Why `127.0.0.1`, and why this route sends no CSP.** During VP-2, web calls from this page
+   failed to join Vapi's call room (`daily-call-join-error`, ~6.6s) in several configurations. What
+   was established: a `Content-Security-Policy` header on the route broke the join (which directive
+   was never identified, so the route deliberately sends **no CSP** — it is an internal QA page;
+   every other route keeps the full default CSP), and after that the page joined at
+   `http://127.0.0.1:3000` but had failed at `http://localhost:3000`. The server returns identical
+   responses for both hostnames, so that difference is browser-side; whether it is a hostname
+   effect or stale browser cache for the `localhost` origin was not separated. Full write-up and
+   everything ruled out: [`docs/VAPI-FACTS.md`](docs/VAPI-FACTS.md), section "KNOWN ISSUE".
+
+   **Secondary fallback: the standalone test-page server.** `npm run vapi:test-page:serve` serves
+   the same generated files on `http://127.0.0.1:3001/vapi-test-call/…` from a small plain
+   `node:http` server (`src/vapi/serveTestPage.ts`) — no Express, no helmet, no security headers,
+   localhost-only, nothing but the generated page files. It was built while the cause was unknown
+   and is confirmed to join; keep it for when the main app is not running. A further fallback is
+   the test-call feature in Vapi's own dashboard. The page and the server are internal QA tools and
+   are never mounted in production.
 
 ---
 

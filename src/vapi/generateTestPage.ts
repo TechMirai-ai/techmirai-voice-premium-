@@ -97,7 +97,9 @@ export function runGenerateTestPage(argv: string[]): number {
     const result = generateTestPage({ clientId, language, publicKey: env.VAPI_PUBLIC_KEY });
     printLine(`Wrote ${result.htmlPath}`);
     printLine(`Wrote ${result.scriptPath}`);
-    printLine(`Open: http://localhost:${env.PORT}${result.urlPath}`);
+    // 127.0.0.1, not localhost: the page failed to join a Vapi web call when
+    // opened via localhost (docs/VAPI-FACTS.md, KNOWN ISSUE, step 15).
+    printLine(`Open: http://127.0.0.1:${env.PORT}${result.urlPath}`);
     return 0;
   } catch (error) {
     printError(error instanceof Error ? error.message : String(error));
