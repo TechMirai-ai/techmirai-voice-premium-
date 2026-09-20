@@ -59,4 +59,18 @@ describe('renderTestCallBootstrapScript', () => {
     expect(script).toContain('html-script-tag');
     expect(script).toContain('window.vapiSDK.run');
   });
+
+  test("attaches vapi.on('error', ...) and logs the full error object, not just its message", () => {
+    const script = renderTestCallBootstrapScript({
+      publicKey: 'pub-key',
+      assistantId: 'assistant-id',
+    });
+
+    expect(script).toContain("window.vapiSDK.vapi.on('error'");
+    // Logs the raw value (covers plain-object errors) ...
+    expect(script).toContain('console.error(');
+    // ... and its own properties via an explicit replacer, so a real Error's
+    // non-enumerable message/stack survive JSON.stringify too.
+    expect(script).toContain('Object.getOwnPropertyNames(e');
+  });
 });

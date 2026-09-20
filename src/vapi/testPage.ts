@@ -121,7 +121,20 @@ export interface TestCallBootstrapOptions {
   assistantId: string;
 }
 
-/** The same-origin bootstrap script served at GET /vapi-test-call.js. */
+/**
+ * The same-origin bootstrap script served at GET /vapi-test-call.js.
+ *
+ * Attaches vapi.on('error', ...) once the underlying instance
+ * (window.vapiSDK.vapi) is available — without this, an 'error' emitted
+ * with no listener attached throws a bare "Unhandled error. (undefined)"
+ * (observed 2026-09-20, real test call), which names neither the error's
+ * shape nor its message. console.error(e) alone isn't enough either: a real
+ * Error instance's message/stack are non-enumerable, so plain
+ * JSON.stringify(e) silently drops them — the explicit Object.getOwnPropertyNames(e)
+ * replacer includes them regardless of whether Vapi's SDK hands back a
+ * plain object (as observed in VAPI-FACTS.md's R7b throwaway testing) or a
+ * real Error.
+ */
 export function renderTestCallBootstrapScript(options: TestCallBootstrapOptions): string {
   return `(function (d, t) {
   var g = d.createElement(t), s = d.getElementsByTagName(t)[0];
@@ -135,6 +148,27 @@ export function renderTestCallBootstrapScript(options: TestCallBootstrapOptions)
       assistant: ${safeJsonForScript(options.assistantId)},
       config: {},
     });
+    var tries = 0;
+    var iv = setInterval(function () {
+      tries++;
+      if (window.vapiSDK.vapi) {
+        clearInterval(iv);
+        window.vapiSDK.vapi.on('error', function (e) {
+          console.error('Vapi call error (raw):', e);
+          try {
+            console.error(
+              'Vapi call error (JSON):',
+              JSON.stringify(e, Object.getOwnPropertyNames(e || {})),
+            );
+          } catch (jsonError) {
+            console.error('Vapi call error could not be JSON-stringified:', jsonError);
+          }
+        });
+      } else if (tries > 100) {
+        clearInterval(iv);
+        console.error('Vapi call error handler not attached: window.vapiSDK.vapi never appeared');
+      }
+    }, 100);
   };
 })(document, "script");
 `;
