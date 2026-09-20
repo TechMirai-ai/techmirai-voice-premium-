@@ -2,5 +2,7 @@
   "tools": {
     "sakura-seikotsuin--ja--request-callback": "6a52add9-4bbe-4a9d-a128-76ed7f5b976c"
   },
-  "assistants": {}
+  "assistants": {
+    "sakura-seikotsuin--ja": "5783f9a4-7051-4595-b391-997c080fc61b"
+  }
 }
