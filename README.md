@@ -145,17 +145,16 @@ to the real Vapi API — all Vapi interaction in tests goes through a mocked cli
    **What the standalone server is, and why it exists.** It is a small plain `node:http` static
    file server (`src/vapi/serveTestPage.ts`) — no Express, no helmet, no security headers — bound
    to localhost only, serving nothing but the generated test page files. It exists because of a
-   known issue: web calls started from the same page **when served by this project's Express app**
-   (`http://localhost:3000/vapi-test-call/…`) used to fail to join Vapi's call room
+   known, **unresolved** issue: web calls started from the same page **when served by this
+   project's Express app** (`http://localhost:3000/vapi-test-call/…`) fail to join Vapi's call room
    (`daily-call-join-error`, ~6.6s), whereas the identical page served from a bare `node:http`
-   server joined. The cause was the `Content-Security-Policy` header on that route; which
-   directive is responsible was never identified, so the route now **deliberately sends no CSP**
-   (it is an internal QA page; every other route keeps the full default CSP). Full write-up and
-   everything ruled out: [`docs/VAPI-FACTS.md`](docs/VAPI-FACTS.md), section "KNOWN ISSUE". The
-   Express-served page is expected to join now but is not yet confirmed in a real browser, so the
-   standalone server stays as the proven fallback, alongside the test-call feature in Vapi's own
-   dashboard. Both the page and the server are internal QA tools and are never mounted in
-   production.
+   server or a bare Express app joins. The `Content-Security-Policy` header on that route was
+   implicated (and is now deliberately not sent there — it's an internal QA page), but dropping it
+   did **not** fix the full app, so a further variable in the real app is still unidentified.
+   Full write-up and everything ruled out: [`docs/VAPI-FACTS.md`](docs/VAPI-FACTS.md), section
+   "KNOWN ISSUE". **Use the standalone server for test calls**; a second fallback is the
+   test-call feature in Vapi's own dashboard. Both the page and the server are internal QA tools
+   and are never mounted in production.
 
 ---
 
