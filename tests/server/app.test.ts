@@ -7,6 +7,7 @@ import request from 'supertest';
 
 import { createApp } from '../../src/app.js';
 import type { Queryable } from '../../src/db/pool.js';
+import { generateTestPage } from '../../src/vapi/generateTestPage.js';
 import { writeState } from '../../src/vapi/stateStore.js';
 
 const healthyDb: Queryable = { query: () => Promise.resolve({ rows: [{ '?column?': 1 }] }) };
@@ -16,12 +17,11 @@ const brokenDb: Queryable = {
 
 const VAPI_PUBLIC_KEY = 'test-vapi-public-key';
 
-const app = (db: Queryable = healthyDb, isProduction = false, vapiStateRepoRoot?: string) =>
+const app = (db: Queryable = healthyDb, isProduction = false, vapiTestPageDir?: string) =>
   createApp({
     db,
     isProduction,
-    vapiPublicKey: VAPI_PUBLIC_KEY,
-    ...(vapiStateRepoRoot ? { vapiStateRepoRoot } : {}),
+    ...(vapiTestPageDir ? { vapiTestPageDir } : {}),
   });
 
 describe('GET /healthz', () => {
@@ -95,47 +95,79 @@ describe('the app skeleton', () => {
   });
 });
 
-describe('GET /vapi-test-call', () => {
-  let repoRoot: string;
+describe('static /vapi-test-call', () => {
+  let testPageDir: string;
+  const pagePath = '/vapi-test-call/test-clinic--ja.html';
 
   beforeEach(() => {
-    repoRoot = mkdtempSync(path.join(tmpdir(), 'tmvp-app-state-'));
+    const repoRoot = mkdtempSync(path.join(tmpdir(), 'tmvp-app-state-'));
+    testPageDir = path.join(repoRoot, 'public', 'vapi-test-call');
+    writeState(
+      'test-clinic',
+      { tools: {}, assistants: { 'test-clinic--ja': 'assistant-uuid' } },
+      { repoRoot },
+    );
+    generateTestPage({
+      clientId: 'test-clinic',
+      language: 'ja',
+      publicKey: VAPI_PUBLIC_KEY,
+      repoRoot,
+      outDir: testPageDir,
+    });
   });
 
   afterEach(() => {
-    rmSync(repoRoot, { recursive: true, force: true });
+    rmSync(path.dirname(path.dirname(testPageDir)), { recursive: true, force: true });
   });
 
-  test('is not mounted in production, even with valid params', async () => {
-    const response = await request(app(healthyDb, true, repoRoot)).get(
-      '/vapi-test-call?clientId=test-clinic&language=ja',
-    );
+  test('is not mounted in production, even for a file that exists', async () => {
+    const response = await request(app(healthyDb, true, testPageDir)).get(pagePath);
 
     expect(response.status).toBe(404);
   });
 
-  test('returns 400 for a clientId that is not a valid slug (rejects injection attempts)', async () => {
-    const response = await request(app(healthyDb, false, repoRoot)).get(
-      '/vapi-test-call?clientId=<script>alert(1)</script>&language=ja',
-    );
-
-    expect(response.status).toBe(400);
-  });
-
-  test('renders the page, referencing the bootstrap script by src, not synced state', async () => {
-    const response = await request(app(healthyDb, false, repoRoot)).get(
-      '/vapi-test-call?clientId=test-clinic&language=ja',
-    );
+  test('serves the pre-generated page as a static file, referencing its script by src', async () => {
+    const response = await request(app(healthyDb, false, testPageDir)).get(pagePath);
 
     expect(response.status).toBe(200);
     expect(response.headers['content-type']).toMatch(/text\/html/);
-    expect(response.text).toContain('/vapi-test-call.js?clientId=test-clinic&amp;language=ja');
+    expect(response.text).toContain('/vapi-test-call/test-clinic--ja.js');
+  });
+
+  test('serves the pre-generated bootstrap script with the baked-in assistant id and public key', async () => {
+    const response = await request(app(healthyDb, false, testPageDir)).get(
+      '/vapi-test-call/test-clinic--ja.js',
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers['content-type']).toMatch(/javascript/);
+    expect(response.text).toContain('"assistant-uuid"');
+    expect(response.text).toContain(`"${VAPI_PUBLIC_KEY}"`);
+  });
+
+  test('returns the JSON 404 for a page that has not been generated', async () => {
+    const response = await request(app(healthyDb, false, testPageDir)).get(
+      '/vapi-test-call/other-clinic--ja.html',
+    );
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ status: 'error', error: 'not_found' });
+  });
+
+  test('no longer has the old dynamic query-string routes', async () => {
+    const page = await request(app(healthyDb, false, testPageDir)).get(
+      '/vapi-test-call?clientId=test-clinic&language=ja',
+    );
+    const script = await request(app(healthyDb, false, testPageDir)).get(
+      '/vapi-test-call.js?clientId=test-clinic&language=ja',
+    );
+
+    expect(page.status).toBe(404);
+    expect(script.status).toBe(404);
   });
 
   test("widens the CSP script-src to allow the Vapi widget's CDN and Daily's call-object bundle, without adding unsafe-inline", async () => {
-    const response = await request(app(healthyDb, false, repoRoot)).get(
-      '/vapi-test-call?clientId=test-clinic&language=ja',
-    );
+    const response = await request(app(healthyDb, false, testPageDir)).get(pagePath);
 
     const csp = response.headers['content-security-policy'] as string;
     const scriptSrc = csp.split(';').find((directive) => directive.startsWith('script-src '));
@@ -147,9 +179,7 @@ describe('GET /vapi-test-call', () => {
   });
 
   test("widens the CSP img-src to allow the widget's icon CDN", async () => {
-    const response = await request(app(healthyDb, false, repoRoot)).get(
-      '/vapi-test-call?clientId=test-clinic&language=ja',
-    );
+    const response = await request(app(healthyDb, false, testPageDir)).get(pagePath);
 
     const csp = response.headers['content-security-policy'] as string;
     const imgSrc = csp.split(';').find((directive) => directive.startsWith('img-src '));
@@ -157,9 +187,7 @@ describe('GET /vapi-test-call', () => {
   });
 
   test('widens the CSP connect-src to allow placing a Vapi web call over Daily', async () => {
-    const response = await request(app(healthyDb, false, repoRoot)).get(
-      '/vapi-test-call?clientId=test-clinic&language=ja',
-    );
+    const response = await request(app(healthyDb, false, testPageDir)).get(pagePath);
 
     const csp = response.headers['content-security-policy'] as string;
     const connectSrc = csp.split(';').find((directive) => directive.startsWith('connect-src '));
@@ -171,9 +199,7 @@ describe('GET /vapi-test-call', () => {
   });
 
   test('widens the CSP worker-src for Daily audio-processing workers', async () => {
-    const response = await request(app(healthyDb, false, repoRoot)).get(
-      '/vapi-test-call?clientId=test-clinic&language=ja',
-    );
+    const response = await request(app(healthyDb, false, testPageDir)).get(pagePath);
 
     const csp = response.headers['content-security-policy'] as string;
     const workerSrc = csp.split(';').find((directive) => directive.startsWith('worker-src '));
@@ -193,65 +219,5 @@ describe('GET /vapi-test-call', () => {
     expect(csp).not.toContain('connect-src');
     expect(csp).not.toContain('worker-src');
     expect(csp).not.toContain('api.vapi.ai');
-  });
-});
-
-describe('GET /vapi-test-call.js', () => {
-  let repoRoot: string;
-
-  beforeEach(() => {
-    repoRoot = mkdtempSync(path.join(tmpdir(), 'tmvp-app-state-'));
-  });
-
-  afterEach(() => {
-    rmSync(repoRoot, { recursive: true, force: true });
-  });
-
-  test('is not mounted in production, even with valid params', async () => {
-    writeState(
-      'test-clinic',
-      { tools: {}, assistants: { 'test-clinic--ja': 'assistant-uuid' } },
-      { repoRoot },
-    );
-
-    const response = await request(app(healthyDb, true, repoRoot)).get(
-      '/vapi-test-call.js?clientId=test-clinic&language=ja',
-    );
-
-    expect(response.status).toBe(404);
-  });
-
-  test('returns 400 for invalid query params', async () => {
-    const response = await request(app(healthyDb, false, repoRoot)).get(
-      '/vapi-test-call.js?clientId=<script>&language=ja',
-    );
-
-    expect(response.status).toBe(400);
-  });
-
-  test('returns 404 with guidance when no assistant has been synced yet', async () => {
-    const response = await request(app(healthyDb, false, repoRoot)).get(
-      '/vapi-test-call.js?clientId=test-clinic&language=ja',
-    );
-
-    expect(response.status).toBe(404);
-    expect(response.text).toContain('vapi:sync');
-  });
-
-  test('serves the bootstrap script with the resolved assistant id and public key when synced', async () => {
-    writeState(
-      'test-clinic',
-      { tools: {}, assistants: { 'test-clinic--ja': 'assistant-uuid' } },
-      { repoRoot },
-    );
-
-    const response = await request(app(healthyDb, false, repoRoot)).get(
-      '/vapi-test-call.js?clientId=test-clinic&language=ja',
-    );
-
-    expect(response.status).toBe(200);
-    expect(response.headers['content-type']).toMatch(/javascript/);
-    expect(response.text).toContain('assistant-uuid');
-    expect(response.text).toContain(VAPI_PUBLIC_KEY);
   });
 });

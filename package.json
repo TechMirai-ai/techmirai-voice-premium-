@@ -21,7 +21,9 @@
     "test:coverage": "vitest run --coverage",
     "db:migrate": "tsx src/db/migrate.ts",
     "config:check": "tsx src/config/checkCli.ts",
-    "vapi:sync": "tsx src/vapi/cli.ts"
+    "vapi:sync": "tsx src/vapi/cli.ts",
+    "vapi:test-page": "tsx src/vapi/generateTestPage.ts",
+    "vapi:test-page:serve": "tsx src/vapi/serveTestPage.ts"
   },
   "dependencies": {
     "@vapi-ai/server-sdk": "2.0.1",

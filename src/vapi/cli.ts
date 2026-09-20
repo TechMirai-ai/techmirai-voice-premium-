@@ -86,6 +86,13 @@ export async function runSync(argv: string[]): Promise<number> {
         : 'Synced.',
     );
 
+    if (!result.dryRun) {
+      printLine(
+        `Reminder: the assistant id may have changed — regenerate the test page: ` +
+          `npm run vapi:test-page -- ${clientId} --language ${language}`,
+      );
+    }
+
     return 0;
   } catch (error) {
     printError(error instanceof Error ? error.message : String(error));

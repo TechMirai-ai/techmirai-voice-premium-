@@ -8,9 +8,7 @@ describe('renderTestCallPage', () => {
 
     expect(html).toContain('sakura-seikotsuin');
     expect(html).toContain('ja');
-    expect(html).toContain(
-      '<script src="/vapi-test-call.js?clientId=sakura-seikotsuin&amp;language=ja">',
-    );
+    expect(html).toContain('<script src="/vapi-test-call/sakura-seikotsuin--ja.js">');
   });
 
   test('HTML-escapes clientId/language to prevent injection into the page body', () => {
@@ -25,7 +23,7 @@ describe('renderTestCallPage', () => {
 
     // The only <script> tag is the same-origin src reference — no inline body.
     expect(html.match(/<script\b[^>]*>[\s\S]*?<\/script>/g)).toEqual([
-      '<script src="/vapi-test-call.js?clientId=sakura-seikotsuin&amp;language=ja"></script>',
+      '<script src="/vapi-test-call/sakura-seikotsuin--ja.js"></script>',
     ]);
   });
 });

@@ -1,13 +1,14 @@
 /**
  * Renders the manual QA test-call page (work order §6.8). Internal tool
- * only — the routes that serve this are gated behind NODE_ENV !== 'production'
- * in app.ts, never mounted in production.
+ * only — the static directory these are written to (generateTestPage.ts) is
+ * mounted in app.ts only when NODE_ENV !== 'production'.
  *
  * R5 (VAPI-FACTS.md): uses Vapi's hosted script-tag embed — no bundler, no
  * new build tooling, matching "zero new build tooling" over @vapi-ai/web.
  *
  * The bootstrap script is served as its own same-origin file
- * (GET /vapi-test-call.js in app.ts) rather than inlined into the HTML.
+ * (public/vapi-test-call/<clientId>--<language>.js, written by
+ * generateTestPage.ts) rather than inlined into the HTML.
  * helmet's default Content-Security-Policy is `script-src 'self'` with no
  * `'unsafe-inline'`, which silently blocks an inline <script> — serving this
  * as a same-origin <script src> avoids that without weakening CSP elsewhere.
@@ -90,14 +91,17 @@ export interface TestCallPageOptions {
   language: string;
 }
 
+/** File-name stem shared by the generated page and its bootstrap script. */
+export function testCallFileBase(clientId: string, language: string): string {
+  return `${clientId}--${language}`;
+}
+
 export function renderTestCallPage(options: TestCallPageOptions): string {
   const clientId = escapeHtml(options.clientId);
   const language = escapeHtml(options.language);
-  const scriptQuery = new URLSearchParams({
-    clientId: options.clientId,
-    language: options.language,
-  });
-  const scriptSrc = escapeHtml(`/vapi-test-call.js?${scriptQuery.toString()}`);
+  const scriptSrc = escapeHtml(
+    `/vapi-test-call/${testCallFileBase(options.clientId, options.language)}.js`,
+  );
 
   return `<!doctype html>
 <html lang="en">
@@ -122,7 +126,7 @@ export interface TestCallBootstrapOptions {
 }
 
 /**
- * The same-origin bootstrap script served at GET /vapi-test-call.js.
+ * The same-origin bootstrap script written next to the page by generateTestPage.ts.
  *
  * Attaches vapi.on('error', ...) once the underlying instance
  * (window.vapiSDK.vapi) is available — without this, an 'error' emitted

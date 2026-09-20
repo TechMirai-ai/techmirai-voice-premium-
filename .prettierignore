@@ -1,6 +1,7 @@
 node_modules/
 dist/
 coverage/
+public/
 package-lock.json
 
 # These files are specified verbatim by the work orders / are client content.

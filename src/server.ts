@@ -9,7 +9,6 @@ const pool = createPool({ connectionString: env.DATABASE_URL });
 const app = createApp({
   db: pool,
   isProduction: isProduction(env),
-  vapiPublicKey: env.VAPI_PUBLIC_KEY,
 });
 
 const server = app.listen(env.PORT, () => {
