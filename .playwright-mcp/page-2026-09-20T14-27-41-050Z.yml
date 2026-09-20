@@ -1,0 +1,10 @@
+- generic [ref=e1]:
+  - heading "Manual Vapi test call — internal QA only" [level=1] [ref=e2]
+  - paragraph [ref=e3]:
+    - text: "Client:"
+    - code [ref=e4]: sakura-seikotsuin
+    - text: "— Language:"
+    - code [ref=e5]: ja
+  - paragraph [ref=e6]: Click the microphone widget in the corner of the page to start a call.
+  - button [active] [ref=e7] [cursor=pointer]:
+    - img "Icon" [ref=e11]
