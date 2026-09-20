@@ -11,6 +11,7 @@ import { isDatabaseReachable } from './db/pool.js';
 import { logger } from './lib/logger.js';
 import { readState, type StateStoreOptions } from './vapi/stateStore.js';
 import {
+  VAPI_WIDGET_ICON_ORIGIN,
   VAPI_WIDGET_SCRIPT_ORIGIN,
   renderTestCallBootstrapScript,
   renderTestCallPage,
@@ -50,11 +51,15 @@ export function createApp(options: AppOptions): Express {
   // Internal QA tool (work order VP-2 §6.8) — never mounted in production.
   // helmet's default CSP is `script-src 'self'`; the widget it loads comes
   // from VAPI_WIDGET_SCRIPT_ORIGIN, so only this route's CSP is widened to
-  // allow it — every other route keeps the strict default.
+  // allow it — every other route keeps the strict default. img-src is
+  // widened the same way for VAPI_WIDGET_ICON_ORIGIN, which the widget
+  // fetches its button icon from at runtime (helmet's default img-src is
+  // `'self' data:`, which otherwise blocks it).
   const testCallCsp = helmet.contentSecurityPolicy({
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
       'script-src': ["'self'", VAPI_WIDGET_SCRIPT_ORIGIN],
+      'img-src': ["'self'", 'data:', VAPI_WIDGET_ICON_ORIGIN],
     },
   });
 

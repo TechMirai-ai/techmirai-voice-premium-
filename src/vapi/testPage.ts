@@ -13,10 +13,17 @@
  * as a same-origin <script src> avoids that without weakening CSP elsewhere.
  * app.ts additionally widens script-src on just this HTML route to allow
  * VAPI_WIDGET_SCRIPT_ORIGIN, since the widget itself loads from that CDN.
+ *
+ * The widget bundle also fetches its button icon (phone / loader / phone-off
+ * states) from VAPI_WIDGET_ICON_ORIGIN at runtime — helmet's default img-src
+ * is `'self' data:`, which blocks that fetch, so app.ts widens img-src on
+ * this route too. (Its icon font is unaffected: helmet's default font-src
+ * includes the broad `https:` scheme already.)
  */
 
 export const VAPI_WIDGET_SCRIPT_ORIGIN = 'https://cdn.jsdelivr.net';
 const VAPI_WIDGET_SCRIPT_URL = `${VAPI_WIDGET_SCRIPT_ORIGIN}/gh/VapiAI/html-script-tag@latest/dist/assets/index.js`;
+export const VAPI_WIDGET_ICON_ORIGIN = 'https://unpkg.com';
 
 function escapeHtml(value: string): string {
   return value

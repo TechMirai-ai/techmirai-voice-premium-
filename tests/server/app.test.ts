@@ -143,11 +143,23 @@ describe('GET /vapi-test-call', () => {
     expect(scriptSrc).not.toContain('unsafe-inline');
   });
 
-  test('every other route keeps the strict default CSP (script-src self only)', async () => {
+  test("widens the CSP img-src to allow the widget's icon CDN", async () => {
+    const response = await request(app(healthyDb, false, repoRoot)).get(
+      '/vapi-test-call?clientId=test-clinic&language=ja',
+    );
+
+    const csp = response.headers['content-security-policy'] as string;
+    const imgSrc = csp.split(';').find((directive) => directive.startsWith('img-src '));
+    expect(imgSrc).toBe("img-src 'self' data: https://unpkg.com");
+  });
+
+  test('every other route keeps the strict default CSP (script-src self, img-src unwidened)', async () => {
     const response = await request(app()).get('/healthz');
 
     expect(response.headers['content-security-policy']).toContain("script-src 'self'");
     expect(response.headers['content-security-policy']).not.toContain('cdn.jsdelivr.net');
+    expect(response.headers['content-security-policy']).toContain("img-src 'self' data:");
+    expect(response.headers['content-security-policy']).not.toContain('unpkg.com');
   });
 });
 
