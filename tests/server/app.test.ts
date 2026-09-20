@@ -165,7 +165,8 @@ describe('GET /vapi-test-call', () => {
     const connectSrc = csp.split(';').find((directive) => directive.startsWith('connect-src '));
     expect(connectSrc).toBe(
       "connect-src 'self' https://api.vapi.ai https://*.daily.co https://*.dailywebrtc.com " +
-        'https://*.dailywebrtc.net wss://*.daily.co wss://*.dailywebrtc.com wss://*.dailywebrtc.net',
+        'https://*.dailywebrtc.net wss://*.daily.co wss://*.dailywebrtc.com ' +
+        'wss://*.dailywebrtc.net https://*.ingest.sentry.io',
     );
   });
 
@@ -186,6 +187,7 @@ describe('GET /vapi-test-call', () => {
     expect(csp).toContain("script-src 'self'");
     expect(csp).not.toContain('cdn.jsdelivr.net');
     expect(csp).not.toContain('daily.co');
+    expect(csp).not.toContain('sentry.io');
     expect(csp).toContain("img-src 'self' data:");
     expect(csp).not.toContain('unpkg.com');
     expect(csp).not.toContain('connect-src');

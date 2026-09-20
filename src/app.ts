@@ -13,6 +13,7 @@ import { readState, type StateStoreOptions } from './vapi/stateStore.js';
 import {
   DAILY_CALL_ORIGINS,
   DAILY_CALL_WSS_ORIGINS,
+  DAILY_SENTRY_ORIGIN,
   VAPI_API_ORIGIN,
   VAPI_WIDGET_ICON_ORIGIN,
   VAPI_WIDGET_SCRIPT_ORIGIN,
@@ -66,7 +67,13 @@ export function createApp(options: AppOptions): Express {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
       'script-src': ["'self'", VAPI_WIDGET_SCRIPT_ORIGIN, ...DAILY_CALL_ORIGINS],
       'img-src': ["'self'", 'data:', VAPI_WIDGET_ICON_ORIGIN],
-      'connect-src': ["'self'", VAPI_API_ORIGIN, ...DAILY_CALL_ORIGINS, ...DAILY_CALL_WSS_ORIGINS],
+      'connect-src': [
+        "'self'",
+        VAPI_API_ORIGIN,
+        ...DAILY_CALL_ORIGINS,
+        ...DAILY_CALL_WSS_ORIGINS,
+        DAILY_SENTRY_ORIGIN,
+      ],
       'worker-src': ["'self'", 'blob:'],
     },
   });

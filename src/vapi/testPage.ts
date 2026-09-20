@@ -37,8 +37,20 @@
  * - `worker-src`: Daily's guide lists `'self' blob:` for call-object mode
  *   generally, not just for Krisp noise cancellation.
  * Not included (not used by this project): Banuba (`*.banuba.cloud`,
- * virtual backgrounds/blur — audio-only here) and Daily's own Sentry error
- * beacon (non-essential telemetry; blocked harmlessly if hit).
+ * virtual backgrounds/blur — audio-only here).
+ *
+ * DAILY_SENTRY_ORIGIN (2026-09-20 audit): grepped the real `@vapi-ai/web`
+ * (npm) and `@daily-co/daily-js@0.87.0` (npm, `client.ts`'s actual runtime
+ * dependency) packages, plus the live CDN bundle this page loads, for every
+ * hardcoded http(s)/wss URL literal — done in one pass specifically to avoid
+ * finding each missing host by spending money on a failed real call. Only
+ * one gap turned up beyond what's already listed here: Daily's bundle
+ * hardcodes an error-telemetry beacon to its own Sentry project
+ * (`o77906.ingest.sentry.io`); pinned as a wildcard subdomain rather than
+ * that exact project id, since a daily-js upgrade could rotate it. Every
+ * other literal found (`c.daily.co`, `gs.daily.co`, `www.daily.co`,
+ * `api.vapi.ai`, `unpkg.com`) was already covered above; `github.com` was
+ * just a bundled license comment, not a real connection.
  */
 
 export const VAPI_WIDGET_SCRIPT_ORIGIN = 'https://cdn.jsdelivr.net';
@@ -51,6 +63,8 @@ export const DAILY_CALL_ORIGINS = [
   'https://*.dailywebrtc.com',
   'https://*.dailywebrtc.net',
 ];
+/** Daily's hardcoded error-telemetry beacon — see the 2026-09-20 audit note above. */
+export const DAILY_SENTRY_ORIGIN = 'https://*.ingest.sentry.io';
 export const DAILY_CALL_WSS_ORIGINS = [
   'wss://*.daily.co',
   'wss://*.dailywebrtc.com',
