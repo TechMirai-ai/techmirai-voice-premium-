@@ -9,14 +9,6 @@ import type { Queryable } from './db/pool.js';
 import { isDatabaseReachable } from './db/pool.js';
 import { logger } from './lib/logger.js';
 import { TEST_PAGE_URL_PREFIX, defaultTestPageDir } from './vapi/generateTestPage.js';
-import {
-  DAILY_CALL_ORIGINS,
-  DAILY_CALL_WSS_ORIGINS,
-  DAILY_SENTRY_ORIGIN,
-  VAPI_API_ORIGIN,
-  VAPI_WIDGET_ICON_ORIGIN,
-  VAPI_WIDGET_SCRIPT_ORIGIN,
-} from './vapi/testPage.js';
 
 /** Vapi tool payloads are small; anything larger is not ours. */
 export const JSON_BODY_LIMIT = '100kb';
@@ -32,6 +24,33 @@ export function createApp(options: AppOptions): Express {
   const app = express();
 
   app.disable('x-powered-by');
+
+  // Internal QA tool (work order VP-2 §6.8) — never mounted in production.
+  // The pre-generated test-call page and its bootstrap script (`npm run
+  // vapi:test-page`) are plain static files, served by express.static().
+  //
+  // Deliberately NO Content-Security-Policy on this route (helmet's other
+  // headers still apply). A CSP here — helmet's default, and the widened
+  // Vapi/Daily one — made Vapi web calls fail to join the Daily room
+  // (`daily-call-join-error`), while the same page with the CSP off joins.
+  // We stopped bisecting which directive is responsible: this is an
+  // internal QA page, not customer-facing, and the CSP cost hours without a
+  // confirmed benefit for it. Every other route keeps helmet's full default
+  // CSP. See docs/VAPI-FACTS.md, "KNOWN ISSUE" (steps 12–13).
+  //
+  // Mounted before the global helmet() so a served file never reaches it;
+  // a missing file falls through to the strict JSON 404 below.
+  if (!options.isProduction) {
+    app.use(
+      TEST_PAGE_URL_PREFIX,
+      helmet({ contentSecurityPolicy: false }),
+      express.static(options.vapiTestPageDir ?? defaultTestPageDir(), {
+        index: false,
+        redirect: false,
+      }),
+    );
+  }
+
   app.use(helmet());
   app.use(express.json({ limit: JSON_BODY_LIMIT }));
 
@@ -46,46 +65,6 @@ export function createApp(options: AppOptions): Express {
 
     res.status(200).json({ status: 'ok' });
   });
-
-  // Internal QA tool (work order VP-2 §6.8) — never mounted in production.
-  // helmet's default CSP is `script-src 'self'`; the widget it loads comes
-  // from VAPI_WIDGET_SCRIPT_ORIGIN, so only this route's CSP is widened to
-  // allow it — every other route keeps the strict default. img-src is
-  // widened the same way for VAPI_WIDGET_ICON_ORIGIN, which the widget
-  // fetches its button icon from at runtime (helmet's default img-src is
-  // `'self' data:`, which otherwise blocks it). connect-src/script-src/
-  // worker-src are widened for Vapi's own API plus Daily's WebRTC transport
-  // that Vapi's web calls run on — see testPage.ts for the full rationale
-  // and source (Daily's CSP guide).
-  const testCallCsp = helmet.contentSecurityPolicy({
-    directives: {
-      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      'script-src': ["'self'", VAPI_WIDGET_SCRIPT_ORIGIN, ...DAILY_CALL_ORIGINS],
-      'img-src': ["'self'", 'data:', VAPI_WIDGET_ICON_ORIGIN],
-      'connect-src': [
-        "'self'",
-        VAPI_API_ORIGIN,
-        ...DAILY_CALL_ORIGINS,
-        ...DAILY_CALL_WSS_ORIGINS,
-        DAILY_SENTRY_ORIGIN,
-      ],
-      'worker-src': ["'self'", 'blob:'],
-    },
-  });
-
-  // The page and its bootstrap script are pre-generated static files
-  // (`npm run vapi:test-page`), served by express.static() — no per-request
-  // rendering. Never mounted in production (falls through to the JSON 404).
-  if (!options.isProduction) {
-    app.use(
-      TEST_PAGE_URL_PREFIX,
-      testCallCsp,
-      express.static(options.vapiTestPageDir ?? defaultTestPageDir(), {
-        index: false,
-        redirect: false,
-      }),
-    );
-  }
 
   app.use((_req: Request, res: Response) => {
     res.status(404).json({ status: 'error', error: 'not_found' });
