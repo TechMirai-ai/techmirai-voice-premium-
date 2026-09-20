@@ -125,14 +125,35 @@ to the real Vapi API — all Vapi interaction in tests goes through a mocked cli
    ```
    This refuses to run if `.vapi-state.sakura-seikotsuin.json` has uncommitted changes (commit it
    after every real sync, so git stays the rollback mechanism).
-5. **Open the test page** to place a real call by voice (with the server running via `npm run
-dev`, and only outside `NODE_ENV=production`):
+5. **Generate the test page**, then **serve it with the standalone test-page server** to place a
+   real call by voice:
+
+   ```bash
+   npm run vapi:test-page -- sakura-seikotsuin --language ja   # writes public/vapi-test-call/
+   npm run vapi:test-page:serve                                # serves it on 127.0.0.1:3001
    ```
-   http://localhost:3000/vapi-test-call?clientId=sakura-seikotsuin&language=ja
-   ```
-   Click the microphone widget to start a call. Since the callback endpoint doesn't exist until
-   VP-4, asking something outside the FAQ is expected to end in the assistant speaking a graceful
-   failure message, not silence or an error.
+
+   Then open `http://127.0.0.1:3001/vapi-test-call/sakura-seikotsuin--ja.html` and click the
+   microphone widget to start a call. Since the callback endpoint doesn't exist until VP-4, asking
+   something outside the FAQ is expected to end in the assistant speaking a graceful failure
+   message, not silence or an error.
+
+   **Re-run `npm run vapi:test-page` after every `vapi:sync --apply`** — the page has the
+   assistant id written into it, and the id can change. The generated files hold the (browser-safe)
+   public key and the assistant id, so `public/vapi-test-call/` is git-ignored.
+
+   **What the standalone server is, and why it exists.** It is a small plain `node:http` static
+   file server (`src/vapi/serveTestPage.ts`) — no Express, no helmet, no security headers — bound
+   to localhost only, serving nothing but the generated test page files. It exists because of a
+   known, unresolved issue: web calls started from the same page **when served by this project's
+   Express app** (`http://localhost:3000/vapi-test-call/…`, which still works as a URL) fail to
+   join Vapi's call room (`daily-call-join-error`, ~6.6s), whereas the identical page served from a
+   bare `node:http` server joins successfully. Three different ways of sending the response from
+   Express all failed the same way, and the cause is not found. Full write-up and the list of
+   everything ruled out: [`docs/VAPI-FACTS.md`](docs/VAPI-FACTS.md), section "KNOWN ISSUE (OPEN,
+   unresolved)". Until that is resolved, **use the standalone server for test calls**, not the
+   Express-served page. A second fallback is the test-call feature in Vapi's own dashboard. Both
+   the page and the server are internal QA tools and are never mounted in production.
 
 ---
 
@@ -149,6 +170,8 @@ dev`, and only outside `NODE_ENV=production`):
 | `npm run db:migrate`                                          | Apply new database migrations                     |
 | `npm run config:check -- <clientId>`                          | Validate one client's config                      |
 | `npm run vapi:sync -- <clientId> --language <code> [--apply]` | Dry-run (default) or apply the Vapi sync          |
+| `npm run vapi:test-page -- <clientId> --language <code>`      | Regenerate the static test-call page              |
+| `npm run vapi:test-page:serve`                                | Serve that page on 127.0.0.1:3001 (plain Node)    |
 
 Run `npm test`, `npm run typecheck` and `npm run lint` before opening a pull request.
 
