@@ -66,6 +66,7 @@ scales better than a growing inline list.
 **What:** Set the monthly price for this tier.
 **Why later:** Needs real per-minute cost measurements from test calls.
 **Note:** The earlier architecture notes estimated roughly $0.10–$0.40 per minute all-in and $270–450/month for a busy clinic. These figures are unverified — measure real costs from VP-2+ test calls before pricing.
+**R7 data point (2026-09-20, see docs/VAPI-FACTS.md):** First real measurement — a 15.9s throwaway call (azure/ja-JP-NanamiNeural voice, azure/ja-JP transcriber, openai/gpt-4o-mini, static first message only, no reply turn) cost $0.0237 total (≈$0.089/min): transport $0.0002, transcriber(STT) $0.0102, Vapi platform fee $0.0133, model(LLM) $0, voice(TTS) $0. The $0 LLM/TTS is because no real conversational turn happened (the model was never invoked past the static greeting) — **this is a floor, not a usable per-minute figure for pricing.** A follow-up test call with an actual back-and-forth exchange is still needed before F-7 can be priced with real LLM+TTS costs included.
 **Base must allow:** Nothing in code. (Optional later: record call duration per client for cost reporting.)
 
 ## F-8 — Deployment target (open decision)
