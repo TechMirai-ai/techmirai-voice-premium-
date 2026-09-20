@@ -19,11 +19,43 @@
  * is `'self' data:`, which blocks that fetch, so app.ts widens img-src on
  * this route too. (Its icon font is unaffected: helmet's default font-src
  * includes the broad `https:` scheme already.)
+ *
+ * Placing the actual call needs `connect-src`/`script-src`/`worker-src`
+ * widened further, empirically confirmed against a real call attempt
+ * (2026-09-20) and cross-checked against Daily's own CSP guide — Vapi's web
+ * calls run on Daily's WebRTC transport (`daily-js`, "call object" mode, no
+ * `avoidEval`/Krisp/virtual-background usage here, so this is Daily's
+ * documented minimal set, not their Prebuilt/full set):
+ * https://docs.daily.co/docs/guides/privacy-and-security/content-security-policy
+ * - `script-src`: the observed failure ("Failed to load call object bundle")
+ *   was a script-src block on `c.daily.co`, so DAILY_CALL_ORIGINS is added
+ *   there (Daily's `avoidEval`-style fallback-domain approach) rather than
+ *   adding `'unsafe-eval'`.
+ * - `connect-src`: VAPI_API_ORIGIN (the `POST /call/web` Vapi makes to start
+ *   a call) plus DAILY_CALL_ORIGINS (Daily's REST fallback domains) and
+ *   DAILY_CALL_WSS_ORIGINS (Daily's signaling websockets).
+ * - `worker-src`: Daily's guide lists `'self' blob:` for call-object mode
+ *   generally, not just for Krisp noise cancellation.
+ * Not included (not used by this project): Banuba (`*.banuba.cloud`,
+ * virtual backgrounds/blur — audio-only here) and Daily's own Sentry error
+ * beacon (non-essential telemetry; blocked harmlessly if hit).
  */
 
 export const VAPI_WIDGET_SCRIPT_ORIGIN = 'https://cdn.jsdelivr.net';
 const VAPI_WIDGET_SCRIPT_URL = `${VAPI_WIDGET_SCRIPT_ORIGIN}/gh/VapiAI/html-script-tag@latest/dist/assets/index.js`;
 export const VAPI_WIDGET_ICON_ORIGIN = 'https://unpkg.com';
+export const VAPI_API_ORIGIN = 'https://api.vapi.ai';
+/** Daily's own domain plus its two documented fallback domains — every entry needs all three (see the CSP guide linked above). */
+export const DAILY_CALL_ORIGINS = [
+  'https://*.daily.co',
+  'https://*.dailywebrtc.com',
+  'https://*.dailywebrtc.net',
+];
+export const DAILY_CALL_WSS_ORIGINS = [
+  'wss://*.daily.co',
+  'wss://*.dailywebrtc.com',
+  'wss://*.dailywebrtc.net',
+];
 
 function escapeHtml(value: string): string {
   return value

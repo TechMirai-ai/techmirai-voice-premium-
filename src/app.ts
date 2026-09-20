@@ -11,6 +11,9 @@ import { isDatabaseReachable } from './db/pool.js';
 import { logger } from './lib/logger.js';
 import { readState, type StateStoreOptions } from './vapi/stateStore.js';
 import {
+  DAILY_CALL_ORIGINS,
+  DAILY_CALL_WSS_ORIGINS,
+  VAPI_API_ORIGIN,
   VAPI_WIDGET_ICON_ORIGIN,
   VAPI_WIDGET_SCRIPT_ORIGIN,
   renderTestCallBootstrapScript,
@@ -54,12 +57,17 @@ export function createApp(options: AppOptions): Express {
   // allow it — every other route keeps the strict default. img-src is
   // widened the same way for VAPI_WIDGET_ICON_ORIGIN, which the widget
   // fetches its button icon from at runtime (helmet's default img-src is
-  // `'self' data:`, which otherwise blocks it).
+  // `'self' data:`, which otherwise blocks it). connect-src/script-src/
+  // worker-src are widened for Vapi's own API plus Daily's WebRTC transport
+  // that Vapi's web calls run on — see testPage.ts for the full rationale
+  // and source (Daily's CSP guide).
   const testCallCsp = helmet.contentSecurityPolicy({
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      'script-src': ["'self'", VAPI_WIDGET_SCRIPT_ORIGIN],
+      'script-src': ["'self'", VAPI_WIDGET_SCRIPT_ORIGIN, ...DAILY_CALL_ORIGINS],
       'img-src': ["'self'", 'data:', VAPI_WIDGET_ICON_ORIGIN],
+      'connect-src': ["'self'", VAPI_API_ORIGIN, ...DAILY_CALL_ORIGINS, ...DAILY_CALL_WSS_ORIGINS],
+      'worker-src': ["'self'", 'blob:'],
     },
   });
 

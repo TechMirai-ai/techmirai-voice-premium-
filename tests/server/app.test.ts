@@ -132,15 +132,18 @@ describe('GET /vapi-test-call', () => {
     expect(response.text).toContain('/vapi-test-call.js?clientId=test-clinic&amp;language=ja');
   });
 
-  test("widens the CSP script-src to allow the Vapi widget's CDN, without adding unsafe-inline", async () => {
+  test("widens the CSP script-src to allow the Vapi widget's CDN and Daily's call-object bundle, without adding unsafe-inline", async () => {
     const response = await request(app(healthyDb, false, repoRoot)).get(
       '/vapi-test-call?clientId=test-clinic&language=ja',
     );
 
     const csp = response.headers['content-security-policy'] as string;
     const scriptSrc = csp.split(';').find((directive) => directive.startsWith('script-src '));
-    expect(scriptSrc).toBe("script-src 'self' https://cdn.jsdelivr.net");
+    expect(scriptSrc).toBe(
+      "script-src 'self' https://cdn.jsdelivr.net https://*.daily.co https://*.dailywebrtc.com https://*.dailywebrtc.net",
+    );
     expect(scriptSrc).not.toContain('unsafe-inline');
+    expect(scriptSrc).not.toContain('unsafe-eval');
   });
 
   test("widens the CSP img-src to allow the widget's icon CDN", async () => {
@@ -153,13 +156,41 @@ describe('GET /vapi-test-call', () => {
     expect(imgSrc).toBe("img-src 'self' data: https://unpkg.com");
   });
 
-  test('every other route keeps the strict default CSP (script-src self, img-src unwidened)', async () => {
-    const response = await request(app()).get('/healthz');
+  test('widens the CSP connect-src to allow placing a Vapi web call over Daily', async () => {
+    const response = await request(app(healthyDb, false, repoRoot)).get(
+      '/vapi-test-call?clientId=test-clinic&language=ja',
+    );
 
-    expect(response.headers['content-security-policy']).toContain("script-src 'self'");
-    expect(response.headers['content-security-policy']).not.toContain('cdn.jsdelivr.net');
-    expect(response.headers['content-security-policy']).toContain("img-src 'self' data:");
-    expect(response.headers['content-security-policy']).not.toContain('unpkg.com');
+    const csp = response.headers['content-security-policy'] as string;
+    const connectSrc = csp.split(';').find((directive) => directive.startsWith('connect-src '));
+    expect(connectSrc).toBe(
+      "connect-src 'self' https://api.vapi.ai https://*.daily.co https://*.dailywebrtc.com " +
+        'https://*.dailywebrtc.net wss://*.daily.co wss://*.dailywebrtc.com wss://*.dailywebrtc.net',
+    );
+  });
+
+  test('widens the CSP worker-src for Daily audio-processing workers', async () => {
+    const response = await request(app(healthyDb, false, repoRoot)).get(
+      '/vapi-test-call?clientId=test-clinic&language=ja',
+    );
+
+    const csp = response.headers['content-security-policy'] as string;
+    const workerSrc = csp.split(';').find((directive) => directive.startsWith('worker-src '));
+    expect(workerSrc).toBe("worker-src 'self' blob:");
+  });
+
+  test('every other route keeps the strict default CSP unwidened', async () => {
+    const response = await request(app()).get('/healthz');
+    const csp = response.headers['content-security-policy'] as string;
+
+    expect(csp).toContain("script-src 'self'");
+    expect(csp).not.toContain('cdn.jsdelivr.net');
+    expect(csp).not.toContain('daily.co');
+    expect(csp).toContain("img-src 'self' data:");
+    expect(csp).not.toContain('unpkg.com');
+    expect(csp).not.toContain('connect-src');
+    expect(csp).not.toContain('worker-src');
+    expect(csp).not.toContain('api.vapi.ai');
   });
 });
 
