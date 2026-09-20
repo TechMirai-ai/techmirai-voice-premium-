@@ -153,6 +153,16 @@ export function renderTestCallBootstrapScript(options: TestCallBootstrapOptions)
       tries++;
       if (window.vapiSDK.vapi) {
         clearInterval(iv);
+        var vapiInstance = window.vapiSDK.vapi;
+        var originalStart = vapiInstance.start.bind(vapiInstance);
+        vapiInstance.start = function () {
+          console.info('Vapi start() configured values:', JSON.stringify({
+            publicKey: ${safeJsonForScript(options.publicKey)},
+            assistantId: ${safeJsonForScript(options.assistantId)},
+          }));
+          console.info('Vapi start() actual arguments:', JSON.stringify(Array.prototype.slice.call(arguments)));
+          return originalStart.apply(null, arguments);
+        };
         window.vapiSDK.vapi.on('error', function (e) {
           console.error('Vapi call error (raw):', e);
           try {

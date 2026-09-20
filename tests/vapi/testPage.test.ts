@@ -73,4 +73,18 @@ describe('renderTestCallBootstrapScript', () => {
     // non-enumerable message/stack survive JSON.stringify too.
     expect(script).toContain('Object.getOwnPropertyNames(e');
   });
+
+  test('logs the exact publicKey/assistantId and start() arguments right before vapi.start()', () => {
+    const script = renderTestCallBootstrapScript({
+      publicKey: 'pub-key',
+      assistantId: 'assistant-id',
+    });
+
+    expect(script).toContain('vapiInstance.start = function');
+    expect(script).toContain('Vapi start() configured values:');
+    expect(script).toContain('"pub-key"');
+    expect(script).toContain('"assistant-id"');
+    expect(script).toContain('Vapi start() actual arguments:');
+    expect(script).toContain('originalStart.apply(null, arguments)');
+  });
 });
