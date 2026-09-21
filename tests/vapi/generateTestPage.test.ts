@@ -21,7 +21,7 @@ describe('generateTestPage', () => {
   const syncAssistant = (assistantId: string): void =>
     writeState(
       'test-clinic',
-      { tools: {}, assistants: { 'test-clinic--ja': assistantId } },
+      { tools: {}, assistants: { 'test-clinic--ja': assistantId }, squads: {} },
       { repoRoot },
     );
 
@@ -73,5 +73,37 @@ describe('generateTestPage', () => {
       generateTestPage({ clientId: '../evil', language: 'ja', publicKey: 'k', repoRoot }),
     ).toThrow(/Invalid clientId/);
     expect(existsSync(path.join(repoRoot, 'public'))).toBe(false);
+  });
+
+  describe('squad target (default)', () => {
+    const syncSquadId = (squadId: string): void =>
+      writeState(
+        'test-clinic',
+        {
+          tools: {},
+          assistants: { 'test-clinic--ja': 'assistant-uuid' },
+          squads: { 'test-clinic--squad': squadId },
+        },
+        { repoRoot },
+      );
+
+    test('with no language, bakes the squad id (not an assistant id) into <clientId>--squad', () => {
+      syncSquadId('squad-uuid');
+
+      const result = generateTestPage({ clientId: 'test-clinic', publicKey: 'pub-key', repoRoot });
+
+      expect(result.urlPath).toBe('/vapi-test-call/test-clinic--squad.html');
+      const script = readFileSync(result.scriptPath, 'utf8');
+      expect(script).toContain('squad: "squad-uuid"');
+      expect(script).not.toContain('assistant-uuid');
+    });
+
+    test('throws with squad-sync guidance when no squad has been synced, even if an assistant has', () => {
+      syncAssistant('assistant-uuid');
+
+      expect(() => generateTestPage({ clientId: 'test-clinic', publicKey: 'k', repoRoot })).toThrow(
+        /--squad --apply/,
+      );
+    });
   });
 });

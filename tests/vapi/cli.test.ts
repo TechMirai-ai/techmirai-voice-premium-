@@ -158,6 +158,25 @@ describe('runSync (in-process)', () => {
     expect(err.join('')).toContain('Usage:');
   });
 
+  test('--squad on its own is a valid mode: it reaches the sync (and fails clearly for an unknown client)', async () => {
+    const { err } = captureOutput();
+
+    const code = await runSync(['no-such-clinic', '--squad']);
+
+    expect(code).toBe(1);
+    expect(err.join('')).toContain('no config found at');
+    expect(err.join('')).not.toContain('Usage:');
+  });
+
+  test('prints usage when both --language and --squad are given', async () => {
+    const { err } = captureOutput();
+
+    const code = await runSync([SAKURA_ID, '--language', 'ja', '--squad']);
+
+    expect(code).toBe(1);
+    expect(err.join('')).toContain('Usage:');
+  });
+
   test('returns 1 with a clear message for an unknown client', async () => {
     const { err } = captureOutput();
 

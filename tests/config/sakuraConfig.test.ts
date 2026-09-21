@@ -39,6 +39,15 @@ describe('the Sakura Seikotsuin demo config', () => {
     }
   });
 
+  test('VP-3: has a Japanese handoffToJapanese line to speak, and its English is a gloss (never spoken)', () => {
+    const { config } = loadClientWithWarnings(SAKURA_ID);
+
+    expect(config.scripts.handoffToJapanese['ja']).toBe(
+      '日本語の受付にお繋ぎしました。ご用件をお聞かせください。',
+    );
+    expect(config.scripts.handoffToJapanese['en']).toMatch(/^\(Gloss for Jamal, not spoken:/);
+  });
+
   test('stores the phone number in a form that can hold E.164 (FUTURE-FEATURES F-4)', () => {
     const { config } = loadClientWithWarnings(SAKURA_ID);
 

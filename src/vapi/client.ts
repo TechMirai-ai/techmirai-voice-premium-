@@ -14,26 +14,31 @@ import { Vapi, VapiClient } from '@vapi-ai/server-sdk';
 import type {
   VapiAssistantPayload,
   VapiCreatedResource,
-  VapiFunctionToolPayload,
+  VapiSquadPayload,
+  VapiToolPayload,
 } from './types.js';
 
 export interface VapiSyncClient {
   tools: {
-    create(payload: VapiFunctionToolPayload): Promise<VapiCreatedResource>;
-    update(id: string, payload: VapiFunctionToolPayload): Promise<VapiCreatedResource>;
+    create(payload: VapiToolPayload): Promise<VapiCreatedResource>;
+    update(id: string, payload: VapiToolPayload): Promise<VapiCreatedResource>;
   };
   assistants: {
     create(payload: VapiAssistantPayload): Promise<VapiCreatedResource>;
     update(id: string, payload: VapiAssistantPayload): Promise<VapiCreatedResource>;
   };
+  squads: {
+    create(payload: VapiSquadPayload): Promise<VapiCreatedResource>;
+    update(id: string, payload: VapiSquadPayload): Promise<VapiCreatedResource>;
+  };
 }
 
 /**
- * Our narrow VapiFunctionToolPayload turns out to be structurally assignable
- * to the SDK's real (much larger) CreateToolsRequest union as-is — no cast
- * needed, TypeScript checks it at the `return` statement below.
+ * Our narrow tool payloads (function and handoff) turn out to be structurally
+ * assignable to the SDK's real (much larger) CreateToolsRequest union as-is —
+ * no cast needed, TypeScript checks it at the `return` statement below.
  */
-function toCreateToolsRequest(payload: VapiFunctionToolPayload): Vapi.CreateToolsRequest {
+function toCreateToolsRequest(payload: VapiToolPayload): Vapi.CreateToolsRequest {
   return payload;
 }
 
@@ -65,6 +70,12 @@ export function createVapiClient(apiKey: string): VapiSyncClient {
           id,
           ...toCreateAssistantDto(payload),
         } as unknown as Vapi.UpdateAssistantDto),
+    },
+    // Like assistants (and unlike tools), squads.update flattens `id` into the
+    // same object as the fields — VAPI-FACTS.md, VP-3 R1.
+    squads: {
+      create: (payload) => client.squads.create(payload),
+      update: (id, payload) => client.squads.update({ id, ...payload }),
     },
   };
 }

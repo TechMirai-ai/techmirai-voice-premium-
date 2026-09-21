@@ -1,19 +1,35 @@
 /**
- * Builds a client/language's Vapi payloads and syncs them: create when no
- * state entry exists yet, update when one does. Dry-run by default — see
- * cli.ts. Never calls the real Vapi API in dry-run mode (work order §3).
+ * Builds a client's Vapi payloads and syncs them: create when no state entry
+ * exists yet, update when one does. Dry-run by default — see cli.ts. Never
+ * calls the real Vapi API in dry-run mode (work order §3).
+ *
+ * Two entry points, in dependency order:
+ *   1. `syncClient`  — one language: its request_callback tool, one handoff
+ *      tool per other language, then its assistant. Handoff destinations are
+ *      by assistant *name*, so language order does not matter here.
+ *   2. `syncSquad`   — after every supported language has been synced: the
+ *      Squad, which needs each assistant's real id.
  *
  * Extends the work order's `opts: { dryRun }` with `client`/`baseUrl` (and
  * `clientsDir`/`repoRoot` for tests) for the same testability reasons as
- * render.ts's `baseUrl` parameter — this function stays fully mockable
+ * render.ts's `baseUrl` parameter — these functions stay fully mockable
  * without a real Vapi client or a real PUBLIC_BASE_URL. Printing the diff is
  * left to cli.ts (§6.7), so `no-console` stays scoped to CLI entry points,
  * matching checkCli.ts.
  */
 import { loadClient, type LoadClientOptions } from '../config/loadClient.js';
+import type { ClientConfig } from '../config/schema.js';
 import { FileKnowledgeSource } from '../knowledge/KnowledgeSource.js';
 import type { VapiSyncClient } from './client.js';
 import { renderAssistant } from './render.js';
+import {
+  assistantResourceName,
+  handoffTargets,
+  handoffToolStateName,
+  orderedLanguages,
+  renderSquad,
+  squadStateName,
+} from './squad.js';
 import {
   getStateFileGitStatus,
   readState,
@@ -21,6 +37,7 @@ import {
   type StateStoreOptions,
   type VapiState,
 } from './stateStore.js';
+import type { VapiToolPayload } from './types.js';
 
 export class UncommittedStateFileError extends Error {
   constructor(clientId: string) {
@@ -46,7 +63,10 @@ export interface SyncResult {
   dryRun: boolean;
   clientId: string;
   language: string;
+  /** The request_callback tool. */
   tool: SyncResourceResult;
+  /** One per other supported language. */
+  handoffTools: SyncResourceResult[];
   assistant: SyncResourceResult;
   /** Human-readable diff, ready to print — see cli.ts. */
   diffLines: string[];
@@ -67,25 +87,82 @@ function toolStateName(clientId: string, language: string): string {
   return `${clientId}--${language}--request-callback`;
 }
 
-function assistantStateName(clientId: string, language: string): string {
-  return `${clientId}--${language}`;
+function describeResource(resource: SyncResourceResult): string {
+  return resource.id
+    ? `${resource.action} "${resource.name}" (${resource.id})`
+    : `${resource.action} "${resource.name}"`;
+}
+
+function planResource(name: string, existingId: string | undefined): SyncResourceResult {
+  return {
+    name,
+    action: existingId ? 'update' : 'create',
+    ...(existingId ? { id: existingId } : {}),
+  };
+}
+
+function stateOptionsOf(options: { repoRoot?: string | undefined }): StateStoreOptions {
+  return options.repoRoot ? { repoRoot: options.repoRoot } : {};
+}
+
+function loadOptionsOf(options: SyncClientOptions | SyncSquadOptions): LoadClientOptions {
+  return options.clientsDir ? { clientsDir: options.clientsDir } : {};
+}
+
+/** Refuses to run against a state file with uncommitted changes (work order §3). */
+function assertStateFileCommitted(clientId: string, stateOptions: StateStoreOptions): void {
+  const gitStatus = getStateFileGitStatus(clientId, stateOptions);
+  if (gitStatus.fileExists && gitStatus.hasUncommittedChanges) {
+    throw new UncommittedStateFileError(clientId);
+  }
+}
+
+interface PlannedTool {
+  result: SyncResourceResult;
+  payload: VapiToolPayload;
+}
+
+/**
+ * Creates or updates each tool in order, persisting every id immediately: if a
+ * later call fails, a retry must see the earlier tools as already-synced and
+ * call update, not create again — otherwise each retry after a partial failure
+ * would leave another orphaned tool on Vapi.
+ */
+async function applyTools(
+  planned: PlannedTool[],
+  client: VapiSyncClient,
+  clientId: string,
+  startState: VapiState,
+  stateOptions: StateStoreOptions,
+): Promise<{ state: VapiState; results: SyncResourceResult[] }> {
+  let state = startState;
+  const results: SyncResourceResult[] = [];
+
+  for (const { result, payload } of planned) {
+    const existingId = state.tools[result.name];
+    const synced = existingId
+      ? await client.tools.update(existingId, payload)
+      : await client.tools.create(payload);
+    state = { ...state, tools: { ...state.tools, [result.name]: synced.id } };
+    writeState(clientId, state, stateOptions);
+    results.push({ ...result, id: synced.id });
+  }
+
+  return { state, results };
 }
 
 function buildDiffLines(
   clientId: string,
   language: string,
   tool: SyncResourceResult,
+  handoffTools: SyncResourceResult[],
   assistant: SyncResourceResult,
 ): string[] {
-  const describe = (resource: SyncResourceResult): string =>
-    resource.id
-      ? `${resource.action} "${resource.name}" (${resource.id})`
-      : `${resource.action} "${resource.name}"`;
-
   return [
     `Client: ${clientId}  Language: ${language}`,
-    `  tool:      ${describe(tool)}`,
-    `  assistant: ${describe(assistant)}`,
+    `  tool:      ${describeResource(tool)}`,
+    ...handoffTools.map((handoff) => `  handoff:   ${describeResource(handoff)}`),
+    `  assistant: ${describeResource(assistant)}`,
   ];
 }
 
@@ -94,91 +171,164 @@ export async function syncClient(
   language: string,
   options: SyncClientOptions,
 ): Promise<SyncResult> {
-  const stateOptions: StateStoreOptions = options.repoRoot ? { repoRoot: options.repoRoot } : {};
-  const gitStatus = getStateFileGitStatus(clientId, stateOptions);
-  if (gitStatus.fileExists && gitStatus.hasUncommittedChanges) {
-    throw new UncommittedStateFileError(clientId);
-  }
+  const stateOptions = stateOptionsOf(options);
+  assertStateFileCommitted(clientId, stateOptions);
 
-  const loadOptions: LoadClientOptions = options.clientsDir
-    ? { clientsDir: options.clientsDir }
-    : {};
+  const loadOptions = loadOptionsOf(options);
   const config = loadClient(clientId, loadOptions);
   const faq = await new FileKnowledgeSource(loadOptions).listFaq(clientId);
-  const { assistant: assistantPayload, tool: toolPayload } = renderAssistant(
-    config,
-    language,
-    faq,
-    {
-      baseUrl: options.baseUrl,
-    },
-  );
+  const rendered = renderAssistant(config, language, faq, { baseUrl: options.baseUrl });
 
-  const toolName = toolStateName(clientId, language);
-  const assistantName = assistantStateName(clientId, language);
   const state = readState(clientId, stateOptions);
-  const existingToolId = state.tools[toolName];
-  const existingAssistantId = state.assistants[assistantName];
+  const assistantName = assistantResourceName(clientId, language);
+  const toolName = toolStateName(clientId, language);
 
-  const toolResult: SyncResourceResult = {
-    name: toolName,
-    action: existingToolId ? 'update' : 'create',
-    ...(existingToolId ? { id: existingToolId } : {}),
+  const toolPlan: PlannedTool = {
+    result: planResource(toolName, state.tools[toolName]),
+    payload: rendered.tool,
   };
-  const assistantResult: SyncResourceResult = {
-    name: assistantName,
-    action: existingAssistantId ? 'update' : 'create',
-    ...(existingAssistantId ? { id: existingAssistantId } : {}),
-  };
+  const handoffPlans: PlannedTool[] = rendered.handoffTools.map(({ toLanguage, payload }) => {
+    const name = handoffToolStateName(clientId, language, toLanguage);
+    return { result: planResource(name, state.tools[name]), payload };
+  });
+  const assistantPlan = planResource(assistantName, state.assistants[assistantName]);
 
   if (options.dryRun) {
+    const handoffResults = handoffPlans.map((plan) => plan.result);
     return {
       dryRun: true,
       clientId,
       language,
-      tool: toolResult,
-      assistant: assistantResult,
-      diffLines: buildDiffLines(clientId, language, toolResult, assistantResult),
+      tool: toolPlan.result,
+      handoffTools: handoffResults,
+      assistant: assistantPlan,
+      diffLines: buildDiffLines(clientId, language, toolPlan.result, handoffResults, assistantPlan),
     };
   }
 
-  const syncedTool = existingToolId
-    ? await options.client.tools.update(existingToolId, toolPayload)
-    : await options.client.tools.create(toolPayload);
-
-  // Persisted immediately, before the assistant call: if that call below
-  // fails, a retry must see this tool as already-synced (existingToolId set)
-  // and call tools.update, not tools.create again — otherwise every retry
-  // after a partial failure would create another orphaned tool on Vapi.
-  const stateAfterTool: VapiState = {
-    ...state,
-    tools: { ...state.tools, [toolName]: syncedTool.id },
-  };
-  writeState(clientId, stateAfterTool, stateOptions);
+  const { state: stateAfterTools, results } = await applyTools(
+    [toolPlan, ...handoffPlans],
+    options.client,
+    clientId,
+    state,
+    stateOptions,
+  );
+  const [toolResult, ...handoffResults] = results;
+  if (!toolResult) throw new Error('unreachable: applyTools returned no results');
 
   const assistantToSend = {
-    ...assistantPayload,
-    model: { ...assistantPayload.model, toolIds: [syncedTool.id] },
+    ...rendered.assistant,
+    model: {
+      ...rendered.assistant.model,
+      toolIds: results.map((result) => result.id ?? ''),
+    },
   };
+  const existingAssistantId = state.assistants[assistantName];
   const syncedAssistant = existingAssistantId
     ? await options.client.assistants.update(existingAssistantId, assistantToSend)
     : await options.client.assistants.create(assistantToSend);
 
-  const finalState: VapiState = {
-    ...stateAfterTool,
-    assistants: { ...stateAfterTool.assistants, [assistantName]: syncedAssistant.id },
-  };
-  writeState(clientId, finalState, stateOptions);
+  writeState(
+    clientId,
+    {
+      ...stateAfterTools,
+      assistants: { ...stateAfterTools.assistants, [assistantName]: syncedAssistant.id },
+    },
+    stateOptions,
+  );
 
-  const finalToolResult = { ...toolResult, id: syncedTool.id };
-  const finalAssistantResult = { ...assistantResult, id: syncedAssistant.id };
-
+  const finalAssistant = { ...assistantPlan, id: syncedAssistant.id };
   return {
     dryRun: false,
     clientId,
     language,
-    tool: finalToolResult,
-    assistant: finalAssistantResult,
-    diffLines: buildDiffLines(clientId, language, finalToolResult, finalAssistantResult),
+    tool: toolResult,
+    handoffTools: handoffResults,
+    assistant: finalAssistant,
+    diffLines: buildDiffLines(clientId, language, toolResult, handoffResults, finalAssistant),
   };
+}
+
+export class SquadPrerequisiteError extends Error {
+  constructor(
+    clientId: string,
+    readonly missing: string[],
+  ) {
+    super(
+      `Cannot sync the squad for "${clientId}" yet — these are not in .vapi-state.${clientId}.json: ` +
+        `${missing.join(', ')}. Sync every supported language first: ` +
+        `npm run vapi:sync -- ${clientId} --language <code> --apply`,
+    );
+    this.name = 'SquadPrerequisiteError';
+  }
+}
+
+export interface SyncSquadResult {
+  dryRun: boolean;
+  clientId: string;
+  squad: SyncResourceResult;
+  /** Member assistant names, in call order — the first one starts the call. */
+  memberNames: string[];
+  diffLines: string[];
+}
+
+export type SyncSquadOptions = Omit<SyncClientOptions, 'baseUrl'>;
+
+/** Every state-file name that must exist before the squad can reference it. */
+function squadPrerequisites(config: ClientConfig): { assistants: string[]; tools: string[] } {
+  const languages = config.languages.supported;
+  return {
+    assistants: languages.map((code) => assistantResourceName(config.clientId, code)),
+    tools: languages.flatMap((code) => [
+      toolStateName(config.clientId, code),
+      ...handoffTargets(config, code).map((to) => handoffToolStateName(config.clientId, code, to)),
+    ]),
+  };
+}
+
+export async function syncSquad(
+  clientId: string,
+  options: SyncSquadOptions,
+): Promise<SyncSquadResult> {
+  const stateOptions = stateOptionsOf(options);
+  assertStateFileCommitted(clientId, stateOptions);
+
+  const config = loadClient(clientId, loadOptionsOf(options));
+  const state = readState(clientId, stateOptions);
+
+  const needed = squadPrerequisites(config);
+  const missing = [
+    ...needed.assistants.filter((name) => !state.assistants[name]),
+    ...needed.tools.filter((name) => !state.tools[name]),
+  ];
+  if (missing.length > 0) throw new SquadPrerequisiteError(clientId, missing);
+
+  const assistantIds = Object.fromEntries(
+    config.languages.supported.map((code) => [
+      code,
+      state.assistants[assistantResourceName(clientId, code)] ?? '',
+    ]),
+  );
+  const payload = renderSquad(config, assistantIds);
+  const name = squadStateName(clientId);
+  const plan = planResource(name, state.squads[name]);
+  const memberNames = orderedLanguages(config).map((code) => assistantResourceName(clientId, code));
+
+  const diff = (squad: SyncResourceResult): string[] => [
+    `Client: ${clientId}  Squad`,
+    `  squad:     ${describeResource(squad)}`,
+    `  members:   ${memberNames.join(' -> ')}  (first starts the call)`,
+  ];
+
+  if (options.dryRun) {
+    return { dryRun: true, clientId, squad: plan, memberNames, diffLines: diff(plan) };
+  }
+
+  const synced = state.squads[name]
+    ? await options.client.squads.update(state.squads[name], payload)
+    : await options.client.squads.create(payload);
+  writeState(clientId, { ...state, squads: { ...state.squads, [name]: synced.id } }, stateOptions);
+
+  const final = { ...plan, id: synced.id };
+  return { dryRun: false, clientId, squad: final, memberNames, diffLines: diff(final) };
 }

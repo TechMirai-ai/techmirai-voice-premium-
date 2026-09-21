@@ -25,7 +25,7 @@ describe('config:check', () => {
     expect(code).toBe(0);
     expect(printed).toContain(`OK  ${SAKURA_ID}`);
     expect(printed).toMatch(/languages:\s+ja, en \(default: ja\)/);
-    expect(printed).toMatch(/scripts:\s+13/);
+    expect(printed).toMatch(/scripts:\s+14/);
     expect(printed).toMatch(/FAQ:\s+10/);
   });
 

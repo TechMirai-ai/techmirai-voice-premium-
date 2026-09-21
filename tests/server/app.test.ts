@@ -104,7 +104,7 @@ describe('static /vapi-test-call', () => {
     testPageDir = path.join(repoRoot, 'public', 'vapi-test-call');
     writeState(
       'test-clinic',
-      { tools: {}, assistants: { 'test-clinic--ja': 'assistant-uuid' } },
+      { tools: {}, assistants: { 'test-clinic--ja': 'assistant-uuid' }, squads: {} },
       { repoRoot },
     );
     generateTestPage({

@@ -90,6 +90,39 @@ function formatFaqEntry(config: ClientConfig, language: string, entry: FaqEntry)
   ].join('\n');
 }
 
+/**
+ * Instructions for handing the call to another language's assistant. One
+ * bullet per other supported language, driven entirely by `switchKeywords` in
+ * client.yaml — no language is named here. Empty when only one language is
+ * supported. The handoff tools themselves are built in squad.ts.
+ */
+function languageSwitchSection(config: ClientConfig, language: string): string[] {
+  const bullets = config.languages.supported
+    .filter((code) => code !== language)
+    .map((code) => {
+      const keywords = (config.languages.settings[code]?.switchKeywords ?? [])
+        .map((keyword) => `"${keyword}"`)
+        .join(', ');
+      return (
+        `- If the caller says ${keywords}, or otherwise asks to continue in the "${code}" ` +
+        `language, call the handoff tool that transfers to the "${code}" assistant.`
+      );
+    });
+  if (bullets.length === 0) return [];
+
+  return [
+    [
+      'Language switching: this call can be handed to a receptionist who speaks another language.',
+      ...bullets,
+      'The caller may ask at any point in the call, not only at the start — after answering ' +
+        'questions, or at any later turn. Call the tool right away, without saying anything ' +
+        'before or after it: the other receptionist greets the caller themselves. Only hand ' +
+        'off when the caller clearly asks for another language; a single foreign word inside ' +
+        'an ordinary sentence is not a request.',
+    ].join('\n'),
+  ];
+}
+
 export function buildSystemPrompt(config: ClientConfig, language: string, faq: FaqEntry[]): string {
   if (!config.languages.supported.includes(language)) {
     throw new UnsupportedLanguageError(config.clientId, language, config.languages.supported);
@@ -157,13 +190,8 @@ export function buildSystemPrompt(config: ClientConfig, language: string, faq: F
     // 6. Didn't-catch handling
     `If you don't clearly understand what the caller said, don't guess at it — say: "${scriptLine('didNotCatch')}"`,
 
-    // 7. Temporary language deflection.
-    // TODO(VP-3): remove once the Squad handoff exists. Written generically
-    // (no language named) so this stays true for every language in
-    // languages.supported, not just the one VP-2 happens to run for.
-    'If the caller asks to continue in a different language than the one you are ' +
-      'currently speaking, apologize that other languages are not available in this test ' +
-      'version yet, and continue in the current language.',
+    // 7. Language switching (Squad handoff)
+    ...languageSwitchSection(config, language),
 
     // 8. Tone
     'Tone: speak naturally, the way a real receptionist would on the phone — this is a ' +

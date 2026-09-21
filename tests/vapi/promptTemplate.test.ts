@@ -54,14 +54,52 @@ describe('buildSystemPrompt — Sakura fixture (ja)', () => {
     );
   });
 
-  test('includes the temporary language-deflection instruction', async () => {
+  test("no longer contains VP-2's temporary language-deflection instruction, in either language", async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    for (const language of config.languages.supported) {
+      const prompt = buildSystemPrompt(config, language, faq).toLowerCase();
+
+      expect(prompt).not.toContain('apologize');
+      expect(prompt).not.toContain('not available in this test');
+      expect(prompt).not.toContain('continue in the current language');
+    }
+  });
+
+  test("tells the Japanese assistant to hand off to English on the English assistant's switchKeywords, at any point in the call", async () => {
     const config = loadClient(SAKURA_ID);
     const faq = await knowledge.listFaq(SAKURA_ID);
 
     const prompt = buildSystemPrompt(config, 'ja', faq);
 
-    expect(prompt.toLowerCase()).toContain('apologize');
-    expect(prompt.toLowerCase()).toContain('current language');
+    expect(prompt).toContain('Language switching');
+    expect(prompt).toContain('"English"');
+    expect(prompt).toContain('"英語"');
+    expect(prompt).toContain('handoff tool');
+    expect(prompt).toContain('"en" assistant');
+    expect(prompt).toContain('at any point in the call');
+    expect(prompt).not.toContain('"ja" assistant');
+  });
+
+  test('tells the English assistant the equivalent: hand back to Japanese on 日本語 / Japanese', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'en', faq);
+
+    expect(prompt).toContain('Language switching');
+    expect(prompt).toContain('"日本語"');
+    expect(prompt).toContain('"Japanese"');
+    expect(prompt).toContain('handoff tool');
+    expect(prompt).toContain('"ja" assistant');
+    expect(prompt).not.toContain('"en" assistant');
+  });
+
+  test('a single-language client gets no language-switching section at all', () => {
+    const config = buildMinimalConfig({ language: 'fr' });
+
+    expect(buildSystemPrompt(config, 'fr', config.faq)).not.toContain('Language switching');
   });
 
   test('leaves [[callerName]]/[[callerPhone]] untouched for the model to fill at call time', async () => {

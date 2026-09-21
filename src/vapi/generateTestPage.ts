@@ -1,8 +1,11 @@
 /**
  * `npm run vapi:test-page -- <clientId> --language <code>`
  *
+ * `npm run vapi:test-page -- <clientId> --language <code>` targets one assistant.
+ *
  * Bakes the manual test-call page (HTML + bootstrap JS) into plain static
- * files under public/vapi-test-call/, with the synced assistant id and
+ * files under public/vapi-test-call/, with the synced squad id (default) or
+ * assistant id (`--language`) and
  * Vapi's public key written directly into the text. app.ts serves that
  * directory with express.static() — no per-request rendering. Re-run after
  * every `vapi:sync --apply`, since the assistant id can change.
@@ -17,6 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { defaultClientsDir } from '../config/loadClient.js';
 import { LANGUAGE_CODE_PATTERN, SLUG_PATTERN } from '../config/schema.js';
 import { loadEnv } from '../env.js';
+import { assistantResourceName, squadStateName } from './squad.js';
 import { readState } from './stateStore.js';
 import { renderTestCallBootstrapScript, renderTestCallPage, testCallFileBase } from './testPage.js';
 
@@ -29,7 +33,8 @@ export function defaultTestPageDir(repoRoot: string = path.dirname(defaultClient
 
 export interface GenerateTestPageOptions {
   clientId: string;
-  language: string;
+  /** Omit to target the squad (default since VP-3); set to target that language's assistant alone. */
+  language?: string;
   /** Vapi's public key — safe for the browser (VAPI-FACTS.md). */
   publicKey: string;
   /** Overrides for tests: where the state file / output dir are resolved from. */
@@ -44,22 +49,50 @@ export interface GeneratedTestPage {
   urlPath: string;
 }
 
-export function generateTestPage(options: GenerateTestPageOptions): GeneratedTestPage {
-  const { clientId, language, publicKey } = options;
+type TestCallTarget = { assistantId: string } | { squadId: string };
 
-  // The ids become file names — reject anything that could escape outDir.
-  if (!SLUG_PATTERN.test(clientId) || !LANGUAGE_CODE_PATTERN.test(language)) {
-    throw new Error(`Invalid clientId/language: "${clientId}" / "${language}"`);
+/** Looks the target's id up in the state file; the squad unless `language` is given. */
+function resolveTarget(
+  clientId: string,
+  language: string | undefined,
+  repoRoot: string | undefined,
+): TestCallTarget {
+  const state = readState(clientId, repoRoot ? { repoRoot } : {});
+
+  if (language === undefined) {
+    const squadId = state.squads[squadStateName(clientId)];
+    if (!squadId) {
+      throw new Error(
+        `No synced squad found for "${clientId}". ` +
+          `Run: npm run vapi:sync -- ${clientId} --squad --apply ` +
+          '(after syncing every language with --language <code> --apply)',
+      );
+    }
+    return { squadId };
   }
 
-  const state = readState(clientId, options.repoRoot ? { repoRoot: options.repoRoot } : {});
-  const assistantId = state.assistants[`${clientId}--${language}`];
+  const assistantId = state.assistants[assistantResourceName(clientId, language)];
   if (!assistantId) {
     throw new Error(
       `No synced assistant found for "${clientId}" / "${language}". ` +
         `Run: npm run vapi:sync -- ${clientId} --language ${language} --apply`,
     );
   }
+  return { assistantId };
+}
+
+export function generateTestPage(options: GenerateTestPageOptions): GeneratedTestPage {
+  const { clientId, language, publicKey } = options;
+
+  // The ids become file names — reject anything that could escape outDir.
+  if (
+    !SLUG_PATTERN.test(clientId) ||
+    (language !== undefined && !LANGUAGE_CODE_PATTERN.test(language))
+  ) {
+    throw new Error(`Invalid clientId/language: "${clientId}" / "${language ?? ''}"`);
+  }
+
+  const target = resolveTarget(clientId, language, options.repoRoot);
 
   const outDir = options.outDir ?? defaultTestPageDir(options.repoRoot);
   const base = testCallFileBase(clientId, language);
@@ -67,8 +100,12 @@ export function generateTestPage(options: GenerateTestPageOptions): GeneratedTes
   const scriptPath = path.join(outDir, `${base}.js`);
 
   mkdirSync(outDir, { recursive: true });
-  writeFileSync(htmlPath, renderTestCallPage({ clientId, language }), 'utf8');
-  writeFileSync(scriptPath, renderTestCallBootstrapScript({ publicKey, assistantId }), 'utf8');
+  writeFileSync(
+    htmlPath,
+    renderTestCallPage({ clientId, ...(language ? { language } : {}) }),
+    'utf8',
+  );
+  writeFileSync(scriptPath, renderTestCallBootstrapScript({ publicKey, ...target }), 'utf8');
 
   return { htmlPath, scriptPath, urlPath: `${TEST_PAGE_URL_PREFIX}/${base}.html` };
 }
@@ -87,14 +124,18 @@ export function runGenerateTestPage(argv: string[]): number {
   const language = languageFlag === -1 ? undefined : argv[languageFlag + 1];
   const clientId = argv.find((arg, index) => !arg.startsWith('--') && index !== languageFlag + 1);
 
-  if (!clientId || !language || language.startsWith('--')) {
-    printError('Usage: npm run vapi:test-page -- <clientId> --language <code>');
+  if (!clientId || (languageFlag !== -1 && (!language || language.startsWith('--')))) {
+    printError('Usage: npm run vapi:test-page -- <clientId> [--language <code>]');
     return 1;
   }
 
   try {
     const env = loadEnv();
-    const result = generateTestPage({ clientId, language, publicKey: env.VAPI_PUBLIC_KEY });
+    const result = generateTestPage({
+      clientId,
+      ...(language ? { language } : {}),
+      publicKey: env.VAPI_PUBLIC_KEY,
+    });
     printLine(`Wrote ${result.htmlPath}`);
     printLine(`Wrote ${result.scriptPath}`);
     // 127.0.0.1, not localhost: the page failed to join a Vapi web call when

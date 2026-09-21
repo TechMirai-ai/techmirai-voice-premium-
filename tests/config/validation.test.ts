@@ -29,6 +29,22 @@ describe('client config validation', () => {
     expect(message).toContain('scripts.greeting.en');
   });
 
+  test('VP-3: scripts.handoffToJapanese is validated like every other script — required, in every language', () => {
+    expect(() => parse(sakura)).not.toThrow();
+
+    const noJapanese = withChanges(sakura, (draft) => {
+      delete draft.scripts.handoffToJapanese.ja;
+    });
+    expect(
+      issueAt(captureIssues(() => parse(noJapanese)).issues, 'scripts.handoffToJapanese.ja'),
+    ).toMatch(/missing text/i);
+
+    const absent = withChanges(sakura, (draft) => {
+      delete draft.scripts.handoffToJapanese;
+    });
+    expect(captureIssues(() => parse(absent)).message).toContain('handoffToJapanese');
+  });
+
   test('reports the exact path when an FAQ answer is missing its Japanese text', () => {
     const document = withChanges(sakura, (draft) => {
       delete draft.faq[3].answer.ja;

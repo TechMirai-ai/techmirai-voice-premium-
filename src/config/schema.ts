@@ -104,6 +104,8 @@ const safetySchema = z.strictObject({
 const scriptsSchema = z.strictObject({
   greeting: localizedTextSchema,
   englishGreeting: localizedTextSchema,
+  /** Spoken (in `ja`) when a caller is handed back to the Japanese assistant — VP-3. */
+  handoffToJapanese: localizedTextSchema,
   anythingElse: localizedTextSchema,
   noMatch: localizedTextSchema,
   staffContactOffer: localizedTextSchema,

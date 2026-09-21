@@ -36,17 +36,24 @@ function safeJsonForScript(value: unknown): string {
 
 export interface TestCallPageOptions {
   clientId: string;
-  language: string;
+  /** Omit to describe the squad page (the default target since VP-3). */
+  language?: string;
 }
 
-/** File-name stem shared by the generated page and its bootstrap script. */
-export function testCallFileBase(clientId: string, language: string): string {
-  return `${clientId}--${language}`;
+/**
+ * File-name stem shared by the generated page and its bootstrap script.
+ * `<clientId>--squad` for the squad page, `<clientId>--<language>` for a
+ * single assistant (the isolation fallback).
+ */
+export function testCallFileBase(clientId: string, language?: string): string {
+  return `${clientId}--${language ?? 'squad'}`;
 }
 
 export function renderTestCallPage(options: TestCallPageOptions): string {
   const clientId = escapeHtml(options.clientId);
-  const language = escapeHtml(options.language);
+  const target = options.language
+    ? `Assistant language: <code>${escapeHtml(options.language)}</code>`
+    : 'Target: <strong>squad</strong> (say "English" / "Japanese" to test the handoff)';
   const scriptSrc = escapeHtml(
     `/vapi-test-call/${testCallFileBase(options.clientId, options.language)}.js`,
   );
@@ -59,7 +66,7 @@ export function renderTestCallPage(options: TestCallPageOptions): string {
 </head>
 <body>
 <h1>Manual Vapi test call — internal QA only</h1>
-<p>Client: <code>${clientId}</code> — Language: <code>${language}</code></p>
+<p>Client: <code>${clientId}</code> — ${target}</p>
 <p>Click the microphone widget in the corner of the page to start a call.</p>
 <script src="${scriptSrc}"></script>
 </body>
@@ -67,11 +74,14 @@ export function renderTestCallPage(options: TestCallPageOptions): string {
 `;
 }
 
-export interface TestCallBootstrapOptions {
+interface TestCallBootstrapBase {
   /** Vapi's public key — safe to expose in the browser (VAPI-FACTS.md). */
   publicKey: string;
-  assistantId: string;
 }
+
+/** Start a call against one assistant, or (`squadId`) against a squad — VAPI-FACTS.md, VP-3 R4. */
+export type TestCallBootstrapOptions = TestCallBootstrapBase &
+  ({ assistantId: string; squadId?: never } | { squadId: string; assistantId?: never });
 
 /**
  * The same-origin bootstrap script written next to the page by generateTestPage.ts.
@@ -88,6 +98,12 @@ export interface TestCallBootstrapOptions {
  * real Error.
  */
 export function renderTestCallBootstrapScript(options: TestCallBootstrapOptions): string {
+  // The widget's run() takes `squad` (an id string) or `assistant`; with only
+  // `squad` set it calls vapi.start(undefined, undefined, squadId).
+  const target = options.squadId
+    ? { runKey: 'squad', id: options.squadId, logKey: 'squadId' }
+    : { runKey: 'assistant', id: options.assistantId, logKey: 'assistantId' };
+
   return `(function (d, t) {
   var g = d.createElement(t), s = d.getElementsByTagName(t)[0];
   g.src = ${safeJsonForScript(VAPI_WIDGET_SCRIPT_URL)};
@@ -97,7 +113,7 @@ export function renderTestCallBootstrapScript(options: TestCallBootstrapOptions)
   g.onload = function () {
     window.vapiSDK.run({
       apiKey: ${safeJsonForScript(options.publicKey)},
-      assistant: ${safeJsonForScript(options.assistantId)},
+      ${target.runKey}: ${safeJsonForScript(target.id)},
       config: {},
     });
     var tries = 0;
@@ -110,7 +126,7 @@ export function renderTestCallBootstrapScript(options: TestCallBootstrapOptions)
         vapiInstance.start = function () {
           console.info('Vapi start() configured values:', JSON.stringify({
             publicKey: ${safeJsonForScript(options.publicKey)},
-            assistantId: ${safeJsonForScript(options.assistantId)},
+            ${target.logKey}: ${safeJsonForScript(target.id)},
           }));
           console.info('Vapi start() actual arguments:', JSON.stringify(Array.prototype.slice.call(arguments)));
           return originalStart.apply(null, arguments);

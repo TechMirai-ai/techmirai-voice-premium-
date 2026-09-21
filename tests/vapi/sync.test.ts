@@ -6,7 +6,12 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import type { VapiSyncClient } from '../../src/vapi/client.js';
-import { UncommittedStateFileError, syncClient } from '../../src/vapi/sync.js';
+import {
+  SquadPrerequisiteError,
+  UncommittedStateFileError,
+  syncClient,
+  syncSquad,
+} from '../../src/vapi/sync.js';
 import { readState } from '../../src/vapi/stateStore.js';
 import {
   readSakuraDocument,
@@ -30,35 +35,62 @@ interface MockClient {
   toolsUpdate: ReturnType<typeof vi.fn>;
   assistantsCreate: ReturnType<typeof vi.fn>;
   assistantsUpdate: ReturnType<typeof vi.fn>;
+  squadsCreate: ReturnType<typeof vi.fn>;
+  squadsUpdate: ReturnType<typeof vi.fn>;
+  /** Every real API call, in order, e.g. "tools.create", "squads.update". */
+  callLog: string[];
 }
 
 function createMockClient(): MockClient {
   let counter = 0;
-  const toolsCreate = vi.fn(() => Promise.resolve({ id: `tool-${++counter}` }));
-  const toolsUpdate = vi.fn((id: string) => Promise.resolve({ id }));
-  const assistantsCreate = vi.fn(() => Promise.resolve({ id: `assistant-${++counter}` }));
-  const assistantsUpdate = vi.fn((id: string) => Promise.resolve({ id }));
+  const callLog: string[] = [];
+  const logged = <Args extends unknown[]>(label: string, make: (...args: Args) => { id: string }) =>
+    vi.fn((...args: Args) => {
+      callLog.push(label);
+      return Promise.resolve(make(...args));
+    });
+
+  const toolsCreate = logged('tools.create', () => ({ id: `tool-${++counter}` }));
+  const toolsUpdate = logged('tools.update', (id: string) => ({ id }));
+  const assistantsCreate = logged('assistants.create', () => ({ id: `assistant-${++counter}` }));
+  const assistantsUpdate = logged('assistants.update', (id: string) => ({ id }));
+  const squadsCreate = logged('squads.create', () => ({ id: `squad-${++counter}` }));
+  const squadsUpdate = logged('squads.update', (id: string) => ({ id }));
 
   return {
     client: {
       tools: { create: toolsCreate, update: toolsUpdate },
       assistants: { create: assistantsCreate, update: assistantsUpdate },
+      squads: { create: squadsCreate, update: squadsUpdate },
     },
     toolsCreate,
     toolsUpdate,
     assistantsCreate,
     assistantsUpdate,
+    squadsCreate,
+    squadsUpdate,
+    callLog,
   };
 }
 
-function sync(client: VapiSyncClient, dryRun: boolean) {
-  return syncClient(CLIENT_ID, 'ja', {
+function sync(client: VapiSyncClient, dryRun: boolean, language = 'ja') {
+  return syncClient(CLIENT_ID, language, {
     dryRun,
     client,
     baseUrl: BASE_URL,
     clientsDir: fixture.clientsDir,
     repoRoot,
   });
+}
+
+function syncTheSquad(client: VapiSyncClient, dryRun: boolean) {
+  return syncSquad(CLIENT_ID, { dryRun, client, clientsDir: fixture.clientsDir, repoRoot });
+}
+
+/** Commits the state file, matching the real workflow between two syncs. */
+function commitState(): void {
+  git('add', `.vapi-state.${CLIENT_ID}.json`);
+  git('commit', '--quiet', '-m', 'sync state');
 }
 
 beforeEach(() => {
@@ -77,82 +109,108 @@ afterEach(() => {
 
 describe('syncClient — dry run', () => {
   test('makes zero client calls and writes no state file', async () => {
-    const { client, toolsCreate, assistantsCreate } = createMockClient();
+    const mock = createMockClient();
 
-    const result = await sync(client, true);
+    const result = await sync(mock.client, true);
 
     expect(result.dryRun).toBe(true);
     expect(result.tool.action).toBe('create');
+    expect(result.handoffTools.map((tool) => tool.name)).toEqual([
+      'sakura-seikotsuin--ja--handoff-to-en',
+    ]);
     expect(result.assistant.action).toBe('create');
-    expect(toolsCreate).not.toHaveBeenCalled();
-    expect(assistantsCreate).not.toHaveBeenCalled();
-    expect(readState(CLIENT_ID, { repoRoot })).toEqual({ tools: {}, assistants: {} });
+    expect(mock.callLog).toEqual([]);
+    expect(readState(CLIENT_ID, { repoRoot })).toEqual({ tools: {}, assistants: {}, squads: {} });
   });
 });
 
 describe('syncClient — apply', () => {
-  test('calls create when no state entry exists yet, and writes the resolved ids', async () => {
-    const { client, toolsCreate, toolsUpdate, assistantsCreate, assistantsUpdate } =
-      createMockClient();
+  test('creates the callback tool, the handoff tool, then the assistant — and writes every resolved id', async () => {
+    const mock = createMockClient();
 
-    const result = await sync(client, false);
+    const result = await sync(mock.client, false);
 
-    expect(result.tool.action).toBe('create');
-    expect(result.assistant.action).toBe('create');
-    expect(toolsCreate).toHaveBeenCalledTimes(1);
-    expect(assistantsCreate).toHaveBeenCalledTimes(1);
-    expect(toolsUpdate).not.toHaveBeenCalled();
-    expect(assistantsUpdate).not.toHaveBeenCalled();
-
+    expect(mock.callLog).toEqual(['tools.create', 'tools.create', 'assistants.create']);
     const state = readState(CLIENT_ID, { repoRoot });
     expect(state.tools['sakura-seikotsuin--ja--request-callback']).toBe(result.tool.id);
+    expect(state.tools['sakura-seikotsuin--ja--handoff-to-en']).toBe(result.handoffTools[0]?.id);
     expect(state.assistants['sakura-seikotsuin--ja']).toBe(result.assistant.id);
   });
 
-  test('calls update when a state entry already exists', async () => {
-    const { client, toolsCreate, toolsUpdate, assistantsUpdate } = createMockClient();
-    await sync(client, false);
-    git('add', `.vapi-state.${CLIENT_ID}.json`);
-    git('commit', '--quiet', '-m', 'sync state');
+  test('sends a handoff tool payload to Vapi for the second tool', async () => {
+    const mock = createMockClient();
 
-    const result = await sync(client, false);
+    await sync(mock.client, false);
+
+    const payloads = mock.toolsCreate.mock.calls.map((call) => call[0] as { type: string });
+    expect(payloads.map((payload) => payload.type)).toEqual(['function', 'handoff']);
+  });
+
+  test('English: syncs its own tools and assistant, with a handoff tool back to Japanese', async () => {
+    const mock = createMockClient();
+
+    const result = await sync(mock.client, false, 'en');
+
+    const state = readState(CLIENT_ID, { repoRoot });
+    expect(state.tools['sakura-seikotsuin--en--request-callback']).toBeDefined();
+    expect(state.tools['sakura-seikotsuin--en--handoff-to-ja']).toBe(result.handoffTools[0]?.id);
+    expect(state.assistants['sakura-seikotsuin--en']).toBe(result.assistant.id);
+  });
+
+  test('calls update for everything when state entries already exist', async () => {
+    const mock = createMockClient();
+    await sync(mock.client, false);
+    commitState();
+
+    const result = await sync(mock.client, false);
 
     expect(result.tool.action).toBe('update');
+    expect(result.handoffTools[0]?.action).toBe('update');
     expect(result.assistant.action).toBe('update');
-    expect(toolsUpdate).toHaveBeenCalledTimes(1);
-    expect(assistantsUpdate).toHaveBeenCalledTimes(1);
-    expect(toolsCreate).toHaveBeenCalledTimes(1); // only from the first sync
+    expect(mock.toolsUpdate).toHaveBeenCalledTimes(2);
+    expect(mock.assistantsUpdate).toHaveBeenCalledTimes(1);
+    expect(mock.toolsCreate).toHaveBeenCalledTimes(2); // only from the first sync
   });
 
-  test("passes the resolved tool id into the assistant payload's model.toolIds", async () => {
-    const { client, assistantsCreate } = createMockClient();
+  test("passes both resolved tool ids into the assistant payload's model.toolIds", async () => {
+    const mock = createMockClient();
 
-    const result = await sync(client, false);
+    const result = await sync(mock.client, false);
 
-    const sentPayload = assistantsCreate.mock.calls[0]?.[0] as { model: { toolIds: string[] } };
-    expect(sentPayload.model.toolIds).toEqual([result.tool.id]);
+    const sentPayload = mock.assistantsCreate.mock.calls[0]?.[0] as {
+      model: { toolIds: string[] };
+    };
+    expect(sentPayload.model.toolIds).toEqual([result.tool.id, result.handoffTools[0]?.id]);
   });
 
-  test('persists the tool id even if the assistant call fails, so a retry updates instead of duplicating the tool', async () => {
-    const { client, toolsCreate, toolsUpdate, assistantsCreate } = createMockClient();
-    assistantsCreate.mockRejectedValueOnce(new Error('network blip'));
+  test('persists every tool id even if the assistant call fails, so a retry updates instead of duplicating tools', async () => {
+    const mock = createMockClient();
+    mock.assistantsCreate.mockRejectedValueOnce(new Error('network blip'));
 
-    await expect(sync(client, false)).rejects.toThrow('network blip');
+    await expect(sync(mock.client, false)).rejects.toThrow('network blip');
 
     const state = readState(CLIENT_ID, { repoRoot });
     expect(state.tools['sakura-seikotsuin--ja--request-callback']).toBeDefined();
+    expect(state.tools['sakura-seikotsuin--ja--handoff-to-en']).toBeDefined();
     expect(state.assistants['sakura-seikotsuin--ja']).toBeUndefined();
+    commitState();
 
-    // Commit the partial state, matching the real workflow, then retry.
-    git('add', `.vapi-state.${CLIENT_ID}.json`);
-    git('commit', '--quiet', '-m', 'partial sync state');
+    await sync(mock.client, false);
 
-    await sync(client, false);
+    expect(mock.toolsCreate).toHaveBeenCalledTimes(2);
+    expect(mock.toolsUpdate).toHaveBeenCalledTimes(2);
+  });
 
-    // The retry sees the tool as already-synced (from the persisted partial
-    // state) and updates it instead of creating a second, orphaned tool.
-    expect(toolsCreate).toHaveBeenCalledTimes(1);
-    expect(toolsUpdate).toHaveBeenCalledTimes(1);
+  test('persists the first tool even if the second tool call fails', async () => {
+    const mock = createMockClient();
+    mock.toolsCreate.mockResolvedValueOnce({ id: 'tool-a' });
+    mock.toolsCreate.mockRejectedValueOnce(new Error('handoff tool failed'));
+
+    await expect(sync(mock.client, false)).rejects.toThrow('handoff tool failed');
+
+    const state = readState(CLIENT_ID, { repoRoot });
+    expect(state.tools['sakura-seikotsuin--ja--request-callback']).toBe('tool-a');
+    expect(state.tools['sakura-seikotsuin--ja--handoff-to-en']).toBeUndefined();
   });
 });
 
@@ -175,5 +233,97 @@ describe('syncClient — uncommitted state file guard', () => {
     await sync(client, false);
 
     await expect(sync(client, true)).rejects.toThrow(UncommittedStateFileError);
+  });
+});
+
+describe('syncSquad', () => {
+  async function syncBothLanguages(mock: MockClient): Promise<void> {
+    await sync(mock.client, false, 'ja');
+    commitState();
+    await sync(mock.client, false, 'en');
+    commitState();
+  }
+
+  test('refuses until every supported language has been synced, naming what is missing', async () => {
+    const mock = createMockClient();
+    await sync(mock.client, false, 'ja');
+    commitState();
+    mock.callLog.length = 0;
+
+    const attempt = syncTheSquad(mock.client, false);
+
+    await expect(attempt).rejects.toThrow(SquadPrerequisiteError);
+    await expect(attempt).rejects.toThrow(/sakura-seikotsuin--en/);
+    expect(mock.callLog).toEqual([]);
+  });
+
+  test('creates the squad only after both assistants and all four tools exist', async () => {
+    const mock = createMockClient();
+    await syncBothLanguages(mock);
+
+    const result = await syncTheSquad(mock.client, false);
+
+    expect(mock.callLog).toEqual([
+      ...Array(2).fill('tools.create'),
+      'assistants.create',
+      ...Array(2).fill('tools.create'),
+      'assistants.create',
+      'squads.create',
+    ]);
+    expect(result.squad.action).toBe('create');
+    expect(readState(CLIENT_ID, { repoRoot }).squads['sakura-seikotsuin--squad']).toBe(
+      result.squad.id,
+    );
+  });
+
+  test('sends the Japanese assistant id first, then the English one, using the real synced ids', async () => {
+    const mock = createMockClient();
+    await syncBothLanguages(mock);
+    const { assistants } = readState(CLIENT_ID, { repoRoot });
+
+    await syncTheSquad(mock.client, false);
+
+    expect(mock.squadsCreate.mock.calls[0]?.[0]).toEqual({
+      name: 'sakura-seikotsuin--squad',
+      members: [
+        { assistantId: assistants['sakura-seikotsuin--ja'] },
+        { assistantId: assistants['sakura-seikotsuin--en'] },
+      ],
+    });
+  });
+
+  test('updates the squad in place on a second run', async () => {
+    const mock = createMockClient();
+    await syncBothLanguages(mock);
+    await syncTheSquad(mock.client, false);
+    commitState();
+
+    const result = await syncTheSquad(mock.client, false);
+
+    expect(result.squad.action).toBe('update');
+    expect(mock.squadsCreate).toHaveBeenCalledTimes(1);
+    expect(mock.squadsUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  test('dry run makes zero client calls and writes nothing', async () => {
+    const mock = createMockClient();
+    await syncBothLanguages(mock);
+    const before = readState(CLIENT_ID, { repoRoot });
+    mock.callLog.length = 0;
+
+    const result = await syncTheSquad(mock.client, true);
+
+    expect(result.dryRun).toBe(true);
+    expect(result.squad.action).toBe('create');
+    expect(result.memberNames).toEqual(['sakura-seikotsuin--ja', 'sakura-seikotsuin--en']);
+    expect(mock.callLog).toEqual([]);
+    expect(readState(CLIENT_ID, { repoRoot })).toEqual(before);
+  });
+
+  test('refuses when the state file has uncommitted changes (same rule as syncClient)', async () => {
+    const mock = createMockClient();
+    await sync(mock.client, false, 'ja');
+
+    await expect(syncTheSquad(mock.client, true)).rejects.toThrow(UncommittedStateFileError);
   });
 });

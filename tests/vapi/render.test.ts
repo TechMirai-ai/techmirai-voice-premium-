@@ -62,6 +62,42 @@ describe('renderAssistant — Sakura fixture (ja)', () => {
   });
 });
 
+describe('renderAssistant — handoff (Sakura)', () => {
+  test('the Japanese assistant opens with the call greeting and gets one handoff tool, to English', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const { assistant, handoffTools } = renderAssistant(config, 'ja', faq, { baseUrl: BASE_URL });
+
+    expect(assistant.firstMessage).toContain('For English, please say "English"');
+    expect(handoffTools.map((tool) => tool.toLanguage)).toEqual(['en']);
+    expect(handoffTools[0]?.payload.destinations[0]?.assistantName).toBe('sakura-seikotsuin--en');
+  });
+
+  test('the English assistant opens with its arrival greeting (not the "say English" greeting) and hands back to Japanese', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const { assistant, handoffTools } = renderAssistant(config, 'en', faq, { baseUrl: BASE_URL });
+
+    expect(assistant.name).toBe('sakura-seikotsuin--en');
+    expect(assistant.firstMessage).toContain('English receptionist for Sakura Seikotsuin');
+    expect(assistant.firstMessage).not.toContain('For English');
+    expect(assistant.voice).toEqual({ provider: 'azure', voiceId: 'en-US-JennyNeural' });
+    expect(assistant.transcriber).toEqual({ provider: 'azure', language: 'en-US' });
+    expect(handoffTools.map((tool) => tool.toLanguage)).toEqual(['ja']);
+    expect(handoffTools[0]?.payload.destinations[0]?.assistantName).toBe('sakura-seikotsuin--ja');
+  });
+
+  test('a single-language client renders no handoff tools', () => {
+    const config = buildMinimalConfig({ language: 'fr' });
+
+    expect(renderAssistant(config, 'fr', config.faq, { baseUrl: BASE_URL }).handoffTools).toEqual(
+      [],
+    );
+  });
+});
+
 describe('renderAssistant — error handling', () => {
   test('throws UnsupportedLanguageError for a language not in languages.supported', async () => {
     const config = loadClient(SAKURA_ID);

@@ -16,6 +16,7 @@ import { defaultClientsDir } from '../config/loadClient.js';
 export interface VapiState {
   tools: Record<string, string>;
   assistants: Record<string, string>;
+  squads: Record<string, string>;
 }
 
 export interface StateStoreOptions {
@@ -33,7 +34,7 @@ export function stateFilePath(clientId: string, options: StateStoreOptions = {})
 
 /** Empty state — the shape a client gets on its first-ever sync. */
 function emptyState(): VapiState {
-  return { tools: {}, assistants: {} };
+  return { tools: {}, assistants: {}, squads: {} };
 }
 
 /** Never throws on a missing file: absence means "nothing synced yet". */
@@ -45,6 +46,7 @@ export function readState(clientId: string, options: StateStoreOptions = {}): Va
   return {
     tools: { ...(parsed.tools ?? {}) },
     assistants: { ...(parsed.assistants ?? {}) },
+    squads: { ...(parsed.squads ?? {}) },
   };
 }
 

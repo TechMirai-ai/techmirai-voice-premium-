@@ -86,3 +86,28 @@ describe('renderTestCallBootstrapScript', () => {
     expect(script).toContain('originalStart.apply(null, arguments)');
   });
 });
+
+describe('squad target (VP-3)', () => {
+  test('the squad page has no language and names the squad file', () => {
+    const html = renderTestCallPage({ clientId: 'sakura-seikotsuin' });
+
+    expect(html).toContain('squad');
+    expect(html).toContain('<script src="/vapi-test-call/sakura-seikotsuin--squad.js"></script>');
+  });
+
+  test('the bootstrap script starts the call with `squad`, not `assistant`, and logs the squad id', () => {
+    const script = renderTestCallBootstrapScript({ publicKey: 'pub-key', squadId: 'squad-uuid' });
+
+    expect(script).toContain('squad: "squad-uuid"');
+    expect(script).not.toContain('assistant:');
+    expect(script).toContain('squadId: "squad-uuid"');
+    expect(script).toContain('window.vapiSDK.run');
+  });
+
+  test('a single-assistant script still uses `assistant`, not `squad`', () => {
+    const script = renderTestCallBootstrapScript({ publicKey: 'k', assistantId: 'a-1' });
+
+    expect(script).toContain('assistant: "a-1"');
+    expect(script).not.toContain('squad:');
+  });
+});

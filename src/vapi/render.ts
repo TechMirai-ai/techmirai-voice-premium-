@@ -16,7 +16,17 @@ import {
 } from './promptTemplate.js';
 import type { ClientConfig } from '../config/schema.js';
 import type { FaqEntry } from '../knowledge/KnowledgeSource.js';
-import type { VapiAssistantPayload, VapiFunctionToolPayload } from './types.js';
+import {
+  assistantResourceName,
+  handoffTargets,
+  renderArrivalMessage,
+  renderHandoffTool,
+} from './squad.js';
+import type {
+  VapiAssistantPayload,
+  VapiFunctionToolPayload,
+  VapiHandoffToolPayload,
+} from './types.js';
 
 export class UnconfiguredTranscriberError extends Error {
   constructor(clientId: string, language: string) {
@@ -40,9 +50,17 @@ export interface RenderOptions {
   baseUrl: string;
 }
 
+export interface RenderedHandoffTool {
+  /** The language this tool hands the call to. */
+  toLanguage: string;
+  payload: VapiHandoffToolPayload;
+}
+
 export interface RenderResult {
   assistant: VapiAssistantPayload;
   tool: VapiFunctionToolPayload;
+  /** One per other supported language; empty for a single-language client. */
+  handoffTools: RenderedHandoffTool[];
 }
 
 /** Strips a trailing slash so `${baseUrl}/api/...` never ends up with `//`. */
@@ -78,11 +96,13 @@ export function renderAssistant(
     language,
     pick(config.scripts.callbackFailed, language),
   );
-  const firstMessage = fillClinicPlaceholders(
-    config,
-    language,
-    pick(config.scripts.greeting, language),
-  );
+  // The default language's assistant starts every call, so it opens with the
+  // greeting. Any other language's assistant is only ever reached by a handoff,
+  // so it opens with its arrival message instead.
+  const firstMessage =
+    language === config.languages.default
+      ? fillClinicPlaceholders(config, language, pick(config.scripts.greeting, language))
+      : renderArrivalMessage(config, language);
 
   const tool: VapiFunctionToolPayload = {
     type: 'function',
@@ -110,7 +130,7 @@ export function renderAssistant(
   };
 
   const assistant: VapiAssistantPayload = {
-    name: `${config.clientId}--${language}`,
+    name: assistantResourceName(config.clientId, language),
     firstMessage,
     voice: { provider: settings.voice.provider, voiceId: settings.voice.voiceId },
     transcriber: {
@@ -121,12 +141,17 @@ export function renderAssistant(
       provider: MODEL_PROVIDER,
       model: MODEL_ID,
       messages: [{ role: 'system', content: systemPrompt }],
-      // Populated by sync.ts once the tool above has a resolved UUID —
-      // create/update the tool first, then patch this in before the
-      // assistant create/update call (work order §6.6 step 6).
+      // Populated by sync.ts once the tools (request_callback + one handoff
+      // tool per other language) have resolved UUIDs — create/update the tools
+      // first, then patch this in before the assistant create/update call.
       toolIds: [],
     },
   };
 
-  return { assistant, tool };
+  const handoffTools = handoffTargets(config, language).map((toLanguage) => ({
+    toLanguage,
+    payload: renderHandoffTool(config, language, toLanguage),
+  }));
+
+  return { assistant, tool, handoffTools };
 }

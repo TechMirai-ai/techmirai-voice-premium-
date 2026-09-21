@@ -101,6 +101,42 @@ export interface VapiFunctionToolPayload {
   messages?: VapiToolMessage[];
 }
 
+/**
+ * A handoff destination: another assistant in the same squad, by name.
+ * Field names confirmed from @vapi-ai/server-sdk's HandoffDestinationAssistant
+ * and proven by a real call — VAPI-FACTS.md, VP-3 R2/R5.
+ */
+export interface VapiHandoffDestination {
+  type: 'assistant';
+  /** Resolved within the squad, so no assistant id is needed (R5). */
+  assistantName: string;
+  /** What the model reads to decide when to hand off. */
+  description: string;
+  /** "all" = the full history travels with the caller (Vapi's default; set explicitly). */
+  contextEngineeringPlan: { type: 'all' };
+  /** Overrides the destination's own `firstMessage` for this handoff only (R5). */
+  assistantOverrides: { firstMessage: string };
+}
+
+export interface VapiHandoffToolPayload {
+  type: 'handoff';
+  destinations: VapiHandoffDestination[];
+  /** An empty `request-start` silences Vapi's default English filler ("One moment") — R5. */
+  messages: VapiToolMessage[];
+}
+
+export type VapiToolPayload = VapiFunctionToolPayload | VapiHandoffToolPayload;
+
+export interface VapiSquadMember {
+  assistantId: string;
+}
+
+/** `members[0]` starts the call — VAPI-FACTS.md, VP-3 R1. */
+export interface VapiSquadPayload {
+  name: string;
+  members: VapiSquadMember[];
+}
+
 /** The only part of Vapi's create/update response this project reads. */
 export interface VapiCreatedResource {
   id: string;

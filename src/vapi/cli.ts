@@ -1,5 +1,6 @@
 /**
- * `npm run vapi:sync -- <clientId> --language <code> [--apply]`
+ * `npm run vapi:sync -- <clientId> --language <code> [--apply]`   one language's tools + assistant
+ * `npm run vapi:sync -- <clientId> --squad [--apply]`              the Squad (run after every language)
  *
  * Dry-run is the default — prints the diff and makes zero API calls unless
  * --apply is passed explicitly (work order §3: apply must never be the
@@ -10,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 import { loadEnv } from '../env.js';
 import { createVapiClient } from './client.js';
-import { syncClient } from './sync.js';
+import { syncClient, syncSquad } from './sync.js';
 
 // Writes directly to the streams rather than using console.log/error — this
 // is a CLI entry point (same class of exception checkCli.ts gets from
@@ -27,17 +28,20 @@ function printError(text: string): void {
 interface ParsedArgs {
   clientId?: string;
   language?: string;
+  squad: boolean;
   apply: boolean;
 }
 
 function parseArgs(argv: string[]): ParsedArgs {
-  const args: ParsedArgs = { apply: false };
+  const args: ParsedArgs = { apply: false, squad: false };
   const positionals: string[] = [];
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--apply') {
       args.apply = true;
+    } else if (arg === '--squad') {
+      args.squad = true;
     } else if (arg === '--language') {
       // Never treat the next flag as this flag's value — leaves args.language
       // unset so the "Usage" error fires, instead of e.g. --apply silently
@@ -57,11 +61,16 @@ function parseArgs(argv: string[]): ParsedArgs {
   return args;
 }
 
-export async function runSync(argv: string[]): Promise<number> {
-  const { clientId, language, apply } = parseArgs(argv);
+const USAGE =
+  'Usage: npm run vapi:sync -- <clientId> --language <code> [--apply]\n' +
+  '       npm run vapi:sync -- <clientId> --squad [--apply]';
 
-  if (!clientId || !language) {
-    printError('Usage: npm run vapi:sync -- <clientId> --language <code> [--apply]');
+export async function runSync(argv: string[]): Promise<number> {
+  const { clientId, language, squad, apply } = parseArgs(argv);
+
+  // Exactly one of --language / --squad.
+  if (!clientId || (language === undefined) === !squad) {
+    printError(USAGE);
     return 1;
   }
 
@@ -69,11 +78,13 @@ export async function runSync(argv: string[]): Promise<number> {
     const env = loadEnv();
     const client = createVapiClient(env.VAPI_API_KEY);
 
-    const result = await syncClient(clientId, language, {
-      dryRun: !apply,
-      client,
-      baseUrl: env.PUBLIC_BASE_URL,
-    });
+    const result = squad
+      ? await syncSquad(clientId, { dryRun: !apply, client })
+      : await syncClient(clientId, language ?? '', {
+          dryRun: !apply,
+          client,
+          baseUrl: env.PUBLIC_BASE_URL,
+        });
 
     for (const line of result.diffLines) {
       printLine(line);
@@ -88,8 +99,9 @@ export async function runSync(argv: string[]): Promise<number> {
 
     if (!result.dryRun) {
       printLine(
-        `Reminder: the assistant id may have changed — regenerate the test page: ` +
-          `npm run vapi:test-page -- ${clientId} --language ${language}`,
+        squad
+          ? `Reminder: regenerate the test page (it targets the squad): npm run vapi:test-page -- ${clientId}`
+          : `Reminder: once every language is synced (a new assistant gets a new id), sync the squad: npm run vapi:sync -- ${clientId} --squad --apply`,
       );
     }
 

@@ -49,7 +49,7 @@ export function createTestPageServer(dir: string = defaultTestPageDir()): Server
     if (!SERVABLE_FILE.test(fileName) || !existsSync(filePath)) {
       respond(
         404,
-        'Not found — generate it with: npm run vapi:test-page -- <clientId> --language <code>',
+        'Not found — generate it with: npm run vapi:test-page -- <clientId> [--language <code>]',
       );
       return;
     }
@@ -80,7 +80,7 @@ if (invokedDirectly) {
   createTestPageServer().listen(port, '127.0.0.1', () => {
     process.stdout.write(
       `Serving ${defaultTestPageDir()} at ` +
-        `http://127.0.0.1:${port}${TEST_PAGE_URL_PREFIX}/<clientId>--<language>.html\n`,
+        `http://127.0.0.1:${port}${TEST_PAGE_URL_PREFIX}/<clientId>--squad.html (or --<language>.html)\n`,
     );
   });
 }

@@ -70,6 +70,13 @@ scripts:
       How can I help you today?
     ja: >-
       こんにちは。[[clinicName]]の英語対応の受付です。ご用件をお聞かせください。
+  # Japanese assistant's first message when a caller is handed BACK to it from
+  # the English assistant (VP-3). Only the assistant's own language is spoken
+  # (.ja); .en is a gloss for the project owner's review, never spoken.
+  # NEEDS NATIVE-SPEAKER REVIEW, like the rest of the Japanese content.
+  handoffToJapanese:
+    ja: 日本語の受付にお繋ぎしました。ご用件をお聞かせください。
+    en: "(Gloss for Jamal, not spoken: 'Connected back to Japanese reception. Please tell me what you need.')"
   anythingElse:
     en: Is there anything else I can help you with today?
     ja: ほかに何かお手伝いできることはございますか？
