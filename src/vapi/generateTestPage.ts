@@ -119,15 +119,36 @@ function printError(text: string): void {
   process.stderr.write(`${text}\n`);
 }
 
-export function runGenerateTestPage(argv: string[]): number {
-  const languageFlag = argv.indexOf('--language');
-  const language = languageFlag === -1 ? undefined : argv[languageFlag + 1];
-  const clientId = argv.find((arg, index) => !arg.startsWith('--') && index !== languageFlag + 1);
+export interface TestPageArgs {
+  clientId: string;
+  /** Absent = the squad page. */
+  language?: string;
+}
 
-  if (!clientId || (languageFlag !== -1 && (!language || language.startsWith('--')))) {
+/** Returns undefined when the arguments do not fit `<clientId> [--language <code>]`. */
+export function parseTestPageArgs(argv: string[]): TestPageArgs | undefined {
+  const languageFlag = argv.indexOf('--language');
+  const hasLanguageFlag = languageFlag !== -1;
+  const language = hasLanguageFlag ? argv[languageFlag + 1] : undefined;
+  if (hasLanguageFlag && (!language || language.startsWith('--'))) return undefined;
+
+  // The language value is not a positional, but only when the flag is present
+  // (with no flag, `languageFlag + 1` is 0 and would wrongly skip the clientId).
+  const clientId = argv.find(
+    (arg, index) => !arg.startsWith('--') && !(hasLanguageFlag && index === languageFlag + 1),
+  );
+  if (!clientId) return undefined;
+
+  return language ? { clientId, language } : { clientId };
+}
+
+export function runGenerateTestPage(argv: string[]): number {
+  const args = parseTestPageArgs(argv);
+  if (!args) {
     printError('Usage: npm run vapi:test-page -- <clientId> [--language <code>]');
     return 1;
   }
+  const { clientId, language } = args;
 
   try {
     const env = loadEnv();

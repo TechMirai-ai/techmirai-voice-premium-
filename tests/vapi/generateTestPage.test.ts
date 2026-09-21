@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 
-import { generateTestPage } from '../../src/vapi/generateTestPage.js';
+import { generateTestPage, parseTestPageArgs } from '../../src/vapi/generateTestPage.js';
 import { writeState } from '../../src/vapi/stateStore.js';
 
 describe('generateTestPage', () => {
@@ -105,5 +105,29 @@ describe('generateTestPage', () => {
         /--squad --apply/,
       );
     });
+  });
+});
+
+describe('parseTestPageArgs', () => {
+  test('a bare client id means the squad page', () => {
+    expect(parseTestPageArgs(['sakura-seikotsuin'])).toEqual({ clientId: 'sakura-seikotsuin' });
+  });
+
+  test('--language selects a single assistant, in either argument order', () => {
+    expect(parseTestPageArgs(['sakura-seikotsuin', '--language', 'ja'])).toEqual({
+      clientId: 'sakura-seikotsuin',
+      language: 'ja',
+    });
+    expect(parseTestPageArgs(['--language', 'en', 'sakura-seikotsuin'])).toEqual({
+      clientId: 'sakura-seikotsuin',
+      language: 'en',
+    });
+  });
+
+  test('rejects a missing client id and a --language with no value', () => {
+    expect(parseTestPageArgs([])).toBeUndefined();
+    expect(parseTestPageArgs(['--language', 'ja'])).toBeUndefined();
+    expect(parseTestPageArgs(['sakura-seikotsuin', '--language'])).toBeUndefined();
+    expect(parseTestPageArgs(['sakura-seikotsuin', '--language', '--apply'])).toBeUndefined();
   });
 });
