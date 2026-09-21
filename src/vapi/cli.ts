@@ -84,6 +84,7 @@ export async function runSync(argv: string[]): Promise<number> {
           dryRun: !apply,
           client,
           baseUrl: env.PUBLIC_BASE_URL,
+          credentialId: env.VAPI_SERVER_CREDENTIAL_ID,
         });
 
     for (const line of result.diffLines) {

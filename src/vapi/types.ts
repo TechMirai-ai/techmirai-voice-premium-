@@ -44,8 +44,16 @@ export interface VapiModelConfig {
 
 export interface VapiServerConfig {
   url: string;
-  /** Not set until VP-4 creates the Custom Credential (VAPI-FACTS.md R6). */
   credentialId?: string;
+}
+
+/**
+ * A tool's webhook. The Custom Credential is mandatory (VP-4 §3): it is created
+ * by hand in the Vapi dashboard, since credentials have no API (VAPI-FACTS.md, VP-4 R4).
+ */
+export interface VapiToolServerConfig {
+  url: string;
+  credentialId: string;
 }
 
 export interface VapiAssistantPayload {
@@ -64,6 +72,8 @@ export type VapiFunctionParameterType = 'string' | 'number' | 'boolean' | 'objec
 export interface VapiFunctionParameterSchema {
   type: VapiFunctionParameterType;
   description?: string;
+  /** Restricts a string parameter to a fixed set — used for `log_call_topic`. */
+  enum?: string[];
 }
 
 export interface VapiFunctionParameters {
@@ -97,7 +107,12 @@ export interface VapiToolMessage {
 export interface VapiFunctionToolPayload {
   type: 'function';
   function: VapiFunctionDefinition;
-  server: VapiServerConfig;
+  server: VapiToolServerConfig;
+  /**
+   * `true` = the assistant moves on without waiting for our server (VAPI-FACTS.md,
+   * VP-4 §4.3). Set for `log_call_topic`, so analytics can never delay the caller.
+   */
+  async?: boolean;
   messages?: VapiToolMessage[];
 }
 

@@ -8,6 +8,7 @@
  * loading — and its unrelated required vars like DATABASE_URL — stays at
  * the edges, in cli.ts, matching every other module in this codebase).
  */
+import { allowedTopics, CALL_OUTCOMES } from '../lib/callTopics.js';
 import {
   UnsupportedLanguageError,
   buildSystemPrompt,
@@ -15,6 +16,7 @@ import {
   pick,
 } from './promptTemplate.js';
 import type { ClientConfig } from '../config/schema.js';
+import { LOG_CALL_TOPIC_FUNCTION_NAME, REQUEST_CALLBACK_FUNCTION_NAME } from './toolNames.js';
 import type { FaqEntry } from '../knowledge/KnowledgeSource.js';
 import {
   assistantResourceName,
@@ -38,8 +40,7 @@ export class UnconfiguredTranscriberError extends Error {
   }
 }
 
-/** The plain, short identifier the model calls — see types.ts and VAPI-FACTS.md. */
-export const REQUEST_CALLBACK_FUNCTION_NAME = 'request_callback';
+export { LOG_CALL_TOPIC_FUNCTION_NAME, REQUEST_CALLBACK_FUNCTION_NAME };
 
 /** VAPI-FACTS.md R3: primary model choice for VP-2's assistants (fallback: anthropic/claude-sonnet-5). */
 const MODEL_PROVIDER = 'openai';
@@ -48,6 +49,8 @@ const MODEL_ID = 'gpt-4o-mini';
 export interface RenderOptions {
   /** Public HTTPS base URL Vapi will call — from PUBLIC_BASE_URL, never hard-coded (CLAUDE.md / work order §3). */
   baseUrl: string;
+  /** Vapi Custom Credential authenticating our webhooks — from VAPI_SERVER_CREDENTIAL_ID (VP-4 R4). */
+  credentialId: string;
 }
 
 export interface RenderedHandoffTool {
@@ -59,6 +62,8 @@ export interface RenderedHandoffTool {
 export interface RenderResult {
   assistant: VapiAssistantPayload;
   tool: VapiFunctionToolPayload;
+  /** The silent, asynchronous `log_call_topic` analytics tool. */
+  topicTool: VapiFunctionToolPayload;
   /** One per other supported language; empty for a single-language client. */
   handoffTools: RenderedHandoffTool[];
 }
@@ -66,6 +71,52 @@ export interface RenderResult {
 /** Strips a trailing slash so `${baseUrl}/api/...` never ends up with `//`. */
 function stripTrailingSlash(url: string): string {
   return url.replace(/\/+$/, '');
+}
+
+/**
+ * Silent on every path: an empty message stops Vapi speaking a filler or a
+ * result line, and analytics must never be mentioned to the caller. `async`
+ * means the assistant does not wait for our server (VP-4 §4.3).
+ */
+function renderTopicTool(
+  url: string,
+  credentialId: string,
+  topics: string[],
+): VapiFunctionToolPayload {
+  return {
+    type: 'function',
+    async: true,
+    function: {
+      name: LOG_CALL_TOPIC_FUNCTION_NAME,
+      description:
+        'Silently records which topic the whole call was about and how it ended. ' +
+        'Call it once, as your very last action, after saying goodbye. Never mention it to the caller.',
+      parameters: {
+        type: 'object',
+        properties: {
+          topic: {
+            type: 'string',
+            description:
+              'The single best-matching FAQ topic id for the whole call; "other" if it fits none, ' +
+              '"unresolved" if a callback was needed, "emergency" for a medical emergency.',
+            enum: topics,
+          },
+          outcome: {
+            type: 'string',
+            description: 'How the call ended.',
+            enum: [...CALL_OUTCOMES],
+          },
+        },
+        required: ['topic', 'outcome'],
+      },
+    },
+    server: { url, credentialId },
+    messages: [
+      { type: 'request-start', content: '' },
+      { type: 'request-complete', content: '' },
+      { type: 'request-failed', content: '' },
+    ],
+  };
 }
 
 export function renderAssistant(
@@ -89,7 +140,9 @@ export function renderAssistant(
     throw new UnconfiguredTranscriberError(config.clientId, language);
   }
 
-  const callbackUrl = `${stripTrailingSlash(options.baseUrl)}/api/voice/callback-request`;
+  const baseUrl = stripTrailingSlash(options.baseUrl);
+  const callbackUrl = `${baseUrl}/api/voice/callback-request`;
+  const topicUrl = `${baseUrl}/api/voice/call-topic`;
   const systemPrompt = buildSystemPrompt(config, language, faq);
   const failureMessage = fillClinicPlaceholders(
     config,
@@ -123,11 +176,17 @@ export function renderAssistant(
         required: ['callerName', 'callerPhone'],
       },
     },
-    server: { url: callbackUrl },
+    server: { url: callbackUrl, credentialId: options.credentialId },
     // Safety net per work order §4.4: spoken if the model doesn't produce a
     // timely response of its own after the tool call fails.
     messages: [{ type: 'request-failed', content: failureMessage }],
   };
+
+  const topicTool = renderTopicTool(
+    topicUrl,
+    options.credentialId,
+    allowedTopics(faq.map((entry) => entry.id)),
+  );
 
   const assistant: VapiAssistantPayload = {
     name: assistantResourceName(config.clientId, language),
@@ -153,5 +212,5 @@ export function renderAssistant(
     payload: renderHandoffTool(config, language, toLanguage),
   }));
 
-  return { assistant, tool, handoffTools };
+  return { assistant, tool, topicTool, handoffTools };
 }

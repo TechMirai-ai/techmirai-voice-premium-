@@ -2,13 +2,28 @@
 import { createApp } from './app.js';
 import { createPool } from './db/pool.js';
 import { isProduction, loadEnv } from './env.js';
+import { LoggingNotifier } from './lib/callbackNotifier.js';
 import { logger } from './lib/logger.js';
+import { FileKnowledgeSource } from './knowledge/KnowledgeSource.js';
+import { PgCallbackRequestRepository } from './repositories/callbackRequestRepository.js';
+import { PgCallTopicRepository } from './repositories/callTopicRepository.js';
+import { StateFileAssistantResolver } from './vapi/assistantResolver.js';
 
 const env = loadEnv();
 const pool = createPool({ connectionString: env.DATABASE_URL });
 const app = createApp({
   db: pool,
   isProduction: isProduction(env),
+  ...(env.TRUST_PROXY_HOPS !== undefined ? { trustProxyHops: env.TRUST_PROXY_HOPS } : {}),
+  voice: {
+    webhookSecret: env.VAPI_WEBHOOK_SECRET,
+    resolver: new StateFileAssistantResolver(),
+    knowledge: new FileKnowledgeSource(),
+    callbacks: new PgCallbackRequestRepository(pool),
+    topics: new PgCallTopicRepository(pool),
+    // F-2: email/LINE are new classes implementing CallbackNotifier, swapped in here.
+    notifier: new LoggingNotifier(),
+  },
 });
 
 const server = app.listen(env.PORT, () => {

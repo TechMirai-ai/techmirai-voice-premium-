@@ -11,7 +11,9 @@
  */
 import { CLINIC_PLACEHOLDERS } from '../config/rules.js';
 import type { ClientConfig } from '../config/schema.js';
+import { allowedTopics } from '../lib/callTopics.js';
 import type { FaqEntry } from '../knowledge/KnowledgeSource.js';
+import { LOG_CALL_TOPIC_FUNCTION_NAME, REQUEST_CALLBACK_FUNCTION_NAME } from './toolNames.js';
 
 export class UnsupportedLanguageError extends Error {
   constructor(clientId: string, language: string, supported: readonly string[]) {
@@ -123,6 +125,30 @@ function languageSwitchSection(config: ClientConfig, language: string): string[]
   ];
 }
 
+/**
+ * Tells the model to tag every call with a topic and outcome, silently, as its
+ * very last action — after the goodbye words. The tool is asynchronous on
+ * Vapi's side, so it cannot delay the caller (VAPI-FACTS.md, VP-4 §4.3).
+ */
+function callClassificationSection(faq: FaqEntry[]): string {
+  const topics = allowedTopics(faq.map((entry) => entry.id))
+    .map((topic) => `"${topic}"`)
+    .join(', ');
+
+  return [
+    'Call classification (silent, once per call):',
+    `- When the call is ending, first say your goodbye. Then, in that same turn, right after the goodbye words, ` +
+      `call ${LOG_CALL_TOPIC_FUNCTION_NAME} exactly once. It is your very last action: say nothing after it.`,
+    '- Never mention this tool, logging, topics or classification to the caller, and never call it before the goodbye.',
+    `- topic: exactly one of ${topics}. Use the FAQ topic id that best matches the whole call. ` +
+      'Use "other" if the call was answered but fits no FAQ topic. Use "unresolved" if you took a callback ' +
+      'request or could not help. Use "emergency" for a medical emergency.',
+    '- outcome: "resolved" when the caller got their answer, "unresolved" when you took a callback request or ' +
+      'could not help, "emergency" for a medical emergency.',
+    `- Do this even for an emergency call. Never pass a name, phone number or any free text to ${LOG_CALL_TOPIC_FUNCTION_NAME}.`,
+  ].join('\n');
+}
+
 export function buildSystemPrompt(config: ClientConfig, language: string, faq: FaqEntry[]): string {
   if (!config.languages.supported.includes(language)) {
     throw new UnsupportedLanguageError(config.clientId, language, config.languages.supported);
@@ -163,18 +189,23 @@ export function buildSystemPrompt(config: ClientConfig, language: string, faq: F
     // 4. Conversation rules
     [
       'Conversation rules:',
+      "- Personal details are collected ONLY when there is a reason to. If the caller's question " +
+        'matches a FAQ entry, answer it directly and NEVER ask for their name or phone number.',
       `- After answering a question, ask: "${scriptLine('anythingElse')}"`,
       `- If nothing above matches what the caller is asking, say: "${scriptLine('noMatch')}". ` +
         `If the caller explicitly asks for staff instead, say: "${scriptLine('staffContactOffer')}" ` +
-        'instead. Either way, continue by asking: ' +
+        'instead. Only in these two cases, continue by asking: ' +
         `"${scriptLine('askPhone')}", then confirm with: "${scriptLine('confirmDetails')}" before ` +
-        'calling the request_callback tool.',
+        `calling the ${REQUEST_CALLBACK_FUNCTION_NAME} tool.`,
       `- After the tool call: if it succeeded, say something in the spirit of "${scriptLine('callbackSaved')}"; ` +
         `if it failed, say something in the spirit of "${scriptLine('callbackFailed')}". In both cases, ` +
         "substitute the caller's actual name and phone number for [[callerName]] and [[callerPhone]] " +
         '— never speak the placeholder text itself.',
       `- When the caller is done, say: "${scriptLine('goodbye')}"`,
     ].join('\n'),
+
+    // 4b. Silent call classification (analytics, VP-4)
+    callClassificationSection(faq),
 
     // 5. Safety
     [
@@ -184,7 +215,8 @@ export function buildSystemPrompt(config: ClientConfig, language: string, faq: F
         : []),
       '- If anything sounds like a medical emergency (serious injury, severe pain, difficulty ' +
         `breathing, etc.), immediately say: "${scriptLine('emergency')}" instead of continuing the ` +
-        'normal flow.',
+        `normal flow. Do not collect a name or phone number and do not call ${REQUEST_CALLBACK_FUNCTION_NAME}; ` +
+        'just classify the call as an emergency (see the call classification rules).',
     ].join('\n'),
 
     // 6. Didn't-catch handling

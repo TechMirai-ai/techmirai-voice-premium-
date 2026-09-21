@@ -6,7 +6,7 @@
 import { config as loadDotenv } from 'dotenv';
 import { z } from 'zod';
 
-const envSchema = z.object({
+const baseEnvSchema = z.object({
   // Required, with no default: the work order asks for an explicit environment,
   // and `.env.example` supplies it. An unset NODE_ENV in production would
   // silently turn on developer-facing error messages.
@@ -27,7 +27,28 @@ const envSchema = z.object({
   }),
   VAPI_API_KEY: z.string().min(1, 'is required — see .env.example'),
   VAPI_PUBLIC_KEY: z.string().min(1, 'is required — see .env.example'),
+
+  // Required from VP-4: the two webhooks reject every request that does not carry
+  // this secret. It must equal the token of the Custom Credential created by hand
+  // in the Vapi dashboard (README "Vapi webhook authentication"). Vapi's
+  // credential id (`server.credentialId`) is what the sync engine puts on the tools.
+  VAPI_WEBHOOK_SECRET: z.string().min(16, 'must be at least 16 characters — see .env.example'),
+  VAPI_SERVER_CREDENTIAL_ID: z.string().min(1, 'is required — see .env.example'),
+
+  // Optional: how many reverse proxies sit in front of the server (1 behind ngrok).
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(10).optional(),
 });
+
+// Rate limiting keys on the client IP, which is only correct if we know how many
+// proxies sit in front of us: too few makes every caller share the proxy's bucket,
+// too many lets a forged X-Forwarded-For dodge the limit. So production must say.
+const envSchema = baseEnvSchema.refine(
+  (env) => env.NODE_ENV !== 'production' || env.TRUST_PROXY_HOPS !== undefined,
+  {
+    path: ['TRUST_PROXY_HOPS'],
+    error: 'is required in production (0 if exposed directly, 1 behind one proxy)',
+  },
+);
 
 export type Env = z.infer<typeof envSchema>;
 

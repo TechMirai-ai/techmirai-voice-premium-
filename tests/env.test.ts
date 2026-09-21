@@ -9,6 +9,8 @@ const base = {
   PUBLIC_BASE_URL: 'https://example.ngrok-free.app',
   VAPI_API_KEY: 'test-vapi-api-key',
   VAPI_PUBLIC_KEY: 'test-vapi-public-key',
+  VAPI_WEBHOOK_SECRET: 'test-webhook-secret-0123456789',
+  VAPI_SERVER_CREDENTIAL_ID: 'test-credential-id',
 };
 
 const load = (source: NodeJS.ProcessEnv) => loadEnv(source, { readDotenvFile: false });
@@ -28,11 +30,24 @@ describe('loadEnv', () => {
     'PUBLIC_BASE_URL',
     'VAPI_API_KEY',
     'VAPI_PUBLIC_KEY',
+    'VAPI_WEBHOOK_SECRET',
+    'VAPI_SERVER_CREDENTIAL_ID',
   ])('fails fast and names %s when it is missing', (key) => {
     const source = { ...base, [key]: undefined };
 
     expect(() => load(source)).toThrow(EnvError);
     expect(() => load(source)).toThrow(new RegExp(key));
+  });
+
+  test('rejects a webhook secret shorter than 16 characters', () => {
+    expect(() => load({ ...base, VAPI_WEBHOOK_SECRET: 'too-short' })).toThrow(
+      /VAPI_WEBHOOK_SECRET/,
+    );
+  });
+
+  test('treats TRUST_PROXY_HOPS as optional and coerces it to a number', () => {
+    expect(load(base).TRUST_PROXY_HOPS).toBeUndefined();
+    expect(load({ ...base, TRUST_PROXY_HOPS: '1' }).TRUST_PROXY_HOPS).toBe(1);
   });
 
   test('treats TEST_DATABASE_URL as optional', () => {
@@ -50,7 +65,9 @@ describe('loadEnv', () => {
   });
 
   test('isProduction is true only for production', () => {
-    expect(isProduction(load({ ...base, NODE_ENV: 'production' }))).toBe(true);
+    expect(isProduction(load({ ...base, NODE_ENV: 'production', TRUST_PROXY_HOPS: '1' }))).toBe(
+      true,
+    );
     expect(isProduction(load(base))).toBe(false);
   });
 });

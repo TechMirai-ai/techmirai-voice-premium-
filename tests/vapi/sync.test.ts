@@ -78,6 +78,7 @@ function sync(client: VapiSyncClient, dryRun: boolean, language = 'ja') {
     dryRun,
     client,
     baseUrl: BASE_URL,
+    credentialId: 'credential-uuid',
     clientsDir: fixture.clientsDir,
     repoRoot,
   });
@@ -130,9 +131,15 @@ describe('syncClient — apply', () => {
 
     const result = await sync(mock.client, false);
 
-    expect(mock.callLog).toEqual(['tools.create', 'tools.create', 'assistants.create']);
+    expect(mock.callLog).toEqual([
+      'tools.create',
+      'tools.create',
+      'tools.create',
+      'assistants.create',
+    ]);
     const state = readState(CLIENT_ID, { repoRoot });
     expect(state.tools['sakura-seikotsuin--ja--request-callback']).toBe(result.tool.id);
+    expect(state.tools['sakura-seikotsuin--ja--log-call-topic']).toBe(result.topicTool.id);
     expect(state.tools['sakura-seikotsuin--ja--handoff-to-en']).toBe(result.handoffTools[0]?.id);
     expect(state.assistants['sakura-seikotsuin--ja']).toBe(result.assistant.id);
   });
@@ -143,7 +150,7 @@ describe('syncClient — apply', () => {
     await sync(mock.client, false);
 
     const payloads = mock.toolsCreate.mock.calls.map((call) => call[0] as { type: string });
-    expect(payloads.map((payload) => payload.type)).toEqual(['function', 'handoff']);
+    expect(payloads.map((payload) => payload.type)).toEqual(['function', 'function', 'handoff']);
   });
 
   test('English: syncs its own tools and assistant, with a handoff tool back to Japanese', async () => {
@@ -167,9 +174,9 @@ describe('syncClient — apply', () => {
     expect(result.tool.action).toBe('update');
     expect(result.handoffTools[0]?.action).toBe('update');
     expect(result.assistant.action).toBe('update');
-    expect(mock.toolsUpdate).toHaveBeenCalledTimes(2);
+    expect(mock.toolsUpdate).toHaveBeenCalledTimes(3);
     expect(mock.assistantsUpdate).toHaveBeenCalledTimes(1);
-    expect(mock.toolsCreate).toHaveBeenCalledTimes(2); // only from the first sync
+    expect(mock.toolsCreate).toHaveBeenCalledTimes(3); // only from the first sync
   });
 
   test("passes both resolved tool ids into the assistant payload's model.toolIds", async () => {
@@ -180,7 +187,11 @@ describe('syncClient — apply', () => {
     const sentPayload = mock.assistantsCreate.mock.calls[0]?.[0] as {
       model: { toolIds: string[] };
     };
-    expect(sentPayload.model.toolIds).toEqual([result.tool.id, result.handoffTools[0]?.id]);
+    expect(sentPayload.model.toolIds).toEqual([
+      result.tool.id,
+      result.topicTool.id,
+      result.handoffTools[0]?.id,
+    ]);
   });
 
   test('persists every tool id even if the assistant call fails, so a retry updates instead of duplicating tools', async () => {
@@ -197,8 +208,8 @@ describe('syncClient — apply', () => {
 
     await sync(mock.client, false);
 
-    expect(mock.toolsCreate).toHaveBeenCalledTimes(2);
-    expect(mock.toolsUpdate).toHaveBeenCalledTimes(2);
+    expect(mock.toolsCreate).toHaveBeenCalledTimes(3);
+    expect(mock.toolsUpdate).toHaveBeenCalledTimes(3);
   });
 
   test('persists the first tool even if the second tool call fails', async () => {
@@ -257,16 +268,16 @@ describe('syncSquad', () => {
     expect(mock.callLog).toEqual([]);
   });
 
-  test('creates the squad only after both assistants and all four tools exist', async () => {
+  test('creates the squad only after both assistants and all six tools exist', async () => {
     const mock = createMockClient();
     await syncBothLanguages(mock);
 
     const result = await syncTheSquad(mock.client, false);
 
     expect(mock.callLog).toEqual([
-      ...Array(2).fill('tools.create'),
+      ...Array(3).fill('tools.create'),
       'assistants.create',
-      ...Array(2).fill('tools.create'),
+      ...Array(3).fill('tools.create'),
       'assistants.create',
       'squads.create',
     ]);

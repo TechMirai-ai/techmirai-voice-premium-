@@ -8,7 +8,7 @@ import { execFile } from 'node:child_process';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { runSync } from '../../src/vapi/cli.js';
 import { REPO_ROOT, SAKURA_ID } from '../helpers/clientFixtures.js';
@@ -30,6 +30,8 @@ const REQUIRED_ENV = {
   // Syntactically present but fake — dry-run never calls the network (work order §7 test 5).
   VAPI_API_KEY: 'fake-vapi-api-key',
   VAPI_PUBLIC_KEY: 'fake-vapi-public-key',
+  VAPI_WEBHOOK_SECRET: 'fake-webhook-secret-0123456789',
+  VAPI_SERVER_CREDENTIAL_ID: 'fake-credential-id',
 };
 
 async function runCli(args: string[], env: NodeJS.ProcessEnv = {}): Promise<CliResult> {
@@ -113,8 +115,14 @@ describe('runSync (in-process)', () => {
     return { out, err };
   };
 
+  // Never depend on the developer's .env: give runSync a complete, fake environment.
+  beforeEach(() => {
+    for (const [key, value] of Object.entries(REQUIRED_ENV)) vi.stubEnv(key, value);
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   test('dry-run succeeds and prints a diff', async () => {
