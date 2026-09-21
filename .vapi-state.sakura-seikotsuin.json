@@ -9,5 +9,7 @@
     "sakura-seikotsuin--ja": "5783f9a4-7051-4595-b391-997c080fc61b",
     "sakura-seikotsuin--en": "b75e0b2a-080a-49d1-a236-649b81a85290"
   },
-  "squads": {}
+  "squads": {
+    "sakura-seikotsuin--squad": "8f369634-2fb0-48d6-99a3-e940b97614b8"
+  }
 }
