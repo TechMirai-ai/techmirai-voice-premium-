@@ -17,7 +17,7 @@ it, and a manual test page.
 | `src/config/`                    | Reads and validates a client config.                                                                                                            |
 | `src/knowledge/`                 | The only way the rest of the code may read FAQ content.                                                                                         |
 | `src/db/`                        | Connection pool and the migration runner.                                                                                                       |
-| `src/vapi/`                      | Prompt builder, payload renderer, sync engine/CLI, and manual test page for Vapi (VP-2).                                                        |
+| `src/vapi/`                      | Prompt builder, payload renderer, Squad/handoff, sync engine/CLI, and manual test page for Vapi (VP-2, VP-3).                                   |
 | `.vapi-state.<clientId>.json`    | Committed name→UUID map for one client's Vapi resources — git is the rollback mechanism.                                                        |
 | `db/migrations/`                 | Plain `.sql` files, applied in filename order.                                                                                                  |
 | `docs/`                          | `FUTURE-FEATURES.md` (what we deliberately postponed) and `VAPI-FACTS.md` (Vapi facts verified against the docs).                               |
@@ -115,32 +115,49 @@ to the real Vapi API — all Vapi interaction in tests goes through a mocked cli
    ```
    `PUBLIC_BASE_URL` doesn't need to be reachable for `npm test` or a dry-run sync — only for a
    real manual test call, where the callback tool's webhook will actually hit it.
-3. **Dry-run the sync first** — it prints a diff and makes zero API calls:
+3. **Dry-run the sync first** — it prints a diff and makes zero API calls. Since VP-3 there are
+   three things to sync, in this order: each language, then the **Squad** (which needs every
+   assistant's real id, so it refuses until all languages are synced):
    ```bash
    npm run vapi:sync -- sakura-seikotsuin --language ja
+   npm run vapi:sync -- sakura-seikotsuin --language en
+   npm run vapi:sync -- sakura-seikotsuin --squad
    ```
-4. **Apply it for real** once the diff looks right:
+4. **Apply it for real** once the diffs look right — same three commands with `--apply`:
    ```bash
    npm run vapi:sync -- sakura-seikotsuin --language ja --apply
+   npm run vapi:sync -- sakura-seikotsuin --language en --apply
+   npm run vapi:sync -- sakura-seikotsuin --squad --apply
    ```
-   This refuses to run if `.vapi-state.sakura-seikotsuin.json` has uncommitted changes (commit it
+   Each refuses to run if `.vapi-state.sakura-seikotsuin.json` has uncommitted changes (commit it
    after every real sync, so git stays the rollback mechanism).
 5. **Generate the test page**, then **open it on the running app** to place a real call by voice
-   (with the server running via `npm run dev`, and only outside `NODE_ENV=production`):
+   (with the server running via `npm run dev`, and only outside `NODE_ENV=production`). The page
+   now targets the **Squad**, so it exercises the language handoff:
 
    ```bash
-   npm run vapi:test-page -- sakura-seikotsuin --language ja   # writes public/vapi-test-call/
+   npm run vapi:test-page -- sakura-seikotsuin                 # the Squad (default) → ...--squad.html
+   npm run vapi:test-page -- sakura-seikotsuin --language ja   # one assistant alone (isolation/debugging)
    ```
 
-   Then open **`http://127.0.0.1:3000/vapi-test-call/sakura-seikotsuin--ja.html`** and click the
+   Then open **`http://127.0.0.1:3000/vapi-test-call/sakura-seikotsuin--squad.html`** and click the
    microphone widget to start a call. **Use `127.0.0.1`, not `localhost`** — the call failed to join
    when the page was opened via `localhost` (see the note below). Since the callback endpoint
    doesn't exist until VP-4, asking something outside the FAQ is expected to end in the assistant
    speaking a graceful failure message, not silence or an error.
 
-   **Re-run `npm run vapi:test-page` after every `vapi:sync --apply`** — the page has the
-   assistant id written into it, and the id can change. The generated files hold the (browser-safe)
-   public key and the assistant id, so `public/vapi-test-call/` is git-ignored.
+   **Two-way handoff test script** (about 2 minutes, ~$0.15 in real cost):
+   1. It opens in Japanese, ending "For English, please say English".
+   2. Ask a Japanese FAQ question (e.g. 受付時間を教えてください — "please tell me your opening hours").
+   3. Say **"English"** → a brief pause, then the English greeting. No "one moment" filler.
+   4. Ask an English FAQ question (e.g. "Do I need an appointment?") and check the answer.
+   5. Say **"Japanese"** (or 日本語) → the Japanese assistant says 日本語の受付にお繋ぎしました。ご用件をお聞かせください。
+      ("Connected to Japanese reception. Please tell me what you need.") — _not_ its original opening greeting.
+   6. Hang up. Vapi records this as **one** call with the Squad's id.
+
+   **Re-run `npm run vapi:test-page` after every `vapi:sync --apply` of the squad** — the page has
+   the squad id written into it. The generated files hold the (browser-safe) public key and the
+   squad/assistant id, so `public/vapi-test-call/` is git-ignored.
 
    **Why `127.0.0.1`, and why this route sends no CSP.** During VP-2, web calls from this page
    failed to join Vapi's call room (`daily-call-join-error`, ~6.6s) in several configurations. What
@@ -174,8 +191,9 @@ to the real Vapi API — all Vapi interaction in tests goes through a mocked cli
 | `npm run format`                                              | Reformat the code with Prettier                   |
 | `npm run db:migrate`                                          | Apply new database migrations                     |
 | `npm run config:check -- <clientId>`                          | Validate one client's config                      |
-| `npm run vapi:sync -- <clientId> --language <code> [--apply]` | Dry-run (default) or apply the Vapi sync          |
-| `npm run vapi:test-page -- <clientId> --language <code>`      | Regenerate the static test-call page              |
+| `npm run vapi:sync -- <clientId> --language <code> [--apply]` | Dry-run (default) or apply one language's sync    |
+| `npm run vapi:sync -- <clientId> --squad [--apply]`           | Dry-run (default) or apply the Squad sync         |
+| `npm run vapi:test-page -- <clientId> [--language <code>]`    | Regenerate the test-call page (Squad by default)  |
 | `npm run vapi:test-page:serve`                                | Serve that page on 127.0.0.1:3001 (plain Node)    |
 
 Run `npm test`, `npm run typecheck` and `npm run lint` before opening a pull request.
