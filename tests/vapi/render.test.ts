@@ -12,6 +12,8 @@ import { SAKURA_ID } from '../helpers/clientFixtures.js';
 import { buildMinimalConfig } from '../helpers/vapiFixtures.js';
 
 const BASE_URL = 'https://example.ngrok-free.app';
+const CREDENTIAL_ID = 'credential-uuid';
+const OPTIONS = { baseUrl: BASE_URL, credentialId: CREDENTIAL_ID };
 const knowledge = new FileKnowledgeSource();
 
 describe('renderAssistant — Sakura fixture (ja)', () => {
@@ -19,7 +21,7 @@ describe('renderAssistant — Sakura fixture (ja)', () => {
     const config = loadClient(SAKURA_ID);
     const faq = await knowledge.listFaq(SAKURA_ID);
 
-    const { assistant } = renderAssistant(config, 'ja', faq, { baseUrl: BASE_URL });
+    const { assistant } = renderAssistant(config, 'ja', faq, OPTIONS);
 
     expect(assistant.name).toBe('sakura-seikotsuin--ja');
     expect(assistant.firstMessage).toContain('さくら整骨院');
@@ -37,7 +39,7 @@ describe('renderAssistant — Sakura fixture (ja)', () => {
     const config = loadClient(SAKURA_ID);
     const faq = await knowledge.listFaq(SAKURA_ID);
 
-    const { tool } = renderAssistant(config, 'ja', faq, { baseUrl: BASE_URL });
+    const { tool } = renderAssistant(config, 'ja', faq, OPTIONS);
 
     expect(tool.type).toBe('function');
     expect(tool.function.name).toBe(REQUEST_CALLBACK_FUNCTION_NAME);
@@ -54,7 +56,7 @@ describe('renderAssistant — Sakura fixture (ja)', () => {
     const config = loadClient(SAKURA_ID);
     const faq = await knowledge.listFaq(SAKURA_ID);
 
-    const { tool } = renderAssistant(config, 'ja', faq, { baseUrl: BASE_URL });
+    const { tool } = renderAssistant(config, 'ja', faq, OPTIONS);
 
     const failedMessage = tool.messages?.find((message) => message.type === 'request-failed');
     expect(failedMessage?.content).toContain('048-000-0000');
@@ -67,7 +69,7 @@ describe('renderAssistant — handoff (Sakura)', () => {
     const config = loadClient(SAKURA_ID);
     const faq = await knowledge.listFaq(SAKURA_ID);
 
-    const { assistant, handoffTools } = renderAssistant(config, 'ja', faq, { baseUrl: BASE_URL });
+    const { assistant, handoffTools } = renderAssistant(config, 'ja', faq, OPTIONS);
 
     expect(assistant.firstMessage).toContain('For English, please say "English"');
     expect(handoffTools.map((tool) => tool.toLanguage)).toEqual(['en']);
@@ -78,7 +80,7 @@ describe('renderAssistant — handoff (Sakura)', () => {
     const config = loadClient(SAKURA_ID);
     const faq = await knowledge.listFaq(SAKURA_ID);
 
-    const { assistant, handoffTools } = renderAssistant(config, 'en', faq, { baseUrl: BASE_URL });
+    const { assistant, handoffTools } = renderAssistant(config, 'en', faq, OPTIONS);
 
     expect(assistant.name).toBe('sakura-seikotsuin--en');
     expect(assistant.firstMessage).toContain('English receptionist for Sakura Seikotsuin');
@@ -92,9 +94,7 @@ describe('renderAssistant — handoff (Sakura)', () => {
   test('a single-language client renders no handoff tools', () => {
     const config = buildMinimalConfig({ language: 'fr' });
 
-    expect(renderAssistant(config, 'fr', config.faq, { baseUrl: BASE_URL }).handoffTools).toEqual(
-      [],
-    );
+    expect(renderAssistant(config, 'fr', config.faq, OPTIONS).handoffTools).toEqual([]);
   });
 });
 
@@ -103,9 +103,7 @@ describe('renderAssistant — error handling', () => {
     const config = loadClient(SAKURA_ID);
     const faq = await knowledge.listFaq(SAKURA_ID);
 
-    expect(() => renderAssistant(config, 'fr', faq, { baseUrl: BASE_URL })).toThrow(
-      UnsupportedLanguageError,
-    );
+    expect(() => renderAssistant(config, 'fr', faq, OPTIONS)).toThrow(UnsupportedLanguageError);
   });
 
   test('throws UnconfiguredTranscriberError when languages.settings.<lang>.transcriber is null', () => {
@@ -119,7 +117,7 @@ describe('renderAssistant — error handling', () => {
     };
 
     expect(() =>
-      renderAssistant(withoutTranscriber, 'fr', withoutTranscriber.faq, { baseUrl: BASE_URL }),
+      renderAssistant(withoutTranscriber, 'fr', withoutTranscriber.faq, OPTIONS),
     ).toThrow(UnconfiguredTranscriberError);
   });
 });
@@ -128,7 +126,7 @@ describe('renderAssistant — language handling', () => {
   test('produces structurally equivalent output for an arbitrary language — no hard-coded ja/en', () => {
     const config = buildMinimalConfig({ language: 'fr' });
 
-    const { assistant, tool } = renderAssistant(config, 'fr', config.faq, { baseUrl: BASE_URL });
+    const { assistant, tool } = renderAssistant(config, 'fr', config.faq, OPTIONS);
 
     expect(assistant.name).toBe('test-clinic--fr');
     expect(assistant.firstMessage).toBe('greeting text (fr)');

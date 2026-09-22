@@ -65,6 +65,8 @@ export interface SyncResult {
   language: string;
   /** The request_callback tool. */
   tool: SyncResourceResult;
+  /** The silent, asynchronous log_call_topic tool. */
+  topicTool: SyncResourceResult;
   /** One per other supported language. */
   handoffTools: SyncResourceResult[];
   assistant: SyncResourceResult;
@@ -78,6 +80,8 @@ export interface SyncClientOptions {
   client: VapiSyncClient;
   /** Passed through to renderAssistant — from PUBLIC_BASE_URL, never hard-coded. */
   baseUrl: string;
+  /** Passed through to renderAssistant — the Custom Credential id (VAPI_SERVER_CREDENTIAL_ID). */
+  credentialId: string;
   /** Overrides for tests: a fixture clients/ directory and/or repo root. */
   clientsDir?: LoadClientOptions['clientsDir'];
   repoRoot?: StateStoreOptions['repoRoot'];
@@ -85,6 +89,10 @@ export interface SyncClientOptions {
 
 function toolStateName(clientId: string, language: string): string {
   return `${clientId}--${language}--request-callback`;
+}
+
+function topicToolStateName(clientId: string, language: string): string {
+  return `${clientId}--${language}--log-call-topic`;
 }
 
 function describeResource(resource: SyncResourceResult): string {
@@ -155,12 +163,14 @@ function buildDiffLines(
   clientId: string,
   language: string,
   tool: SyncResourceResult,
+  topicTool: SyncResourceResult,
   handoffTools: SyncResourceResult[],
   assistant: SyncResourceResult,
 ): string[] {
   return [
     `Client: ${clientId}  Language: ${language}`,
     `  tool:      ${describeResource(tool)}`,
+    `  topic:     ${describeResource(topicTool)}`,
     ...handoffTools.map((handoff) => `  handoff:   ${describeResource(handoff)}`),
     `  assistant: ${describeResource(assistant)}`,
   ];
@@ -177,7 +187,10 @@ export async function syncClient(
   const loadOptions = loadOptionsOf(options);
   const config = loadClient(clientId, loadOptions);
   const faq = await new FileKnowledgeSource(loadOptions).listFaq(clientId);
-  const rendered = renderAssistant(config, language, faq, { baseUrl: options.baseUrl });
+  const rendered = renderAssistant(config, language, faq, {
+    baseUrl: options.baseUrl,
+    credentialId: options.credentialId,
+  });
 
   const state = readState(clientId, stateOptions);
   const assistantName = assistantResourceName(clientId, language);
@@ -191,6 +204,11 @@ export async function syncClient(
     const name = handoffToolStateName(clientId, language, toLanguage);
     return { result: planResource(name, state.tools[name]), payload };
   });
+  const topicToolName = topicToolStateName(clientId, language);
+  const topicToolPlan: PlannedTool = {
+    result: planResource(topicToolName, state.tools[topicToolName]),
+    payload: rendered.topicTool,
+  };
   const assistantPlan = planResource(assistantName, state.assistants[assistantName]);
 
   if (options.dryRun) {
@@ -200,21 +218,30 @@ export async function syncClient(
       clientId,
       language,
       tool: toolPlan.result,
+      topicTool: topicToolPlan.result,
       handoffTools: handoffResults,
       assistant: assistantPlan,
-      diffLines: buildDiffLines(clientId, language, toolPlan.result, handoffResults, assistantPlan),
+      diffLines: buildDiffLines(
+        clientId,
+        language,
+        toolPlan.result,
+        topicToolPlan.result,
+        handoffResults,
+        assistantPlan,
+      ),
     };
   }
 
   const { state: stateAfterTools, results } = await applyTools(
-    [toolPlan, ...handoffPlans],
+    [toolPlan, topicToolPlan, ...handoffPlans],
     options.client,
     clientId,
     state,
     stateOptions,
   );
-  const [toolResult, ...handoffResults] = results;
-  if (!toolResult) throw new Error('unreachable: applyTools returned no results');
+  const [toolResult, topicToolResult, ...handoffResults] = results;
+  if (!toolResult || !topicToolResult)
+    throw new Error('unreachable: applyTools returned no results');
 
   const assistantToSend = {
     ...rendered.assistant,
@@ -243,9 +270,17 @@ export async function syncClient(
     clientId,
     language,
     tool: toolResult,
+    topicTool: topicToolResult,
     handoffTools: handoffResults,
     assistant: finalAssistant,
-    diffLines: buildDiffLines(clientId, language, toolResult, handoffResults, finalAssistant),
+    diffLines: buildDiffLines(
+      clientId,
+      language,
+      toolResult,
+      topicToolResult,
+      handoffResults,
+      finalAssistant,
+    ),
   };
 }
 
@@ -272,7 +307,7 @@ export interface SyncSquadResult {
   diffLines: string[];
 }
 
-export type SyncSquadOptions = Omit<SyncClientOptions, 'baseUrl'>;
+export type SyncSquadOptions = Omit<SyncClientOptions, 'baseUrl' | 'credentialId'>;
 
 /** Every state-file name that must exist before the squad can reference it. */
 function squadPrerequisites(config: ClientConfig): { assistants: string[]; tools: string[] } {
@@ -281,6 +316,7 @@ function squadPrerequisites(config: ClientConfig): { assistants: string[]; tools
     assistants: languages.map((code) => assistantResourceName(config.clientId, code)),
     tools: languages.flatMap((code) => [
       toolStateName(config.clientId, code),
+      topicToolStateName(config.clientId, code),
       ...handoffTargets(config, code).map((to) => handoffToolStateName(config.clientId, code, to)),
     ]),
   };

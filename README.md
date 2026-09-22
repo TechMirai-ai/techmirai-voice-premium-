@@ -11,16 +11,17 @@ it, and a manual test page.
 
 ## What lives where
 
-| Path                             | What it is                                                                                                                                      |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `clients/<clientId>/client.yaml` | Everything about one clinic: name, address, opening hours, languages, voices, scripts and FAQ. **All clinic data lives here and nowhere else.** |
-| `src/config/`                    | Reads and validates a client config.                                                                                                            |
-| `src/knowledge/`                 | The only way the rest of the code may read FAQ content.                                                                                         |
-| `src/db/`                        | Connection pool and the migration runner.                                                                                                       |
-| `src/vapi/`                      | Prompt builder, payload renderer, Squad/handoff, sync engine/CLI, and manual test page for Vapi (VP-2, VP-3).                                   |
-| `.vapi-state.<clientId>.json`    | Committed name→UUID map for one client's Vapi resources — git is the rollback mechanism.                                                        |
-| `db/migrations/`                 | Plain `.sql` files, applied in filename order.                                                                                                  |
-| `docs/`                          | `FUTURE-FEATURES.md` (what we deliberately postponed) and `VAPI-FACTS.md` (Vapi facts verified against the docs).                               |
+| Path                                                  | What it is                                                                                                                                      |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `clients/<clientId>/client.yaml`                      | Everything about one clinic: name, address, opening hours, languages, voices, scripts and FAQ. **All clinic data lives here and nowhere else.** |
+| `src/config/`                                         | Reads and validates a client config.                                                                                                            |
+| `src/knowledge/`                                      | The only way the rest of the code may read FAQ content.                                                                                         |
+| `src/db/`                                             | Connection pool and the migration runner.                                                                                                       |
+| `src/vapi/`                                           | Prompt builder, payload renderer, Squad/handoff, sync engine/CLI, and manual test page for Vapi (VP-2, VP-3).                                   |
+| `src/routes/`, `src/middleware/`, `src/repositories/` | The two Vapi webhooks (`callback-request`, `call-topic`), their auth and rate limiting, and the database access behind them (VP-4).             |
+| `.vapi-state.<clientId>.json`                         | Committed name→UUID map for one client's Vapi resources — git is the rollback mechanism.                                                        |
+| `db/migrations/`                                      | Plain `.sql` files, applied in filename order.                                                                                                  |
+| `docs/`                                               | `FUTURE-FEATURES.md` (what we deliberately postponed) and `VAPI-FACTS.md` (Vapi facts verified against the docs).                               |
 
 Adding a clinic means adding a folder under `clients/`. It never means changing code.
 
@@ -142,9 +143,9 @@ to the real Vapi API — all Vapi interaction in tests goes through a mocked cli
 
    Then open **`http://127.0.0.1:3000/vapi-test-call/sakura-seikotsuin--squad.html`** and click the
    microphone widget to start a call. **Use `127.0.0.1`, not `localhost`** — the call failed to join
-   when the page was opened via `localhost` (see the note below). Since the callback endpoint
-   doesn't exist until VP-4, asking something outside the FAQ is expected to end in the assistant
-   speaking a graceful failure message, not silence or an error.
+   when the page was opened via `localhost` (see the note below). Asking something outside the
+   FAQ now takes a real callback (VP-4) — it needs the webhook credential from step 10, and the
+   server, database and tunnel all running.
 
    **Two-way handoff test script** (about 2 minutes, ~$0.15 in real cost):
    1. It opens in Japanese, ending "For English, please say English".
@@ -176,6 +177,55 @@ to the real Vapi API — all Vapi interaction in tests goes through a mocked cli
    and is confirmed to join; keep it for when the main app is not running. A further fallback is
    the test-call feature in Vapi's own dashboard. The page and the server are internal QA tools and
    are never mounted in production.
+
+### 10. Create the webhook credential (from VP-4) — once per environment, **before** `vapi:sync --apply`
+
+Both voice webhooks (`POST /api/voice/callback-request` and `POST /api/voice/call-topic`) reject
+every request that does not carry a secret — in development too. Vapi sends that secret from a
+**Custom Credential**. **Vapi has no API for creating credentials** (checked against its OpenAPI
+spec, 2026-09-21 — see [`docs/VAPI-FACTS.md`](docs/VAPI-FACTS.md) VP-4 R4), so this is a manual,
+one-time step in the dashboard:
+
+1. Generate a secret and put it in your `.env` as `VAPI_WEBHOOK_SECRET` (min. 16 characters):
+   ```bash
+   openssl rand -hex 32
+   ```
+2. In the [Vapi dashboard](https://dashboard.vapi.ai) open **Integrations → Server Configuration**
+   and choose **Add Custom Credential**, then **Bearer Token**.
+3. Fill it in:
+   - **Credential Name:** anything recognisable, e.g. `techmirai-voice-premium (dev)`.
+   - **Token:** the same value as `VAPI_WEBHOOK_SECRET`. Not the `VAPI_API_KEY`.
+   - **Header Name:** leave the default, `Authorization`.
+   - **Include Bearer Prefix:** leave **on**.
+4. Save, then copy the credential's **id** (a UUID) into `.env` as `VAPI_SERVER_CREDENTIAL_ID`.
+5. Now run `npm run vapi:sync -- … --apply` (step 9). Sync puts the credential id on both tools as
+   `server.credentialId`; each webhook call then arrives with `Authorization: Bearer <secret>`.
+
+If you change the secret, change it in **both** places (`.env` and the dashboard credential) and
+restart the server. A mismatch shows up as HTTP 401 in the server log (`webhook rejected: bad or
+missing credentials`) and the assistant speaking its "couldn't save" line.
+
+Behind a tunnel (ngrok) or load balancer, set `TRUST_PROXY_HOPS=1` so rate limiting sees the real
+caller IP rather than the proxy's.
+
+**How the pieces fit together.** Each assistant has two tools:
+
+| Tool               | Endpoint                           | Table               | Holds personal data?          | Waits for us?                          |
+| ------------------ | ---------------------------------- | ------------------- | ----------------------------- | -------------------------------------- |
+| `request_callback` | `POST /api/voice/callback-request` | `callback_requests` | Yes (name, phone) — by design | Yes — the assistant speaks the outcome |
+| `log_call_topic`   | `POST /api/voice/call-topic`       | `call_topics`       | **Never** (no such column)    | No (`async`) — fired after the goodbye |
+
+- A caller's name and phone are asked for **only** when the question matches no FAQ entry or the
+  caller asks for staff. A plain FAQ answer never collects them.
+- Neither tool takes a call id, client or language from the model. The server reads them from
+  Vapi's webhook (`call.id`, and the assistant → `.vapi-state.<clientId>.json` lookup).
+- `call_topics.topic` is a FAQ id or `other` / `unresolved` / `emergency`; one row per call.
+- A new notification channel (email, LINE — `docs/FUTURE-FEATURES.md` F-2) is a new class
+  implementing `CallbackNotifier` in `src/lib/callbackNotifier.ts`; today only `LoggingNotifier`
+  exists. A failing notifier never fails the save.
+- Rate limit: 60 requests/minute per IP on both routes, applied before authentication.
+
+Apply the new tables with `npm run db:migrate`.
 
 ---
 

@@ -7,7 +7,9 @@ import helmet from 'helmet';
 
 import type { Queryable } from './db/pool.js';
 import { isDatabaseReachable } from './db/pool.js';
+import { summarizeError } from './lib/errorSummary.js';
 import { logger } from './lib/logger.js';
+import { VOICE_API_PREFIX, voiceRouter, type VoiceRouterOptions } from './routes/voiceRouter.js';
 import { TEST_PAGE_URL_PREFIX, defaultTestPageDir } from './vapi/generateTestPage.js';
 
 /** Vapi tool payloads are small; anything larger is not ours. */
@@ -16,6 +18,13 @@ export const JSON_BODY_LIMIT = '100kb';
 export interface AppOptions {
   db: Queryable;
   isProduction: boolean;
+  /** The Vapi webhooks. Required: there is deliberately no way to mount them unauthenticated. */
+  voice: VoiceRouterOptions;
+  /**
+   * Number of reverse proxies (ngrok, a load balancer) in front of the app, so
+   * rate limiting sees the real client IP. Leave unset when directly exposed.
+   */
+  trustProxyHops?: number;
   /** Override for tests: the directory of generated test pages (default: public/vapi-test-call). */
   vapiTestPageDir?: string;
 }
@@ -24,6 +33,7 @@ export function createApp(options: AppOptions): Express {
   const app = express();
 
   app.disable('x-powered-by');
+  if (options.trustProxyHops !== undefined) app.set('trust proxy', options.trustProxyHops);
 
   // Internal QA tool (work order VP-2 §6.8) — never mounted in production.
   // The pre-generated test-call page and its bootstrap script (`npm run
@@ -52,6 +62,8 @@ export function createApp(options: AppOptions): Express {
   }
 
   app.use(helmet());
+  // Before the global body parser: the voice routes throttle, authenticate and only then parse.
+  app.use(VOICE_API_PREFIX, voiceRouter(options.voice));
   app.use(express.json({ limit: JSON_BODY_LIMIT }));
 
   app.get('/healthz', async (_req: Request, res: Response) => {
@@ -89,10 +101,15 @@ function errorHandler(isProduction: boolean) {
     const status = statusOf(error);
     const message = error instanceof Error ? error.message : String(error);
 
+    // A client error (bad JSON, oversized body) can quote the request body in its
+    // message — which on the voice routes may hold a caller's name. Log only its type.
     logger.error('request failed', {
       status,
-      error: message,
-      ...(isProduction ? {} : { stack: error instanceof Error ? error.stack : undefined }),
+      ...(status >= 500 ? { error: message } : summarizeError(error)),
+      // A parse error's stack begins with a snippet of the body, so only server faults get one.
+      ...(isProduction || status < 500
+        ? {}
+        : { stack: error instanceof Error ? error.stack : undefined }),
     });
 
     res.status(status).json({

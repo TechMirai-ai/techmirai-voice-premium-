@@ -9,6 +9,7 @@ import { createApp } from '../../src/app.js';
 import type { Queryable } from '../../src/db/pool.js';
 import { generateTestPage } from '../../src/vapi/generateTestPage.js';
 import { writeState } from '../../src/vapi/stateStore.js';
+import { buildVoiceApp } from '../helpers/voiceFixtures.js';
 
 const healthyDb: Queryable = { query: () => Promise.resolve({ rows: [{ '?column?': 1 }] }) };
 const brokenDb: Queryable = {
@@ -21,6 +22,7 @@ const app = (db: Queryable = healthyDb, isProduction = false, vapiTestPageDir?: 
   createApp({
     db,
     isProduction,
+    voice: buildVoiceApp().voiceOptions,
     ...(vapiTestPageDir ? { vapiTestPageDir } : {}),
   });
 
