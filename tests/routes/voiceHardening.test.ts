@@ -39,14 +39,26 @@ describe('voice route hardening (security review)', () => {
     expect(statuses).toEqual([401, 401, 429]);
   });
 
-  test('a body over 20kb is refused even when authenticated', async () => {
+  test('a real-sized tool-calls payload (30kb) is accepted, not refused', async () => {
     const { app } = buildVoiceApp();
 
     const response = await request(app)
       .post(CALLBACK)
       .set(AUTH)
       .set('Content-Type', 'application/json')
-      .send(JSON.stringify({ pad: 'x'.repeat(30_000) }));
+      .send(toolCallsBody('request_callback', { ...args, reason: 'x'.repeat(30_000) }));
+
+    expect(response.status).not.toBe(413);
+  });
+
+  test('a body over the 2mb ceiling is refused even when authenticated', async () => {
+    const { app } = buildVoiceApp();
+
+    const response = await request(app)
+      .post(CALLBACK)
+      .set(AUTH)
+      .set('Content-Type', 'application/json')
+      .send(JSON.stringify({ pad: 'x'.repeat(3_000_000) }));
 
     expect(response.status).toBe(413);
   });

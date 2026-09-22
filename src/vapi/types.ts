@@ -40,6 +40,13 @@ export interface VapiModelConfig {
   messages: VapiModelMessage[];
   /** UUIDs of tools this assistant may call, resolved by sync.ts before render output is sent. */
   toolIds: string[];
+  /** Transient built-in tools inlined directly (no separate create/sync step) — used for `endCall`. */
+  tools?: VapiEndCallToolPayload[];
+}
+
+/** Vapi's built-in end-call tool (VAPI-FACTS.md VP-4 R5): no server, fixed function name `endCall`. */
+export interface VapiEndCallToolPayload {
+  type: 'endCall';
 }
 
 export interface VapiServerConfig {

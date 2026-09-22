@@ -13,7 +13,11 @@ import { CLINIC_PLACEHOLDERS } from '../config/rules.js';
 import type { ClientConfig } from '../config/schema.js';
 import { allowedTopics } from '../lib/callTopics.js';
 import type { FaqEntry } from '../knowledge/KnowledgeSource.js';
-import { LOG_CALL_TOPIC_FUNCTION_NAME, REQUEST_CALLBACK_FUNCTION_NAME } from './toolNames.js';
+import {
+  END_CALL_FUNCTION_NAME,
+  LOG_CALL_TOPIC_FUNCTION_NAME,
+  REQUEST_CALLBACK_FUNCTION_NAME,
+} from './toolNames.js';
 
 export class UnsupportedLanguageError extends Error {
   constructor(clientId: string, language: string, supported: readonly string[]) {
@@ -126,9 +130,11 @@ function languageSwitchSection(config: ClientConfig, language: string): string[]
 }
 
 /**
- * Tells the model to tag every call with a topic and outcome, silently, as its
- * very last action — after the goodbye words. The tool is asynchronous on
- * Vapi's side, so it cannot delay the caller (VAPI-FACTS.md, VP-4 §4.3).
+ * Tells the model to tag every call with a topic and outcome, silently, right
+ * after the goodbye words, then hang up via the built-in endCall tool — real
+ * calls otherwise sit open until the caller manually ends them (VAPI-FACTS.md,
+ * VP-4 R5). log_call_topic is asynchronous on Vapi's side, so it cannot delay
+ * the caller (VAPI-FACTS.md, VP-4 §4.3).
  */
 function callClassificationSection(faq: FaqEntry[]): string {
   const topics = allowedTopics(faq.map((entry) => entry.id))
@@ -138,8 +144,9 @@ function callClassificationSection(faq: FaqEntry[]): string {
   return [
     'Call classification (silent, once per call):',
     `- When the call is ending, first say your goodbye. Then, in that same turn, right after the goodbye words, ` +
-      `call ${LOG_CALL_TOPIC_FUNCTION_NAME} exactly once. It is your very last action: say nothing after it.`,
-    '- Never mention this tool, logging, topics or classification to the caller, and never call it before the goodbye.',
+      `call ${LOG_CALL_TOPIC_FUNCTION_NAME} exactly once, then call ${END_CALL_FUNCTION_NAME} to hang up. ` +
+      'Say nothing after the goodbye words — both tool calls are silent.',
+    '- Never mention either tool, logging, topics or classification to the caller, and never call them before the goodbye.',
     `- topic: exactly one of ${topics}. Use the FAQ topic id that best matches the whole call. ` +
       'Use "other" if the call was answered but fits no FAQ topic. Use "unresolved" if you took a callback ' +
       'request or could not help. Use "emergency" for a medical emergency.',

@@ -8,8 +8,13 @@ import { callTopicRouter, type CallTopicRouteDeps } from './callTopic.js';
 
 export const VOICE_API_PREFIX = '/api/voice';
 
-/** A tool-calls message is a few KB; anything bigger is not Vapi's. */
-export const VOICE_BODY_LIMIT = '20kb';
+/**
+ * A tool-calls message embeds the full assistant config (~8KB, mostly the FAQ
+ * prompt) plus the call artifact/transcript so far, which grows with call
+ * length. Real call 01a0c74e-0aaf-7000-9fdb-a73f0c2e0890 (2026-09-22) hit the
+ * old 20kb limit on both webhooks — see VAPI-FACTS.md VP-4 R5.
+ */
+export const VOICE_BODY_LIMIT = '2mb';
 
 export interface VoiceRouterOptions extends CallbackRequestRouteDeps, CallTopicRouteDeps {
   webhookSecret: string;

@@ -204,6 +204,9 @@ export function renderAssistant(
       // tool per other language) have resolved UUIDs — create/update the tools
       // first, then patch this in before the assistant create/update call.
       toolIds: [],
+      // Built-in, no server round-trip — lets the model hang up itself after
+      // the goodbye instead of leaving the call open (VAPI-FACTS.md VP-4 R5).
+      tools: [{ type: 'endCall' }],
     },
   };
 

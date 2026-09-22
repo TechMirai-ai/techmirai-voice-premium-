@@ -136,13 +136,13 @@ describe('prompt: conditional collection and silent classification (VP-4 §4.4)'
     expect(await promptFor()).toContain('Only in these two cases, continue by asking');
   });
 
-  test('tells the model to log the topic after the goodbye, silently, exactly once', async () => {
+  test('tells the model to log the topic after the goodbye, silently, exactly once, then hang up', async () => {
     const prompt = await promptFor();
 
     expect(prompt).toContain(`call ${LOG_CALL_TOPIC_FUNCTION_NAME} exactly once`);
     expect(prompt).toMatch(/first say your goodbye/);
-    expect(prompt).toMatch(/very last action/);
-    expect(prompt).toMatch(/Never mention this tool/);
+    expect(prompt).toMatch(/then call endCall to hang up/);
+    expect(prompt).toMatch(/Never mention either tool/);
   });
 
   test('lists every FAQ id and the reserved topics as valid choices', async () => {
