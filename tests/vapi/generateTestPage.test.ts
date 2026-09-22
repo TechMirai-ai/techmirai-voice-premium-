@@ -94,7 +94,7 @@ describe('generateTestPage', () => {
 
       expect(result.urlPath).toBe('/vapi-test-call/test-clinic--squad.html');
       const script = readFileSync(result.scriptPath, 'utf8');
-      expect(script).toContain('squad: "squad-uuid"');
+      expect(script).toContain('"squad-uuid"');
       expect(script).not.toContain('assistant-uuid');
     });
 

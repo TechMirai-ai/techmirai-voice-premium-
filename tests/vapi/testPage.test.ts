@@ -3,12 +3,19 @@ import { describe, expect, test } from 'vitest';
 import { renderTestCallBootstrapScript, renderTestCallPage } from '../../src/vapi/testPage.js';
 
 describe('renderTestCallPage', () => {
-  test('includes the client id and language, and a same-origin script src', () => {
+  test('includes the client id and language, and a same-origin module script src', () => {
     const html = renderTestCallPage({ clientId: 'sakura-seikotsuin', language: 'ja' });
 
     expect(html).toContain('sakura-seikotsuin');
     expect(html).toContain('ja');
-    expect(html).toContain('<script src="/vapi-test-call/sakura-seikotsuin--ja.js">');
+    expect(html).toContain('<script type="module" src="/vapi-test-call/sakura-seikotsuin--ja.js">');
+  });
+
+  test('includes start/end call buttons (the new SDK has no auto-injected widget UI)', () => {
+    const html = renderTestCallPage({ clientId: 'sakura-seikotsuin', language: 'ja' });
+
+    expect(html).toContain('id="start-call-button"');
+    expect(html).toContain('id="end-call-button"');
   });
 
   test('HTML-escapes clientId/language to prevent injection into the page body', () => {
@@ -23,7 +30,7 @@ describe('renderTestCallPage', () => {
 
     // The only <script> tag is the same-origin src reference — no inline body.
     expect(html.match(/<script\b[^>]*>[\s\S]*?<\/script>/g)).toEqual([
-      '<script src="/vapi-test-call/sakura-seikotsuin--ja.js"></script>',
+      '<script type="module" src="/vapi-test-call/sakura-seikotsuin--ja.js"></script>',
     ]);
   });
 });
@@ -48,14 +55,17 @@ describe('renderTestCallBootstrapScript', () => {
     expect(script).not.toContain('</script><script>alert(1)</script>');
   });
 
-  test('references the hosted Vapi script-tag embed, not @vapi-ai/web', () => {
+  test('imports @vapi-ai/web directly (VP-6 R3) — not the stale html-script-tag wrapper', () => {
     const script = renderTestCallBootstrapScript({
       publicKey: 'pub-key',
       assistantId: 'assistant-id',
     });
 
-    expect(script).toContain('html-script-tag');
-    expect(script).toContain('window.vapiSDK.run');
+    expect(script).toContain('import VapiModule from');
+    expect(script).toContain('@vapi-ai/web@');
+    expect(script).not.toContain('html-script-tag');
+    expect(script).not.toContain('window.vapiSDK');
+    expect(script).toContain('new Vapi(');
   });
 
   test("attaches vapi.on('error', ...) and logs the full error object, not just its message", () => {
@@ -64,7 +74,7 @@ describe('renderTestCallBootstrapScript', () => {
       assistantId: 'assistant-id',
     });
 
-    expect(script).toContain("window.vapiSDK.vapi.on('error'");
+    expect(script).toContain("vapi.on('error'");
     // Logs the raw value (covers plain-object errors) ...
     expect(script).toContain('console.error(');
     // ... and its own properties via an explicit replacer, so a real Error's
@@ -78,12 +88,23 @@ describe('renderTestCallBootstrapScript', () => {
       assistantId: 'assistant-id',
     });
 
-    expect(script).toContain('vapiInstance.start = function');
+    expect(script).toContain('vapi.start = function');
     expect(script).toContain('Vapi start() configured values:');
     expect(script).toContain('"pub-key"');
     expect(script).toContain('"assistant-id"');
     expect(script).toContain('Vapi start() actual arguments:');
     expect(script).toContain('originalStart.apply(null, arguments)');
+  });
+
+  test('starts the call from the start-call-button click, not automatically', () => {
+    const script = renderTestCallBootstrapScript({
+      publicKey: 'pub-key',
+      assistantId: 'assistant-id',
+    });
+
+    expect(script).toContain("getElementById('start-call-button')");
+    expect(script).toContain("getElementById('end-call-button')");
+    expect(script).toContain('vapi.stop()');
   });
 });
 
@@ -92,22 +113,22 @@ describe('squad target (VP-3)', () => {
     const html = renderTestCallPage({ clientId: 'sakura-seikotsuin' });
 
     expect(html).toContain('squad');
-    expect(html).toContain('<script src="/vapi-test-call/sakura-seikotsuin--squad.js"></script>');
+    expect(html).toContain(
+      '<script type="module" src="/vapi-test-call/sakura-seikotsuin--squad.js"></script>',
+    );
   });
 
-  test('the bootstrap script starts the call with `squad`, not `assistant`, and logs the squad id', () => {
+  test('the bootstrap script starts the call with the squad id as the 3rd positional argument, and logs it', () => {
     const script = renderTestCallBootstrapScript({ publicKey: 'pub-key', squadId: 'squad-uuid' });
 
-    expect(script).toContain('squad: "squad-uuid"');
-    expect(script).not.toContain('assistant:');
+    expect(script).toContain('vapi.start(undefined, undefined, "squad-uuid")');
     expect(script).toContain('squadId: "squad-uuid"');
-    expect(script).toContain('window.vapiSDK.run');
   });
 
-  test('a single-assistant script still uses `assistant`, not `squad`', () => {
+  test('a single-assistant script starts with the assistant id as the 1st positional argument', () => {
     const script = renderTestCallBootstrapScript({ publicKey: 'k', assistantId: 'a-1' });
 
-    expect(script).toContain('assistant: "a-1"');
-    expect(script).not.toContain('squad:');
+    expect(script).toContain('vapi.start("a-1")');
+    expect(script).not.toContain('squadId:');
   });
 });
