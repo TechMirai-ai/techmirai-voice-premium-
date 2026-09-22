@@ -1,4 +1,7 @@
 /** Starts the HTTP server. All wiring of env → pool → app happens here. */
+import connectPgSimple from 'connect-pg-simple';
+import session from 'express-session';
+
 import { createApp } from './app.js';
 import { createPool } from './db/pool.js';
 import { isProduction, loadEnv } from './env.js';
@@ -7,10 +10,13 @@ import { logger } from './lib/logger.js';
 import { FileKnowledgeSource } from './knowledge/KnowledgeSource.js';
 import { PgCallbackRequestRepository } from './repositories/callbackRequestRepository.js';
 import { PgCallTopicRepository } from './repositories/callTopicRepository.js';
+import { PgStaffUserRepository } from './repositories/staffUserRepository.js';
 import { StateFileAssistantResolver } from './vapi/assistantResolver.js';
 
 const env = loadEnv();
 const pool = createPool({ connectionString: env.DATABASE_URL });
+const callbacks = new PgCallbackRequestRepository(pool);
+const PgSession = connectPgSimple(session);
 const app = createApp({
   db: pool,
   isProduction: isProduction(env),
@@ -19,10 +25,21 @@ const app = createApp({
     webhookSecret: env.VAPI_WEBHOOK_SECRET,
     resolver: new StateFileAssistantResolver(),
     knowledge: new FileKnowledgeSource(),
-    callbacks: new PgCallbackRequestRepository(pool),
+    callbacks,
     topics: new PgCallTopicRepository(pool),
     // F-2: email/LINE are new classes implementing CallbackNotifier, swapped in here.
     notifier: new LoggingNotifier(),
+  },
+  staff: {
+    sessionStore: new PgSession({
+      pool,
+      tableName: 'session',
+      errorLog: (...args: unknown[]) =>
+        logger.error('session store error', { detail: args.map(String).join(' ') }),
+    }),
+    sessionSecret: env.SESSION_SECRET,
+    staffUsers: new PgStaffUserRepository(pool),
+    callbacks,
   },
 });
 

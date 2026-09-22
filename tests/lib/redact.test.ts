@@ -38,6 +38,21 @@ describe('redactPersonalData', () => {
     },
   );
 
+  // VP-5 §3: staff-login passwords are treated with the same seriousness as
+  // a caller's name/phone — never written to a log, plaintext or hashed.
+  test.each(['password', 'passwordHash', 'newPassword', 'confirmPassword', 'temporaryPassword'])(
+    'masks any value under the key %s',
+    (key) => {
+      const redacted = redactPersonalData({
+        [key]: 'super-secret-value-123',
+        staffUserId: 'staff-1',
+      }) as Record<string, unknown>;
+
+      expect(redacted[key]).toBe(VALUE_MASK);
+      expect(redacted.staffUserId).toBe('staff-1');
+    },
+  );
+
   test('walks nested objects and arrays without mutating the input', () => {
     const input = {
       call: { callerName: '山田太郎', notes: ['reach me on 090-1234-5678'] },

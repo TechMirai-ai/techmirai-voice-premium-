@@ -9,6 +9,7 @@ import type { Queryable } from './db/pool.js';
 import { isDatabaseReachable } from './db/pool.js';
 import { summarizeError } from './lib/errorSummary.js';
 import { logger } from './lib/logger.js';
+import { STAFF_URL_PREFIX, staffRouter, type StaffRouterOptions } from './routes/staffRouter.js';
 import { VOICE_API_PREFIX, voiceRouter, type VoiceRouterOptions } from './routes/voiceRouter.js';
 import { TEST_PAGE_URL_PREFIX, defaultTestPageDir } from './vapi/generateTestPage.js';
 
@@ -20,6 +21,8 @@ export interface AppOptions {
   isProduction: boolean;
   /** The Vapi webhooks. Required: there is deliberately no way to mount them unauthenticated. */
   voice: VoiceRouterOptions;
+  /** The staff dashboard. `isProduction` is filled in from the field above. */
+  staff: Omit<StaffRouterOptions, 'isProduction'>;
   /**
    * Number of reverse proxies (ngrok, a load balancer) in front of the app, so
    * rate limiting sees the real client IP. Leave unset when directly exposed.
@@ -65,6 +68,8 @@ export function createApp(options: AppOptions): Express {
   // Before the global body parser: the voice routes throttle, authenticate and only then parse.
   app.use(VOICE_API_PREFIX, voiceRouter(options.voice));
   app.use(express.json({ limit: JSON_BODY_LIMIT }));
+  // Self-contained cookie/session/urlencoded-body parsing, like the voice router above.
+  app.use(STAFF_URL_PREFIX, staffRouter({ ...options.staff, isProduction: options.isProduction }));
 
   app.get('/healthz', async (_req: Request, res: Response) => {
     const databaseUp = await isDatabaseReachable(options.db);

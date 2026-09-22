@@ -11,6 +11,7 @@ const base = {
   VAPI_PUBLIC_KEY: 'test-vapi-public-key',
   VAPI_WEBHOOK_SECRET: 'test-webhook-secret-0123456789',
   VAPI_SERVER_CREDENTIAL_ID: 'test-credential-id',
+  SESSION_SECRET: 'test-session-secret-0123456789-0123456789',
 };
 
 const load = (source: NodeJS.ProcessEnv) => loadEnv(source, { readDotenvFile: false });
@@ -32,6 +33,7 @@ describe('loadEnv', () => {
     'VAPI_PUBLIC_KEY',
     'VAPI_WEBHOOK_SECRET',
     'VAPI_SERVER_CREDENTIAL_ID',
+    'SESSION_SECRET',
   ])('fails fast and names %s when it is missing', (key) => {
     const source = { ...base, [key]: undefined };
 
@@ -43,6 +45,10 @@ describe('loadEnv', () => {
     expect(() => load({ ...base, VAPI_WEBHOOK_SECRET: 'too-short' })).toThrow(
       /VAPI_WEBHOOK_SECRET/,
     );
+  });
+
+  test('rejects a session secret shorter than 32 characters', () => {
+    expect(() => load({ ...base, SESSION_SECRET: 'too-short' })).toThrow(/SESSION_SECRET/);
   });
 
   test('treats TRUST_PROXY_HOPS as optional and coerces it to a number', () => {

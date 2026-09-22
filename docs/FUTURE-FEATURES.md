@@ -91,5 +91,40 @@ Prioritized. Evidence for each is in docs/VAPI-FACTS.md ("VP-3 latency investiga
 5. **Known gap (VP-3 §3.6): switching language mid-way through giving a name/phone number.** Not handled or tested. The full history transfers on handoff, so the new assistant may still know the partly-collected details, but nothing guarantees it resumes the callback flow. VP-4 (real callback logic) should be aware; VP-6 should test it.
 
 ## Suggested, not yet decided (do not build — raise with the owner)
-- **S-1 Retention policy for callback personal data.** Callers' names and phone numbers are personal data under Japan's APPI (Act on the Protection of Personal Information). Decide how long callback rows are kept and how they are deleted.
 - **S-2 AI disclosure in the greeting.** Consider saying "AI receptionist" in the greeting so callers know they are talking to an AI.
+
+---
+
+## VP-5 decisions: retention, access, and escaping for callback personal data
+
+The staff dashboard (VP-5) is the first screen that displays `callback_requests.reason` to a
+human. VP-4's security review already flagged that `reason` — a caller's own words about why
+they're calling — often qualifies as health information under Japan's APPI (Act on the
+Protection of Personal Information: 個人情報保護法 — Personal Information Protection Act),
+which carries stricter handling expectations than a plain name or phone number. These three
+points are the explicit, written decision required before VP-5 could ship, replacing the old
+"S-1" placeholder above.
+
+1. **Retention — still an open gap, not silently ignored.** No retention policy exists yet:
+   `callback_requests` rows are kept forever, `handled` or not, with no automatic deletion. This
+   is fine for the internal demo (one clinic, low volume, an audience that knows the data is
+   there), but it must not reach a real client this way. **Build when:** before onboarding the
+   first real paying clinic. Decide then, with legal input if available: how long a `handled` row
+   is kept, whether `reason` specifically should be deleted or anonymized sooner than the rest of
+   the row (since it is the field most likely to hold health information), and whether deletion is
+   a scheduled job, a manual admin action, or both.
+2. **Access — a conscious choice for one clinic, revisit at the second.** Today there is one
+   staff role (`admin`) and one clinic, so anyone who can log in sees every `reason` for that
+   clinic — there is no narrower "callbacks only, no health detail" view. This is a deliberate
+   choice for VP-5's scope, not an oversight. **Build when:** F-3 (a second real clinic) or a
+   clinic asks for more than one staff role — `staff_users.role` (already a string, not a fixed
+   enum, per §4.2) is designed so a narrower role needs no schema migration, just new
+   authorization logic in the dashboard routes.
+3. **Escaping — resolved now, not deferred.** Every place `reason` (or any other caller-supplied
+   free text) is written into a dashboard page goes through `src/lib/htmlEscape.ts` — see
+   `src/routes/staffViews.ts`. This was a hard requirement for VP-5 itself: `reason` is both
+   untrusted (caller-controlled) and potentially sensitive (may hold health information), so
+   letting it render as live markup would be both an XSS vector and a way for sensitive content to
+   end up somewhere unexpected (e.g. exfiltrated via injected script). Covered by an automated
+   test that injects HTML-like content and asserts it renders as inert text
+   (`tests/routes/staffDashboard.test.ts`).

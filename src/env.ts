@@ -35,6 +35,11 @@ const baseEnvSchema = z.object({
   VAPI_WEBHOOK_SECRET: z.string().min(16, 'must be at least 16 characters — see .env.example'),
   VAPI_SERVER_CREDENTIAL_ID: z.string().min(1, 'is required — see .env.example'),
 
+  // Required from VP-5: signs the staff dashboard's session cookie
+  // (express-session). Longer than the webhook secret since a compromised
+  // value lets an attacker forge any staff session, not just one request.
+  SESSION_SECRET: z.string().min(32, 'must be at least 32 characters — see .env.example'),
+
   // Optional: how many reverse proxies sit in front of the server (1 behind ngrok).
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(10).optional(),
 });

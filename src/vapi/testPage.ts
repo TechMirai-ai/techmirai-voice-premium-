@@ -16,18 +16,10 @@
  * the widget and Daily contact are recorded in VAPI-FACTS.md in case a CSP is
  * ever reinstated.
  */
+import { escapeHtml } from '../lib/htmlEscape.js';
 
 const VAPI_WIDGET_SCRIPT_URL =
   'https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js';
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 /** JSON-encodes a value for safe embedding inside a <script> block. */
 function safeJsonForScript(value: unknown): string {
