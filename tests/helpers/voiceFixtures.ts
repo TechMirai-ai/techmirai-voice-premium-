@@ -14,6 +14,7 @@ import type {
 import type { AssistantResolver } from '../../src/vapi/assistantResolver.js';
 import type { VoiceRouterOptions } from '../../src/routes/voiceRouter.js';
 import type { RateLimitOptions } from '../../src/middleware/rateLimit.js';
+import { buildStaffOptions } from './staffFixtures.js';
 
 export const WEBHOOK_SECRET = 'test-webhook-secret-0123456789';
 export const CLIENT_ID = 'sakura-seikotsuin';
@@ -80,7 +81,12 @@ export function buildVoiceApp(options: { rateLimit?: RateLimitOptions } = {}) {
     notifier,
     ...(options.rateLimit ? { rateLimit: options.rateLimit } : {}),
   };
-  const app = createApp({ db: healthyDb, isProduction: false, voice: voiceOptions });
+  const app = createApp({
+    db: healthyDb,
+    isProduction: false,
+    voice: voiceOptions,
+    staff: buildStaffOptions(),
+  });
   return { app, callbacks, topics, notifier, voiceOptions };
 }
 

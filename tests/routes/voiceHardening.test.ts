@@ -13,6 +13,7 @@ import {
   toolCallsBody,
   WEBHOOK_SECRET,
 } from '../helpers/voiceFixtures.js';
+import { buildStaffOptions } from '../helpers/staffFixtures.js';
 
 const CALLBACK = '/api/voice/callback-request';
 const args = { callerName: CALLER_NAME, callerPhone: CALLER_PHONE };
@@ -76,6 +77,7 @@ describe('voice route hardening (security review)', () => {
           },
         },
       },
+      staff: buildStaffOptions(),
     });
 
     const response = await request(app)
@@ -114,6 +116,7 @@ describe('production must declare its proxy topology', () => {
     VAPI_PUBLIC_KEY: 'p',
     VAPI_WEBHOOK_SECRET: 'a-long-enough-secret-value',
     VAPI_SERVER_CREDENTIAL_ID: 'c',
+    SESSION_SECRET: 'test-session-secret-0123456789-0123456789',
   };
 
   test('fails at startup without TRUST_PROXY_HOPS', () => {

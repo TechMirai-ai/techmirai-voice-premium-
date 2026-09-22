@@ -227,24 +227,57 @@ caller IP rather than the proxy's.
 
 Apply the new tables with `npm run db:migrate`.
 
+### 11. Log in to the staff dashboard (from VP-5)
+
+The callback-requests dashboard lives at `/staff/login`, served by the same app and port as
+everything else (`http://localhost:3000/staff/login` locally). There is no public signup — every
+account is created by hand with the CLI:
+
+```bash
+npm run staff:create -- <email> <clientId>
+# example:
+npm run staff:create -- owner@example.com sakura-seikotsuin
+```
+
+This prints a random **temporary password once** — copy it now, it is never shown again and never
+stored anywhere except its bcrypt hash. Then:
+
+1. Open `/staff/login` and sign in with that email and temporary password.
+2. You are forced straight to `/staff/change-password` — every other page redirects there until
+   you set a real password. This is not skippable.
+3. Choose a new password (12+ characters) and confirm it. You're now on the dashboard.
+4. The dashboard lists callback requests for your account's client, newest first, with a
+   **Mark as handled** button on each pending one. There is no un-marking and no editing — it's a
+   read/act-on-callbacks screen, not a content editor.
+
+Sessions are stored server-side in Postgres (the `session` table, via `connect-pg-simple`) rather
+than as a JWT, and expire after 8 hours of inactivity. Log in attempts are rate-limited far more
+strictly than the voice webhooks (a handful of attempts per IP per 15 minutes) since this is a
+password-guessing surface.
+
+`reason` — a caller's own words about why they called — may hold health information under Japan's
+APPI; see `docs/FUTURE-FEATURES.md` ("VP-5 decisions") for the retention/access decisions around
+it, and `src/lib/htmlEscape.ts` for why it's always escaped before reaching a page.
+
 ---
 
 ## Everyday commands
 
-| Command                                                       | What it does                                      |
-| ------------------------------------------------------------- | ------------------------------------------------- |
-| `npm run dev`                                                 | Start the server and reload on changes            |
-| `npm test`                                                    | Run all tests once                                |
-| `npm run test:coverage`                                       | Run tests and report coverage (must stay at 80%+) |
-| `npm run typecheck`                                           | Check the TypeScript types                        |
-| `npm run lint`                                                | Check code style and common mistakes              |
-| `npm run format`                                              | Reformat the code with Prettier                   |
-| `npm run db:migrate`                                          | Apply new database migrations                     |
-| `npm run config:check -- <clientId>`                          | Validate one client's config                      |
-| `npm run vapi:sync -- <clientId> --language <code> [--apply]` | Dry-run (default) or apply one language's sync    |
-| `npm run vapi:sync -- <clientId> --squad [--apply]`           | Dry-run (default) or apply the Squad sync         |
-| `npm run vapi:test-page -- <clientId> [--language <code>]`    | Regenerate the test-call page (Squad by default)  |
-| `npm run vapi:test-page:serve`                                | Serve that page on 127.0.0.1:3001 (plain Node)    |
+| Command                                                       | What it does                                       |
+| ------------------------------------------------------------- | -------------------------------------------------- |
+| `npm run dev`                                                 | Start the server and reload on changes             |
+| `npm test`                                                    | Run all tests once                                 |
+| `npm run test:coverage`                                       | Run tests and report coverage (must stay at 80%+)  |
+| `npm run typecheck`                                           | Check the TypeScript types                         |
+| `npm run lint`                                                | Check code style and common mistakes               |
+| `npm run format`                                              | Reformat the code with Prettier                    |
+| `npm run db:migrate`                                          | Apply new database migrations                      |
+| `npm run config:check -- <clientId>`                          | Validate one client's config                       |
+| `npm run vapi:sync -- <clientId> --language <code> [--apply]` | Dry-run (default) or apply one language's sync     |
+| `npm run vapi:sync -- <clientId> --squad [--apply]`           | Dry-run (default) or apply the Squad sync          |
+| `npm run vapi:test-page -- <clientId> [--language <code>]`    | Regenerate the test-call page (Squad by default)   |
+| `npm run vapi:test-page:serve`                                | Serve that page on 127.0.0.1:3001 (plain Node)     |
+| `npm run staff:create -- <email> <clientId>`                  | Create a staff login with a one-time temp password |
 
 Run `npm test`, `npm run typecheck` and `npm run lint` before opening a pull request.
 

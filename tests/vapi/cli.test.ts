@@ -32,6 +32,7 @@ const REQUIRED_ENV = {
   VAPI_PUBLIC_KEY: 'fake-vapi-public-key',
   VAPI_WEBHOOK_SECRET: 'fake-webhook-secret-0123456789',
   VAPI_SERVER_CREDENTIAL_ID: 'fake-credential-id',
+  SESSION_SECRET: 'fake-session-secret-0123456789-0123456789',
 };
 
 async function runCli(args: string[], env: NodeJS.ProcessEnv = {}): Promise<CliResult> {

@@ -33,6 +33,14 @@ const SENSITIVE_KEYS: ReadonlySet<string> = new Set([
   'callerphone',
   'phonenumber',
   'tel',
+  // Staff-login passwords (VP-5 §3): treated with the same seriousness as a
+  // caller's name/phone — never written to a log, plaintext or hashed.
+  'password',
+  'passwordhash',
+  'password_hash',
+  'newpassword',
+  'confirmpassword',
+  'temporarypassword',
 ]);
 
 /** A run of digits this long or longer is treated as a phone number. */
