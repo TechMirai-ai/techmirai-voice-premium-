@@ -112,6 +112,19 @@ describe('buildSystemPrompt — Sakura fixture (ja)', () => {
     expect(prompt).toContain('[[callerPhone]]');
   });
 
+  test('asks anythingElse after a successful (or failed) callback save too, not just after a FAQ answer', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'ja', faq);
+
+    const toolCallLine = prompt.indexOf('After the tool call');
+    const anythingElseAfterTool = prompt.indexOf(config.scripts.anythingElse['ja']!, toolCallLine);
+    expect(toolCallLine).toBeGreaterThan(-1);
+    expect(anythingElseAfterTool).toBeGreaterThan(toolCallLine);
+    expect(prompt).toContain('Do not go quiet and wait for the caller to speak first');
+  });
+
   test('substitutes every clinic placeholder — none remain literal', async () => {
     const config = loadClient(SAKURA_ID);
     const faq = await knowledge.listFaq(SAKURA_ID);

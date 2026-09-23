@@ -217,12 +217,21 @@ export function buildSystemPrompt(config: ClientConfig, language: string, faq: F
       `- If nothing above matches what the caller is asking, say: "${scriptLine('noMatch')}". ` +
         `If the caller explicitly asks for staff instead, say: "${scriptLine('staffContactOffer')}" ` +
         'instead. Only in these two cases, continue by asking: ' +
-        `"${scriptLine('askPhone')}", then confirm with: "${scriptLine('confirmDetails')}" before ` +
-        `calling the ${REQUEST_CALLBACK_FUNCTION_NAME} tool.`,
+        `"${scriptLine('askPhone')}".`,
+      `- MANDATORY confirmation step, no exceptions: once you have both the name and phone number, ` +
+        `"${scriptLine('confirmDetails')}" MUST be its own separate spoken turn — never combined ` +
+        `with anything else, never skipped, even if you are confident you heard correctly. Say it, ` +
+        `then STOP and wait for the caller's reply. Do NOT call the ${REQUEST_CALLBACK_FUNCTION_NAME} ` +
+        "tool until the caller has given an explicit yes/correct/that's right response to THIS exact " +
+        'question. If they correct something, update it and ask the confirmation question again — do ' +
+        'not proceed on an uncorrected "no" or on silence. Calling the tool without this confirmed ' +
+        '"yes" first is a serious error.',
       `- After the tool call: if it succeeded, say something in the spirit of "${scriptLine('callbackSaved')}"; ` +
         `if it failed, say something in the spirit of "${scriptLine('callbackFailed')}". In both cases, ` +
         "substitute the caller's actual name and phone number for [[callerName]] and [[callerPhone]] " +
         '— never speak the placeholder text itself.',
+      `- After that, ask: "${scriptLine('anythingElse')}" — same as after answering a FAQ question. ` +
+        'Do not go quiet and wait for the caller to speak first.',
       '- When the caller is done, do NOT say a goodbye line yourself — move directly to the ' +
         'silent call classification steps below, which end the call. The system speaks the ' +
         'goodbye automatically when the call ends; saying it yourself would say it twice.',
