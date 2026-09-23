@@ -78,18 +78,40 @@ scales better than a growing inline list.
 - No reliance on local disk for anything that must persist (except local dev).
 - The Vapi-facing server must be reachable over public HTTPS; local development uses a tunnel (e.g. ngrok or cloudflared) set in `PUBLIC_BASE_URL`.
 
+## F-9 — Prompt guard for switching language mid-collection (name/phone)
+**What:** If the caller asks to switch language while the assistant is in the middle of collecting
+their name or phone number, finish collecting that one piece of information first, then hand off —
+instead of switching immediately and losing the partly-collected detail.
+**Why later:** Never observed on a real call — hypothetical edge case only. Dropped from VP-6
+(2026-09-23) rather than spending test-call budget confirming it, since it's cheap to add whenever
+it does come up.
+**Build when:** A real call actually hits this (caller switches language mid-name/phone), or before
+a client goes live if the owner wants it covered preemptively.
+**The fix, ready to apply (no engineering, one prompt instruction):** in
+`languageSwitchSection()` (`src/vapi/promptTemplate.ts`), add to the language-switching bullet list:
+> "Exception: if you are in the middle of collecting the caller's name or phone number when they ask
+> to switch languages, do NOT switch immediately. First finish collecting that one piece of
+> information, in the current language, then call the handoff tool right after — never switch
+> mid-collection and lose what you were in the middle of asking for."
+
+This was drafted and reverted along with the rest of VP-6's original attempt (`git show e57103d --
+src/vapi/promptTemplate.ts`) — the full history already transfers on handoff (VP-3), so the
+destination assistant should be able to resume from context even without this, but the instruction
+makes it explicit rather than relying on that.
+**Base must allow:** Nothing — this is prompt text only, no schema/type change.
+
 ---
 
 ---
 
 ## VP-6 backlog — conversation polish (found during VP-3; do not build yet)
 Prioritized. Evidence for each is in docs/VAPI-FACTS.md ("VP-3 latency investigation").
-1. **Answer latency: shorten the end-of-speech wait (highest value, small change).** The owner found the pause before answering an FAQ question too slow. Measured per turn: endpointing 1206ms avg of 2918ms total (≈41%), model only 425ms, voice 442ms, STT 366ms. Cause is the default `transcriptionEndpointingPlan.onNoPunctuationSeconds = 1.5`. Try lower values (e.g. 0.6–0.8) via the assistant's `startSpeakingPlan`, measure with `artifact.performanceMetrics`, and listen for callers being cut off. **Constraint from VP-4:** collecting a phone number needs *longer* patience (digits arrive in chunks) — use `onNumberSeconds` / `customEndpointingRules` so the callback flow is not made worse. Per-language values are fine (ja vs en).
+1. **Answer latency: shorten the end-of-speech wait (highest value, small change).** ~~Try lower values via the assistant's `startSpeakingPlan`.~~ **Implemented, not yet verified by a real call (2026-09-23) — see `docs/VAPI-FACTS.md` VP-6 R4.** Cause was the default `transcriptionEndpointingPlan.onNoPunctuationSeconds = 1.5` (≈41% of turn time). Fix: `smartEndpointingPlan: { provider: "vapi" }` (text-based, language-agnostic — `livekit` is English-only per Vapi's own docs) replaces the fixed wait for both `ja`/`en`, plus one `customEndpointingRules` entry giving a 2.5s timeout specifically for the turn right after the assistant asks for the phone number (regex-matched against that language's `scripts.askPhone` text), so the general speedup doesn't make the "digits arrive in chunks" problem worse. Synced to the real assistants; the next real call is what confirms the latency actually dropped and that the phone-number rule neither cuts callers off nor over-waits.
 2. **Japanese speech-recognition accuracy.** Two misrecognised turns on the opening question in the VP-3 call. First separate mic/speaker effects from Azure ja-JP quality (repeat with a headset); if it is the transcriber, compare another Japanese-capable provider — but only with a measured before/after, since a provider swap changes cost and the language table (VAPI-FACTS R1).
 3. **Only if the model turns out to be slow later:** the "Ultra Fast" model preset / a faster model, and moving the FAQ out of the inline prompt (F-1 note: Knowledge Base). Today's evidence does *not* support this (model ≈425ms, prompt ≈1.7k tokens per turn) — do not start here.
-4. **English pronunciation of the clinic name.** The English voice said something transcribed as "Sakura Saikatsuan"; listen, and if wrong consider a phonetic spelling in `business.name.en` (client.yaml) rather than code.
-5. **Known gap (VP-3 §3.6): switching language mid-way through giving a name/phone number.** Not handled or tested. The full history transfers on handoff, so the new assistant may still know the partly-collected details, but nothing guarantees it resumes the callback flow. VP-4 (real callback logic) should be aware; VP-6 should test it.
-6. **Real bug found 2026-09-22: the assistant sometimes skips the spoken goodbye entirely and silently ends the call.** This is VP-6 §G's "natural end-of-call" test item — it currently fails. Confirmed on a real callback call on **unmodified `main`** (not a VP-6 A–E regression — see `docs/VAPI-FACTS.md`, "Baseline call finding"): after a short, low-content caller reply ("No, thank you."), the assistant went straight to the silent `endCall` + `log_call_topic` tool-call batch without ever producing a `bot` message containing `scripts.goodbye`. The prompt says to speak the goodbye first, but nothing enforces it. **Preferred fix to try first:** check whether Vapi's built-in `endCall` tool supports its own canned closing message (spoken by the platform when the tool fires) rather than relying on prompt compliance for something this important — that would be a structural guarantee instead of another instruction the model can skip. Fall back to prompt rewording only if no such mechanism exists. Not fixed yet — deliberately deferred to a later VP-6 session.
+4. **English pronunciation of the clinic name.** ~~Listen, and if wrong consider a phonetic spelling in `business.name.en`.~~ **Implemented (2026-09-23) — see `docs/VAPI-FACTS.md` VP-6 R6.** Re-checked current Vapi docs/SDK/OpenAPI spec first (no Azure pronunciation-hint mechanism exists, confirmed again). Fix: a new optional `business.namePronunciation` field (kept separate from `business.name`, which stays the correct written romanization) — set to `Sakura Say-koh-tsoo-in` for `en` in `client.yaml`, used only when filling the spoken `[[clinicName]]` placeholder and the prompt's own Identity line. Synced and confirmed live on the standalone EN assistant and the JA→EN handoff override alike.
+5. ~~Known gap (VP-3 §3.6): switching language mid-way through giving a name/phone number.~~ **Dropped from VP-6 (2026-09-23) — moved to F-9 below.** Never observed on a real call; not worth spending test-call budget on right now.
+6. **Real bug found 2026-09-22: the assistant sometimes skips the spoken goodbye entirely and silently ends the call.** ~~This is VP-6 §G's "natural end-of-call" test item — it currently fails.~~ **Fixed and verified live (2026-09-23) — see `docs/VAPI-FACTS.md` VP-6 R2/R3.** Root cause was two-fold: (a) the model sometimes jumped straight to the silent `endCall`/`log_call_topic` tool calls without a `bot` goodbye message in between (confirmed on unmodified `main`, not a VP-6 A–E regression); (b) the fix — Vapi's `assistant.endCallMessage`, spoken automatically by the platform before hangup — doesn't carry over to an assistant reached via Squad handoff and had to be threaded through the handoff destination's `assistantOverrides`, same as `firstMessage`. Confirmed by real test calls: Japanese standalone goodbye and English goodbye-after-handoff both play correctly now.
 
 ## Suggested, not yet decided (do not build — raise with the owner)
 - **S-2 AI disclosure in the greeting.** Consider saying "AI receptionist" in the greeting so callers know they are talking to an AI.
