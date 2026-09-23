@@ -55,13 +55,26 @@ export function pick(source: Record<string, string>, language: string): string {
  * and the tool's canned failure message — anywhere client.yaml text reaches
  * a payload Vapi will actually speak, not just inside the system prompt.
  */
+/**
+ * The clinic name as it should be SPOKEN in `language`: the phonetic
+ * `business.namePronunciation` override when the config sets one for that
+ * language (VP-6 D), else the plain `business.name`. Anything the model
+ * might say aloud — the `[[clinicName]]` placeholder and the prompt's own
+ * "Identity" line — must go through this, not `business.name` directly.
+ */
+function spokenClinicName(config: ClientConfig, language: string): string {
+  return (
+    pick(config.business.namePronunciation ?? {}, language) || pick(config.business.name, language)
+  );
+}
+
 export function fillClinicPlaceholders(
   config: ClientConfig,
   language: string,
   text: string,
 ): string {
   const values = new Map<string, string>([
-    ['clinicName', pick(config.business.name, language)],
+    ['clinicName', spokenClinicName(config, language)],
     ['clinicPhone', config.business.phone.display],
     ['clinicAddress', pick(config.business.address, language)],
     ['emergencyNumber', config.safety.emergencyNumber],
@@ -180,7 +193,7 @@ export function buildSystemPrompt(config: ClientConfig, language: string, faq: F
   const scriptLine = (key: keyof ClientConfig['scripts']): string =>
     fillClinicPlaceholders(config, language, pick(s[key], language));
 
-  const clinicName = pick(config.business.name, language);
+  const clinicName = spokenClinicName(config, language);
   const clinicAddress = pick(config.business.address, language);
   const hours = config.business.hours;
 

@@ -6,6 +6,14 @@ business:
   name:
     ja: さくら整骨院
     en: Sakura Seikotsuin
+  # VP-6 D: the en-US Azure voice mispronounced "Seikotsuin" (VAPI-FACTS.md,
+  # VP-3 latency investigation — STT heard it back as "Saikatsuan"). No Azure
+  # pronunciation-dictionary/SSML hint exists in Vapi (VAPI-FACTS.md VP-6 R6),
+  # so this is the documented fallback: a phonetic respelling used only when
+  # the English assistant *speaks* the name. `name.en` above is unchanged and
+  # stays the correct romanization for any future written/display use.
+  namePronunciation:
+    en: Sakura Say-koh-tsoo-in
   address:
     postalCode: "330-0000"
     ja: 埼玉県さいたま市浦和区サンプル町1丁目2番3号

@@ -57,6 +57,15 @@ const weeklyHoursSchema = z.strictObject({
 const businessSchema = z.strictObject({
   type: nonEmpty,
   name: localizedTextSchema,
+  // Optional, per-language phonetic respelling of `name`, used only to fill
+  // [[clinicName]] when speaking (VP-6 D): the canonical `name` stays
+  // correctly spelled for any future written/display use. Only set it for a
+  // language whose TTS voice actually mispronounces the plain name —
+  // partial is fine, unlike `name` itself. No Azure pronunciation-dictionary/
+  // SSML-style hint exists in Vapi (re-verified 2026-09-23 against the live
+  // OpenAPI spec, the SDK's `AzureVoice` type, and docs.vapi.ai — see
+  // docs/VAPI-FACTS.md VP-6 R6), so this is the documented fallback.
+  namePronunciation: localizedTextSchema.optional(),
   // `postalCode` plus one entry per supported language.
   address: z.object({ postalCode: nonEmpty }).catchall(nonEmpty),
   phone: z.strictObject({

@@ -138,6 +138,29 @@ describe('buildSystemPrompt — Sakura fixture (ja)', () => {
   });
 });
 
+describe('buildSystemPrompt — clinic-name pronunciation override (VP-6 D)', () => {
+  test('falls back to business.name when no namePronunciation is set for the language', () => {
+    const config = buildMinimalConfig({ language: 'fr' });
+
+    const prompt = buildSystemPrompt(config, 'fr', config.faq);
+
+    expect(prompt).toContain('Test Clinic (fr)');
+  });
+
+  test('uses namePronunciation instead of business.name when set for the language', () => {
+    const config = buildMinimalConfig({ language: 'fr' });
+    const withPronunciation = {
+      ...config,
+      business: { ...config.business, namePronunciation: { fr: 'Test Clinic Phonetic' } },
+    };
+
+    const prompt = buildSystemPrompt(withPronunciation, 'fr', withPronunciation.faq);
+
+    expect(prompt).toContain('Test Clinic Phonetic');
+    expect(prompt).not.toContain('Test Clinic (fr)');
+  });
+});
+
 describe('buildSystemPrompt — language handling', () => {
   test('throws UnsupportedLanguageError for a language not in languages.supported', () => {
     const config = buildMinimalConfig({ language: 'fr' });

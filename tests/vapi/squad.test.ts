@@ -50,7 +50,8 @@ describe('renderHandoffTool — Sakura', () => {
     const toEn = renderHandoffTool(config, 'ja', 'en').destinations[0];
     const toJa = renderHandoffTool(config, 'en', 'ja').destinations[0];
 
-    expect(toEn?.assistantOverrides.firstMessage).toContain('Sakura Seikotsuin');
+    // Spoken text uses the VP-6 D phonetic override (namePronunciation.en), not the written name.
+    expect(toEn?.assistantOverrides.firstMessage).toContain('Sakura Say-koh-tsoo-in');
     expect(toEn?.assistantOverrides.firstMessage).not.toContain('[[');
     expect(toJa?.assistantOverrides.firstMessage).toBe(
       '日本語の受付にお繋ぎしました。ご用件をお聞かせください。',
@@ -61,8 +62,9 @@ describe('renderHandoffTool — Sakura', () => {
     const toEn = renderHandoffTool(config, 'ja', 'en').destinations[0];
     const toJa = renderHandoffTool(config, 'en', 'ja').destinations[0];
 
+    // Spoken text uses the VP-6 D phonetic override (namePronunciation.en), not the written name.
     expect(toEn?.assistantOverrides.endCallMessage).toBe(
-      'Thank you for calling Sakura Seikotsuin. Have a great day. Goodbye.',
+      'Thank you for calling Sakura Say-koh-tsoo-in. Have a great day. Goodbye.',
     );
     expect(toJa?.assistantOverrides.endCallMessage).toContain('さくら整骨院');
     expect(toJa?.assistantOverrides.endCallMessage).not.toContain('[[');
