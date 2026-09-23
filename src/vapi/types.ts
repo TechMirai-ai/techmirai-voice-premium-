@@ -71,6 +71,40 @@ export interface VapiToolServerConfig {
   credentialId: string;
 }
 
+/**
+ * A custom endpointing rule matching the assistant's own last message (or the
+ * customer's current speech) by regex, overriding the endpointing timeout for
+ * that one turn. Highest precedence — see `VapiStartSpeakingPlan` (VP-6 §A).
+ */
+export interface VapiCustomEndpointingRule {
+  type: 'assistant' | 'customer' | 'both';
+  regex: string;
+  timeoutSeconds: number;
+}
+
+/**
+ * Controls how long the assistant waits to decide the caller has finished
+ * speaking (VP-6 §A / VAPI-FACTS.md "VP-3 latency investigation"). Narrowed
+ * to just what this project sets: Vapi's own text-based smart endpointing
+ * (works for any language, unlike LiveKit's endpointing which docs say is
+ * English-only) as the general mechanism, plus a `customEndpointingRules`
+ * override for the one turn that needs extra patience — the caller reading a
+ * phone number back in chunks.
+ */
+export interface VapiStartSpeakingPlan {
+  smartEndpointingPlan?: { provider: 'vapi' };
+  customEndpointingRules?: VapiCustomEndpointingRule[];
+  /**
+   * The "vapi" smartEndpointingPlan provider is not an independent adaptive
+   * system — it decides using these same heuristic rules (VAPI-FACTS.md
+   * VP-6 R7): number-ending → onNumberSeconds, punctuation-ending →
+   * onPunctuationSeconds, otherwise → onNoPunctuationSeconds (default 1.5s).
+   * Leaving this unset means smartEndpointingPlan silently falls back to
+   * that 1.5s default — exactly the wait it was meant to shorten.
+   */
+  transcriptionEndpointingPlan?: { onNoPunctuationSeconds: number };
+}
+
 export interface VapiAssistantPayload {
   /** Vapi's own assistant.name field — CLAUDE.md naming convention, e.g. "sakura-seikotsuin--ja". */
   name: string;
@@ -78,6 +112,7 @@ export interface VapiAssistantPayload {
   voice: VapiVoiceConfig;
   transcriber: VapiTranscriberConfig;
   model: VapiModelConfig;
+  startSpeakingPlan?: VapiStartSpeakingPlan;
   /**
    * Spoken automatically whenever the assistant ends the call (e.g. via the
    * `endCall` tool) — "If unspecified, it will hang up without saying

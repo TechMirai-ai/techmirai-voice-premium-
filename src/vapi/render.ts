@@ -29,6 +29,7 @@ import type {
   VapiAssistantPayload,
   VapiFunctionToolPayload,
   VapiHandoffToolPayload,
+  VapiStartSpeakingPlan,
 } from './types.js';
 
 export class UnconfiguredTranscriberError extends Error {
@@ -72,6 +73,43 @@ export interface RenderResult {
 /** Strips a trailing slash so `${baseUrl}/api/...` never ends up with `//`. */
 function stripTrailingSlash(url: string): string {
   return url.replace(/\/+$/, '');
+}
+
+/** Escapes regex metacharacters so a literal script line is safe to use as a Vapi endpointing-rule regex. */
+function escapeRegex(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * VP-6 §A: text-based smart endpointing (works for any language). The "vapi"
+ * smartEndpointingPlan provider decides using transcriptionEndpointingPlan's
+ * own heuristic rules (VAPI-FACTS.md VP-6 R7) — leaving that unset meant it
+ * silently used the default 1.5s `onNoPunctuationSeconds` wait, identical to
+ * the behavior it was meant to shorten. Set explicitly here, alongside a
+ * targeted `customEndpointingRules` override for the one turn that needs
+ * *more* patience — right after the assistant asks for the phone number,
+ * since callers read digits back in paused chunks.
+ */
+const NO_PUNCTUATION_WAIT_SECONDS = 0.7;
+
+function buildStartSpeakingPlan(config: ClientConfig, language: string): VapiStartSpeakingPlan {
+  const askPhoneText = fillClinicPlaceholders(
+    config,
+    language,
+    pick(config.scripts.askPhone, language),
+  );
+
+  return {
+    smartEndpointingPlan: { provider: 'vapi' },
+    transcriptionEndpointingPlan: { onNoPunctuationSeconds: NO_PUNCTUATION_WAIT_SECONDS },
+    customEndpointingRules: [
+      {
+        type: 'assistant',
+        regex: escapeRegex(askPhoneText),
+        timeoutSeconds: 2.5,
+      },
+    ],
+  };
 }
 
 /**
@@ -197,6 +235,7 @@ export function renderAssistant(
       provider: settings.transcriber.provider,
       language: settings.transcriber.language,
     },
+    startSpeakingPlan: buildStartSpeakingPlan(config, language),
     model: {
       provider: MODEL_PROVIDER,
       model: MODEL_ID,

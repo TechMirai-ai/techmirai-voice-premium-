@@ -75,6 +75,45 @@ describe('renderAssistant — Sakura fixture (ja)', () => {
   });
 });
 
+describe('renderAssistant — startSpeakingPlan (VP-6 A)', () => {
+  test('uses Vapi text-based smart endpointing and a longer timeout while the assistant is asking for the phone number', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const { assistant } = renderAssistant(config, 'ja', faq, OPTIONS);
+
+    expect(assistant.startSpeakingPlan?.smartEndpointingPlan).toEqual({ provider: 'vapi' });
+    // The "vapi" smart provider reads its own decision thresholds from
+    // transcriptionEndpointingPlan (VAPI-FACTS.md VP-6 R7) — this must be
+    // set explicitly, and lower than the 1.5s default, or the "smart"
+    // provider silently behaves identically to the old fixed wait.
+    const onNoPunctuationSeconds =
+      assistant.startSpeakingPlan?.transcriptionEndpointingPlan?.onNoPunctuationSeconds;
+    expect(onNoPunctuationSeconds).toBeGreaterThanOrEqual(0.6);
+    expect(onNoPunctuationSeconds).toBeLessThanOrEqual(0.8);
+    const rules = assistant.startSpeakingPlan?.customEndpointingRules ?? [];
+    expect(rules).toHaveLength(1);
+    expect(rules[0]?.type).toBe('assistant');
+    // Still longer than both the old fixed default AND the new shorter one.
+    expect(rules[0]?.timeoutSeconds).toBeGreaterThan(1.5);
+    expect(new RegExp(rules[0]?.regex ?? '')).toEqual(
+      expect.objectContaining({
+        source: expect.stringContaining('お電話番号を教えていただけますか'),
+      }),
+    );
+  });
+
+  test('the same plan shape holds for an arbitrary language — no hard-coded ja/en', () => {
+    const config = buildMinimalConfig({ language: 'fr' });
+
+    const { assistant } = renderAssistant(config, 'fr', config.faq, OPTIONS);
+
+    expect(assistant.startSpeakingPlan?.smartEndpointingPlan).toEqual({ provider: 'vapi' });
+    const regex = new RegExp(assistant.startSpeakingPlan?.customEndpointingRules?.[0]?.regex ?? '');
+    expect(regex.test('askPhone text (fr)')).toBe(true);
+  });
+});
+
 describe('renderAssistant — handoff (Sakura)', () => {
   test('the Japanese assistant opens with the call greeting and gets one handoff tool, to English', async () => {
     const config = loadClient(SAKURA_ID);
