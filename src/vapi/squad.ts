@@ -6,7 +6,12 @@
  * language pair, destinations by `assistantName`, and a Squad whose first
  * member is the client's default language.
  */
-import { UnsupportedLanguageError, fillClinicPlaceholders, pick } from './promptTemplate.js';
+import {
+  UnsupportedLanguageError,
+  fillClinicPlaceholders,
+  goodbyeMessage,
+  pick,
+} from './promptTemplate.js';
 import type { ClientConfig, ScriptKey } from '../config/schema.js';
 import type { VapiHandoffToolPayload, VapiSquadPayload } from './types.js';
 
@@ -86,7 +91,13 @@ export function renderHandoffTool(
           `The caller asks to continue in the "${to}" language — for example by saying ${quoted} ` +
           'or by asking for that language.',
         contextEngineeringPlan: { type: 'all' },
-        assistantOverrides: { firstMessage: renderArrivalMessage(config, to) },
+        // Both fields are needed: the destination's own saved firstMessage/
+        // endCallMessage are NOT used for a leg reached via handoff — Vapi
+        // requires both threaded through the override (VAPI-FACTS.md VP-6 R3).
+        assistantOverrides: {
+          firstMessage: renderArrivalMessage(config, to),
+          endCallMessage: goodbyeMessage(config, to),
+        },
       },
     ],
     messages: [{ type: 'request-start', content: '' }],

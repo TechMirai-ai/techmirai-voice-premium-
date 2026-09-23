@@ -79,6 +79,16 @@ export function fillClinicPlaceholders(
   });
 }
 
+/**
+ * `language`'s goodbye line, clinic placeholders filled — the single source
+ * used both for the assistant's own `endCallMessage` (render.ts) and for a
+ * handoff destination's `assistantOverrides.endCallMessage` (squad.ts),
+ * so the two never drift apart.
+ */
+export function goodbyeMessage(config: ClientConfig, language: string): string {
+  return fillClinicPlaceholders(config, language, pick(config.scripts.goodbye, language));
+}
+
 function formatWeeklyHours(weekly: ClientConfig['business']['hours']['weekly']): string {
   return DAY_ORDER.map((day) => {
     const hours = weekly[day];
@@ -130,11 +140,16 @@ function languageSwitchSection(config: ClientConfig, language: string): string[]
 }
 
 /**
- * Tells the model to tag every call with a topic and outcome, silently, right
- * after the goodbye words, then hang up via the built-in endCall tool — real
- * calls otherwise sit open until the caller manually ends them (VAPI-FACTS.md,
- * VP-4 R5). log_call_topic is asynchronous on Vapi's side, so it cannot delay
- * the caller (VAPI-FACTS.md, VP-4 §4.3).
+ * Tells the model to tag every call with a topic and outcome, silently, then
+ * hang up via the built-in endCall tool — real calls otherwise sit open
+ * until the caller manually ends them (VAPI-FACTS.md, VP-4 R5).
+ * log_call_topic is asynchronous on Vapi's side, so it cannot delay the
+ * caller (VAPI-FACTS.md, VP-4 §4.3). The goodbye itself is no longer the
+ * model's job: endCall is configured with a `blocking: true` request-start
+ * message that Vapi speaks automatically before the call actually ends, so
+ * it plays even if the model jumps straight to these silent tool calls
+ * (VAPI-FACTS.md, VP-6 — fixes the baseline call where the model sometimes
+ * skipped the goodbye entirely).
  */
 function callClassificationSection(faq: FaqEntry[]): string {
   const topics = allowedTopics(faq.map((entry) => entry.id))
@@ -143,10 +158,10 @@ function callClassificationSection(faq: FaqEntry[]): string {
 
   return [
     'Call classification (silent, once per call):',
-    `- When the call is ending, first say your goodbye. Then, in that same turn, right after the goodbye words, ` +
-      `call ${LOG_CALL_TOPIC_FUNCTION_NAME} exactly once, then call ${END_CALL_FUNCTION_NAME} to hang up. ` +
-      'Say nothing after the goodbye words — both tool calls are silent.',
-    '- Never mention either tool, logging, topics or classification to the caller, and never call them before the goodbye.',
+    `- When the call is ending, call ${LOG_CALL_TOPIC_FUNCTION_NAME} exactly once, then call ` +
+      `${END_CALL_FUNCTION_NAME} to hang up. Do this instead of saying a goodbye line yourself — ` +
+      'the goodbye is spoken automatically when the call ends. Say nothing else; both tool calls are silent.',
+    '- Never mention either tool, logging, topics or classification to the caller.',
     `- topic: exactly one of ${topics}. Use the FAQ topic id that best matches the whole call. ` +
       'Use "other" if the call was answered but fits no FAQ topic. Use "unresolved" if you took a callback ' +
       'request or could not help. Use "emergency" for a medical emergency.',
@@ -208,7 +223,9 @@ export function buildSystemPrompt(config: ClientConfig, language: string, faq: F
         `if it failed, say something in the spirit of "${scriptLine('callbackFailed')}". In both cases, ` +
         "substitute the caller's actual name and phone number for [[callerName]] and [[callerPhone]] " +
         '— never speak the placeholder text itself.',
-      `- When the caller is done, say: "${scriptLine('goodbye')}"`,
+      '- When the caller is done, do NOT say a goodbye line yourself — move directly to the ' +
+        'silent call classification steps below, which end the call. The system speaks the ' +
+        'goodbye automatically when the call ends; saying it yourself would say it twice.',
     ].join('\n'),
 
     // 4b. Silent call classification (analytics, VP-4)

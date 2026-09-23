@@ -57,6 +57,17 @@ describe('renderHandoffTool — Sakura', () => {
     );
   });
 
+  test("overrides the destination's endCallMessage with its own goodbye script (placeholders filled)", () => {
+    const toEn = renderHandoffTool(config, 'ja', 'en').destinations[0];
+    const toJa = renderHandoffTool(config, 'en', 'ja').destinations[0];
+
+    expect(toEn?.assistantOverrides.endCallMessage).toBe(
+      'Thank you for calling Sakura Seikotsuin. Have a great day. Goodbye.',
+    );
+    expect(toJa?.assistantOverrides.endCallMessage).toContain('さくら整骨院');
+    expect(toJa?.assistantOverrides.endCallMessage).not.toContain('[[');
+  });
+
   test('silences the default English filler with an empty request-start message', () => {
     expect(renderHandoffTool(config, 'ja', 'en').messages).toEqual([
       { type: 'request-start', content: '' },

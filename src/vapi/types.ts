@@ -44,7 +44,15 @@ export interface VapiModelConfig {
   tools?: VapiEndCallToolPayload[];
 }
 
-/** Vapi's built-in end-call tool (VAPI-FACTS.md VP-4 R5): no server, fixed function name `endCall`. */
+/**
+ * Vapi's built-in end-call tool (VAPI-FACTS.md VP-4 R5): no server, fixed
+ * function name `endCall`. It has no `messages` of its own — a tool
+ * `request-start`/`blocking` message is a function-tool concept (it delays
+ * *returning the tool result to the model*) and does nothing for a tool with
+ * no server round-trip and no next model turn to gate. Confirmed by a real
+ * call: setting one typechecked but never triggered any TTS (VAPI-FACTS.md
+ * VP-6 R2). The real hook is `VapiAssistantPayload.endCallMessage`.
+ */
 export interface VapiEndCallToolPayload {
   type: 'endCall';
 }
@@ -70,6 +78,14 @@ export interface VapiAssistantPayload {
   voice: VapiVoiceConfig;
   transcriber: VapiTranscriberConfig;
   model: VapiModelConfig;
+  /**
+   * Spoken automatically whenever the assistant ends the call (e.g. via the
+   * `endCall` tool) — "If unspecified, it will hang up without saying
+   * anything" (Vapi OpenAPI spec, `CreateAssistantDto.endCallMessage`).
+   * VAPI-FACTS.md VP-6 R2: this, not a tool message, is the guaranteed
+   * canned goodbye.
+   */
+  endCallMessage: string;
   /** Not set in VP-2 — the callback webhook is reached via the tool's own server.url instead. */
   server?: VapiServerConfig;
 }
@@ -136,8 +152,14 @@ export interface VapiHandoffDestination {
   description: string;
   /** "all" = the full history travels with the caller (Vapi's default; set explicitly). */
   contextEngineeringPlan: { type: 'all' };
-  /** Overrides the destination's own `firstMessage` for this handoff only (R5). */
-  assistantOverrides: { firstMessage: string };
+  /**
+   * Overrides the destination's own `firstMessage` for this handoff only
+   * (R5). `endCallMessage` is included too: VAPI-FACTS.md VP-6 R3 found the
+   * destination's own saved `endCallMessage` is NOT spoken when that
+   * assistant is reached via handoff — it must be threaded through here,
+   * the same as `firstMessage`, or a handed-off-to leg hangs up silently.
+   */
+  assistantOverrides: { firstMessage: string; endCallMessage: string };
 }
 
 export interface VapiHandoffToolPayload {

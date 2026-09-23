@@ -13,6 +13,7 @@ import {
   UnsupportedLanguageError,
   buildSystemPrompt,
   fillClinicPlaceholders,
+  goodbyeMessage,
   pick,
 } from './promptTemplate.js';
 import type { ClientConfig } from '../config/schema.js';
@@ -204,10 +205,19 @@ export function renderAssistant(
       // tool per other language) have resolved UUIDs — create/update the tools
       // first, then patch this in before the assistant create/update call.
       toolIds: [],
-      // Built-in, no server round-trip — lets the model hang up itself after
-      // the goodbye instead of leaving the call open (VAPI-FACTS.md VP-4 R5).
+      // Built-in, no server round-trip — lets the model hang up itself
+      // instead of leaving the call open (VAPI-FACTS.md VP-4 R5).
       tools: [{ type: 'endCall' }],
     },
+    // Guarantees the goodbye is actually spoken before the call ends,
+    // regardless of whether the model says anything itself: the baseline
+    // call found the model sometimes jumps straight from the last user turn
+    // to the silent endCall/log_call_topic tool calls with no goodbye in
+    // between (VAPI-FACTS.md, "Baseline call finding", 2026-09-22). A tool
+    // `messages`/`blocking` entry on `endCall` was tried first and proven to
+    // be a no-op by a real call (VAPI-FACTS.md VP-6 R2) — `endCallMessage`
+    // is the assistant-level field Vapi actually speaks on hangup.
+    endCallMessage: goodbyeMessage(config, language),
   };
 
   const handoffTools = handoffTargets(config, language).map((toLanguage) => ({

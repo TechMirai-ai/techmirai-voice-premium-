@@ -62,6 +62,17 @@ describe('renderAssistant — Sakura fixture (ja)', () => {
     expect(failedMessage?.content).toContain('048-000-0000');
     expect(failedMessage?.content).not.toContain('[[clinicPhone]]');
   });
+
+  test('assistant.endCallMessage speaks scripts.goodbye with clinic placeholders substituted', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const { assistant } = renderAssistant(config, 'ja', faq, OPTIONS);
+
+    expect(assistant.endCallMessage).toContain('さくら整骨院');
+    expect(assistant.endCallMessage).not.toContain('[[');
+    expect(assistant.model.tools).toEqual([{ type: 'endCall' }]);
+  });
 });
 
 describe('renderAssistant — handoff (Sakura)', () => {
