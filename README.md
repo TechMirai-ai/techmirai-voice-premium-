@@ -109,10 +109,18 @@ to the real Vapi API — all Vapi interaction in tests goes through a mocked cli
    `VAPI_PUBLIC_KEY` in your `.env`. The private key is server-side only — never expose it to a
    browser or commit it. The public key is safe to expose (it powers the test page below).
 2. **Start a tunnel** so Vapi can reach your local server, and put its HTTPS URL in
-   `PUBLIC_BASE_URL`:
+   `PUBLIC_BASE_URL`. **Prefer ngrok with its free static domain over a `cloudflared` quick
+   tunnel** — a quick tunnel's random URL changes every restart (needing a full re-sync each
+   time) and, worse, was observed twice in one real session either not running or silently
+   revoked server-side while the process stayed alive stuck retrying ("Tunnel not found"),
+   breaking real calls mid-test. ngrok's free plan gives every account one fixed dev domain
+   (`your-name.ngrok-free.dev` or similar, shown in the [dashboard](https://dashboard.ngrok.com))
+   that doesn't change across restarts and has no session timeout — set it up once:
    ```bash
-   ngrok http 3000
-   # or: cloudflared tunnel --url http://localhost:3000
+   ngrok config add-authtoken <your authtoken>   # one-time, from the ngrok dashboard
+   ngrok http 3000 --url https://<your-dev-domain>
+   # cloudflared quick tunnel also works, just expect to re-sync after every restart:
+   # cloudflared tunnel --url http://localhost:3000
    ```
    `PUBLIC_BASE_URL` doesn't need to be reachable for `npm test` or a dry-run sync — only for a
    real manual test call, where the callback tool's webhook will actually hit it.
