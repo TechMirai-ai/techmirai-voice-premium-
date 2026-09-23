@@ -158,11 +158,12 @@ function languageSwitchSection(config: ClientConfig, language: string): string[]
  * until the caller manually ends them (VAPI-FACTS.md, VP-4 R5).
  * log_call_topic is asynchronous on Vapi's side, so it cannot delay the
  * caller (VAPI-FACTS.md, VP-4 §4.3). The goodbye itself is no longer the
- * model's job: endCall is configured with a `blocking: true` request-start
- * message that Vapi speaks automatically before the call actually ends, so
- * it plays even if the model jumps straight to these silent tool calls
- * (VAPI-FACTS.md, VP-6 — fixes the baseline call where the model sometimes
- * skipped the goodbye entirely).
+ * model's job: `render.ts` sets the assistant's `endCallMessage`, which Vapi
+ * speaks automatically before the call actually ends, so it plays even if
+ * the model jumps straight to these silent tool calls (VAPI-FACTS.md VP-6
+ * R2/R3 — fixes the baseline call where the model sometimes skipped the
+ * goodbye entirely; an earlier attempt using a tool `blocking: true`
+ * request-start message was tried first and proven a no-op — see R1/R2).
  */
 function callClassificationSection(faq: FaqEntry[]): string {
   const topics = allowedTopics(faq.map((entry) => entry.id))
