@@ -161,6 +161,140 @@ describe('buildSystemPrompt — clinic-name pronunciation override (VP-6 D)', ()
   });
 });
 
+describe('buildSystemPrompt — section order (VP-7 source docs §B)', () => {
+  test('identity comes first; style/leading/answering/callback follow before medical/emergency/language/ending/clinic-info/today', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'ja', faq);
+    const at = (needle: string): number => {
+      const index = prompt.indexOf(needle);
+      expect(index, `expected to find "${needle}"`).toBeGreaterThan(-1);
+      return index;
+    };
+
+    const identity = at('You are the AI phone receptionist');
+    const style = at('How you speak:');
+    const leading = at('Leading the call:');
+    const answering = at('Answering questions:');
+    const callback = at('Callback requests:');
+    const medical = at('Medical questions:');
+    const emergency = at('Emergencies:');
+    const language = at('Language switching:');
+    const ending = at('Ending the call:');
+    const clinicInfo = at('Clinic information (for your own grounding');
+    const today = at('Today:');
+
+    expect(identity).toBeLessThan(style);
+    expect(style).toBeLessThan(leading);
+    expect(leading).toBeLessThan(answering);
+    expect(answering).toBeLessThan(callback);
+    expect(callback).toBeLessThan(medical);
+    expect(medical).toBeLessThan(emergency);
+    expect(emergency).toBeLessThan(language);
+    expect(language).toBeLessThan(ending);
+    expect(ending).toBeLessThan(clinicInfo);
+    expect(clinicInfo).toBeLessThan(today);
+  });
+});
+
+describe('buildSystemPrompt — topic/outcome separation (VP-7 R2)', () => {
+  test('topic instruction records the real subject regardless of outcome — never collapses into "unresolved"', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'ja', faq);
+
+    expect(prompt).toContain(
+      'this reflects the SUBJECT of the call, regardless of whether you were able to help',
+    );
+    expect(prompt).toContain('never write this same value into topic');
+    expect(prompt).not.toContain('Use "unresolved" if you took a callback');
+  });
+
+  test('outcome instruction captures how the call ended, independently of topic', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'ja', faq);
+
+    expect(prompt).toContain('This captures HOW the call ended');
+  });
+});
+
+describe('buildSystemPrompt — emergency handling (VP-7)', () => {
+  test('two-tier: a clear red flag and an uncertain/possibly-serious tier, with a path back to normal flow', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'ja', faq);
+
+    expect(prompt).toContain(config.scripts.emergency['ja']!.replace('[[emergencyNumber]]', '119'));
+    expect(prompt).toContain(
+      config.scripts.emergencyUncertain['ja']!.replace('[[emergencyNumber]]', '119'),
+    );
+    expect(prompt).toContain("If, after that, the caller says it isn't an emergency");
+    expect(prompt).toContain('none of the rules below apply');
+    expect(prompt).toContain('resume the call completely normally');
+  });
+
+  test('the model speaks a short goodbye itself on the emergency path, before the normal end-call steps (R3 accepted fallback)', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'ja', faq);
+
+    expect(prompt).toContain(config.scripts.emergencyGoodbye['ja']!);
+    expect(prompt).toContain(
+      'this is the one case where you speak a goodbye yourself instead of leaving it to the system',
+    );
+  });
+});
+
+describe('buildSystemPrompt — full name required (VP-7 decision 6)', () => {
+  test('asks once for the rest of the name, then proceeds with what it has rather than getting stuck', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'ja', faq);
+
+    expect(prompt).toContain('Full name (both given and family name)');
+    expect(prompt).toContain('If they give only one part, ask once for the rest');
+    expect(prompt).toContain(
+      "If they still don't give it after that one ask, proceed with what they gave",
+    );
+    expect(prompt).toContain("don't ask a third time or get stuck on it");
+    expect(prompt.toLowerCase()).not.toContain('surname is fine');
+    expect(prompt.toLowerCase()).not.toContain("if they'd rather not");
+  });
+});
+
+describe('buildSystemPrompt — Today section (VP-7 R5)', () => {
+  test('uses the exact verified LiquidJS date syntax, with the timezone from client.yaml', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'ja', faq);
+
+    expect(prompt).toContain('{{"now" | date: "%A, %B %d, %Y, %H:%M", "Asia/Tokyo"}}');
+  });
+
+  test('uses the config timezone, not a hard-coded one, for a differently-configured client', () => {
+    const config = buildMinimalConfig({ language: 'fr' });
+    const withTimezone = {
+      ...config,
+      business: {
+        ...config.business,
+        hours: { ...config.business.hours, timezone: 'Europe/Paris' },
+      },
+    };
+
+    const prompt = buildSystemPrompt(withTimezone, 'fr', withTimezone.faq);
+
+    expect(prompt).toContain('{{"now" | date: "%A, %B %d, %Y, %H:%M", "Europe/Paris"}}');
+  });
+});
+
 describe('buildSystemPrompt — language handling', () => {
   test('throws UnsupportedLanguageError for a language not in languages.supported', () => {
     const config = buildMinimalConfig({ language: 'fr' });

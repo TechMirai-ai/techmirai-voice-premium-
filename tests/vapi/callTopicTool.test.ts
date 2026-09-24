@@ -129,20 +129,22 @@ describe('prompt: conditional collection and silent classification (VP-4 §4.4)'
   };
 
   test('forbids asking for a name or phone on a plain FAQ answer', async () => {
-    expect(await promptFor()).toMatch(/NEVER ask for their name or phone number/);
+    expect(await promptFor()).toMatch(/never ask for a name or phone number/i);
   });
 
   test('restricts collection to "no match" and "asks for staff"', async () => {
-    expect(await promptFor()).toContain('Only in these two cases, continue by asking');
+    expect(await promptFor()).toMatch(
+      /Take one only when you can't answer a question, or when the caller asks for a staff member/,
+    );
   });
 
   test('tells the model to log the topic and hang up silently, without saying goodbye itself', async () => {
     const prompt = await promptFor();
 
-    expect(prompt).toContain(`call ${LOG_CALL_TOPIC_FUNCTION_NAME} exactly once`);
+    expect(prompt).toContain(`Call ${LOG_CALL_TOPIC_FUNCTION_NAME} exactly once`);
     expect(prompt).toMatch(/then call endCall to hang up/);
     expect(prompt).toMatch(/do not say a goodbye line yourself/i);
-    expect(prompt).toMatch(/Never mention either tool/);
+    expect(prompt).toMatch(/never mention either tool/i);
   });
 
   test('lists every FAQ id and the reserved topics as valid choices', async () => {
@@ -157,7 +159,7 @@ describe('prompt: conditional collection and silent classification (VP-4 §4.4)'
     const prompt = await promptFor();
 
     expect(prompt).toMatch(
-      /Do not collect a name or phone number and do not call request_callback/,
+      /do not collect a name or phone number, and do not call request_callback/i,
     );
     expect(prompt).toMatch(/Do this even for an emergency call/);
   });

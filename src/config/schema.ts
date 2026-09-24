@@ -123,8 +123,19 @@ const scriptsSchema = z.strictObject({
   callbackSaved: localizedTextSchema,
   callbackFailed: localizedTextSchema,
   didNotCatch: localizedTextSchema,
+  /** Spoken after three failed attempts in a row to understand the caller — ends the call. */
+  repeatedMisunderstanding: localizedTextSchema,
   noMedicalAdvice: localizedTextSchema,
+  /** Clear red-flag emergency (VP-7): said immediately, no conditional wording. */
   emergency: localizedTextSchema,
+  /** Uncertain/possibly-serious pain (VP-7 two-tier emergency handling): conditional wording. */
+  emergencyUncertain: localizedTextSchema,
+  /**
+   * Short goodbye the MODEL says itself right after the emergency path, before calling endCall
+   * (VP-7 R3 — no platform mechanism makes `endCallMessage` conditional; this is the accepted
+   * fallback, so the normal endCallMessage still plays right after this one — see VAPI-FACTS.md).
+   */
+  emergencyGoodbye: localizedTextSchema,
   goodbye: localizedTextSchema,
 });
 

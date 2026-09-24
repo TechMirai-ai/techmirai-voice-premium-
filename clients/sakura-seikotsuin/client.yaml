@@ -46,7 +46,9 @@ languages:
     en:
       voice: { provider: azure, voiceId: en-US-JennyNeural }
       transcriber: { provider: azure, language: en-US }
-      switchKeywords: ["English", "英語"]      # 英語 = "English"
+      # 英語 = "English"; イングリッシュ = "English" in katakana — how a Japanese
+      # transcriber is likely to actually write the spoken word (source docs A7).
+      switchKeywords: ["English", "英語", "イングリッシュ"]
 
 callback:
   enabled: true
@@ -111,18 +113,26 @@ scripts:
     en: Let me confirm. Your name is [[callerName]], and your phone number is [[callerPhone]]. Is that correct?
     ja: 確認いたします。お名前は[[callerName]]様、お電話番号は[[callerPhone]]でよろしいでしょうか？
   callbackSaved:
-    en: Thank you. I'll pass your information to our staff, and they will contact you soon.
-    ja: ありがとうございます。スタッフにお伝えいたしますので、折り返しのご連絡をお待ちください。
+    en: Thank you. I'll pass your information to our staff, and they will contact you within one business day.
+    ja: ありがとうございます。スタッフにお伝えいたしますので、翌営業日までにご連絡いたします。
   callbackFailed:
     en: >-
       I'm sorry, I wasn't able to save your details because of a system problem.
-      Please call the clinic directly at [[clinicPhone]].
+      Could you please call again a little later?
     ja: >-
       申し訳ございません。システムの不具合により、お客様の情報を保存できませんでした。
-      お手数ですが、当院（[[clinicPhone]]）まで直接お電話ください。
+      お手数ですが、少し時間をおいて改めてお電話いただけますでしょうか。
   didNotCatch:
     en: I'm sorry, I didn't quite catch that. Could you say it again, please?
     ja: 申し訳ございません。うまく聞き取れませんでした。もう一度おっしゃっていただけますか？
+  # VP-7: spoken after three failed attempts in a row to understand the caller,
+  # right before the call ends — NEEDS NATIVE-SPEAKER REVIEW.
+  repeatedMisunderstanding:
+    en: >-
+      I'm sorry, the line seems unclear. Could you please call again a little later?
+    ja: >-
+      申し訳ございません。お電話が遠いようですので、お手数ですが、
+      少し時間をおいておかけ直しいただけますでしょうか。
   noMedicalAdvice:
     en: >-
       I'm sorry, I can't give medical advice.
@@ -130,13 +140,25 @@ scripts:
     ja: >-
       申し訳ございません。症状についての医学的なアドバイスはいたしかねます。
       ご来院の際や当院へのお問い合わせの際に、スタッフが詳しくお話を伺います。
+  # VP-7: clear red-flag emergency — said immediately, no conditional wording.
   emergency:
     en: >-
-      If this is an emergency, such as a serious injury or severe pain,
-      please end this call and call [[emergencyNumber]] for an ambulance right away.
+      Please hang up and call [[emergencyNumber]] for an ambulance right away.
     ja: >-
-      重いケガや強い痛みなど、緊急の場合は、この通話を終了して、
-      すぐに[[emergencyNumber]]番に連絡し、救急車を呼んでください。
+      すぐにお電話を切って、[[emergencyNumber]]番に連絡し、救急車を呼んでください。
+  # VP-7: uncertain/possibly-serious pain — two-tier emergency handling (source
+  # docs A8). NEEDS NATIVE-SPEAKER REVIEW.
+  emergencyUncertain:
+    en: >-
+      If this is an emergency, please hang up and call [[emergencyNumber]] for an ambulance right away.
+    ja: >-
+      緊急の場合は、このお電話を切って、すぐに[[emergencyNumber]]番で救急車を呼んでください。
+  # VP-7 R3: the model speaks this itself right after the emergency path, before
+  # calling endCall — the normal `goodbye`/endCallMessage still plays right
+  # after (accepted tradeoff, see docs/VAPI-FACTS.md). NEEDS NATIVE-SPEAKER REVIEW.
+  emergencyGoodbye:
+    en: Goodbye.
+    ja: 失礼いたします。
   goodbye:
     en: Thank you for calling [[clinicName]]. Have a great day. Goodbye.
     ja: "[[clinicName]]にお電話いただき、ありがとうございました。失礼いたします。"
@@ -166,8 +188,8 @@ faq:
       en: How can I make an appointment?
       ja: 予約はどのようにできますか？
     answer:
-      en: You can book through the online reservation form on our website, or by calling us at [[clinicPhone]].
-      ja: 当院ホームページのオンライン予約、またはお電話（[[clinicPhone]]）でご予約いただけます。
+      en: You can book through the online reservation form on our website. If you'd like to book by phone instead, we can have a staff member call you back to arrange it.
+      ja: 当院ホームページのオンライン予約からご予約いただけます。お電話でのご予約をご希望の場合は、担当の者から折り返しご連絡いたします。
 
   - id: fees
     tags: [price, cost, fee]
@@ -175,8 +197,8 @@ faq:
       en: How much does a treatment cost?
       ja: 施術料金はいくらですか？
     answer:
-      en: Treatment fees depend on the type of treatment and your condition. Please check our website for pricing, or contact our staff for details.
-      ja: 施術料金は、施術内容やお身体の状態によって異なります。詳しい料金は、当院のホームページをご確認いただくか、当院スタッフまでお問い合わせください。
+      en: Treatment fees depend on the type of treatment and your condition. Pricing is on our website, and staff can explain the details.
+      ja: 施術料金は、施術内容やお身体の状態によって異なります。料金は当院ホームページでご確認いただけるほか、詳しくはスタッフがご説明いたします。
 
   - id: back-pain
     tags: [back pain, neck pain, shoulder pain, knee pain, joint pain, movement, discomfort]
@@ -202,8 +224,8 @@ faq:
       en: Do you accept health insurance?
       ja: 健康保険は使えますか？
     answer:
-      en: Whether health insurance can be used depends on the type of injury and your situation. Please contact our staff for details.
-      ja: 健康保険が使えるかどうかは、ケガの種類や状況によって異なります。詳しくは当院スタッフまでお問い合わせください。
+      en: Whether health insurance can be used depends on the type of injury and your situation. Staff can explain the details.
+      ja: 健康保険が使えるかどうかは、ケガの種類や状況によって異なります。詳しくはスタッフがご説明いたします。
 
   - id: location
     tags: [address, location, access, directions, map]
@@ -220,8 +242,8 @@ faq:
       en: Is parking available?
       ja: 駐車場はありますか？
     answer:
-      en: Yes, parking is available near the clinic. Please contact our staff if you need details about where to park.
-      ja: はい、当院の近くに駐車場がございます。詳しい場所については、当院スタッフまでお問い合わせください。
+      en: Yes, parking is available near the clinic. Staff can explain where to park.
+      ja: はい、当院の近くに駐車場がございます。詳しい場所はスタッフがご案内いたします。
 
   - id: first-visit
     tags: [first visit, bring, documents, insurance card]
