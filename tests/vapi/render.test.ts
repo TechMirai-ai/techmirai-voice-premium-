@@ -59,8 +59,11 @@ describe('renderAssistant — Sakura fixture (ja)', () => {
     const { tool } = renderAssistant(config, 'ja', faq, OPTIONS);
 
     const failedMessage = tool.messages?.find((message) => message.type === 'request-failed');
-    expect(failedMessage?.content).toContain('048-000-0000');
+    // VP-7 decision 1: never point the caller back at the number they're already
+    // on — the failure line asks them to try again later instead of naming it.
+    expect(failedMessage?.content).not.toContain('048-000-0000');
     expect(failedMessage?.content).not.toContain('[[clinicPhone]]');
+    expect(failedMessage?.content).toContain('お電話');
   });
 
   test('assistant.endCallMessage speaks scripts.goodbye with clinic placeholders substituted', async () => {
@@ -139,13 +142,58 @@ describe('renderAssistant — handoff (Sakura)', () => {
     expect(assistant.voice).toEqual({ provider: 'azure', voiceId: 'en-US-JennyNeural' });
     expect(assistant.transcriber).toEqual({ provider: 'azure', language: 'en-US' });
     expect(handoffTools.map((tool) => tool.toLanguage)).toEqual(['ja']);
-    expect(handoffTools[0]?.payload.destinations[0]?.assistantName).toBe('sakura-seikotsuin--ja');
+    // Redirected to ja-return (VP-7 R1), not the call-starting ja assistant —
+    // its firstMessage is the full opening greeting, which must never replay.
+    expect(handoffTools[0]?.payload.destinations[0]?.assistantName).toBe(
+      'sakura-seikotsuin--ja-return',
+    );
   });
 
   test('a single-language client renders no handoff tools', () => {
     const config = buildMinimalConfig({ language: 'fr' });
 
     expect(renderAssistant(config, 'fr', config.faq, OPTIONS).handoffTools).toEqual([]);
+  });
+});
+
+describe('renderAssistant — ja-return member (Sakura, VP-7 R1)', () => {
+  test("reuses ja's voice, transcriber, system prompt and goodbye, but its own resource name and arrival firstMessage", async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const ja = renderAssistant(config, 'ja', faq, OPTIONS);
+    const jaReturn = renderAssistant(config, 'ja-return', faq, OPTIONS);
+
+    expect(jaReturn.assistant.name).toBe('sakura-seikotsuin--ja-return');
+    expect(jaReturn.assistant.voice).toEqual(ja.assistant.voice);
+    expect(jaReturn.assistant.transcriber).toEqual(ja.assistant.transcriber);
+    expect(jaReturn.assistant.model.messages).toEqual(ja.assistant.model.messages);
+    expect(jaReturn.assistant.endCallMessage).toBe(ja.assistant.endCallMessage);
+    // Never the full opening greeting (that would replay "For English, please say English" mid-call).
+    expect(jaReturn.assistant.firstMessage).not.toEqual(ja.assistant.firstMessage);
+    expect(jaReturn.assistant.firstMessage).not.toContain('For English');
+    expect(jaReturn.assistant.firstMessage).toBe(
+      '日本語の受付にお繋ぎしました。ご用件をお聞かせください。',
+    );
+  });
+
+  test("gets its own outbound handoff tool to English, byte-identical to ja's own", async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const ja = renderAssistant(config, 'ja', faq, OPTIONS);
+    const jaReturn = renderAssistant(config, 'ja-return', faq, OPTIONS);
+
+    expect(jaReturn.handoffTools.map((tool) => tool.toLanguage)).toEqual(['en']);
+    const payload = jaReturn.handoffTools[0]?.payload;
+    expect(payload?.destinations[0]?.assistantName).toBe('sakura-seikotsuin--en');
+    expect(payload?.destinations[0]?.contextEngineeringPlan).toEqual({ type: 'all' });
+    expect(payload?.messages).toEqual([{ type: 'request-start', content: '' }]);
+    // Both render through the same content language ("ja"), so this must be
+    // more than "looks similar" — it's the exact same payload, proving the
+    // round trip (ja → en → ja-return → en) really does work the same way
+    // ja's own ja → en handoff already does.
+    expect(payload).toEqual(ja.handoffTools[0]?.payload);
   });
 });
 

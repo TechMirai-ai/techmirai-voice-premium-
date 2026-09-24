@@ -24,10 +24,11 @@ import type { VapiSyncClient } from './client.js';
 import { renderAssistant } from './render.js';
 import {
   assistantResourceName,
+  contentLanguageOf,
   handoffTargets,
   handoffToolStateName,
-  orderedLanguages,
   renderSquad,
+  squadMemberIds,
   squadStateName,
 } from './squad.js';
 import {
@@ -62,7 +63,8 @@ export interface SyncResourceResult {
 export interface SyncResult {
   dryRun: boolean;
   clientId: string;
-  language: string;
+  /** The squad member id synced — a language code, or the default language's "-return" variant. */
+  member: string;
   /** The request_callback tool. */
   tool: SyncResourceResult;
   /** The silent, asynchronous log_call_topic tool. */
@@ -161,14 +163,14 @@ async function applyTools(
 
 function buildDiffLines(
   clientId: string,
-  language: string,
+  member: string,
   tool: SyncResourceResult,
   topicTool: SyncResourceResult,
   handoffTools: SyncResourceResult[],
   assistant: SyncResourceResult,
 ): string[] {
   return [
-    `Client: ${clientId}  Language: ${language}`,
+    `Client: ${clientId}  Member: ${member}`,
     `  tool:      ${describeResource(tool)}`,
     `  topic:     ${describeResource(topicTool)}`,
     ...handoffTools.map((handoff) => `  handoff:   ${describeResource(handoff)}`),
@@ -178,7 +180,7 @@ function buildDiffLines(
 
 export async function syncClient(
   clientId: string,
-  language: string,
+  memberId: string,
   options: SyncClientOptions,
 ): Promise<SyncResult> {
   const stateOptions = stateOptionsOf(options);
@@ -187,24 +189,24 @@ export async function syncClient(
   const loadOptions = loadOptionsOf(options);
   const config = loadClient(clientId, loadOptions);
   const faq = await new FileKnowledgeSource(loadOptions).listFaq(clientId);
-  const rendered = renderAssistant(config, language, faq, {
+  const rendered = renderAssistant(config, memberId, faq, {
     baseUrl: options.baseUrl,
     credentialId: options.credentialId,
   });
 
   const state = readState(clientId, stateOptions);
-  const assistantName = assistantResourceName(clientId, language);
-  const toolName = toolStateName(clientId, language);
+  const assistantName = assistantResourceName(clientId, memberId);
+  const toolName = toolStateName(clientId, memberId);
 
   const toolPlan: PlannedTool = {
     result: planResource(toolName, state.tools[toolName]),
     payload: rendered.tool,
   };
   const handoffPlans: PlannedTool[] = rendered.handoffTools.map(({ toLanguage, payload }) => {
-    const name = handoffToolStateName(clientId, language, toLanguage);
+    const name = handoffToolStateName(clientId, memberId, toLanguage);
     return { result: planResource(name, state.tools[name]), payload };
   });
-  const topicToolName = topicToolStateName(clientId, language);
+  const topicToolName = topicToolStateName(clientId, memberId);
   const topicToolPlan: PlannedTool = {
     result: planResource(topicToolName, state.tools[topicToolName]),
     payload: rendered.topicTool,
@@ -216,14 +218,14 @@ export async function syncClient(
     return {
       dryRun: true,
       clientId,
-      language,
+      member: memberId,
       tool: toolPlan.result,
       topicTool: topicToolPlan.result,
       handoffTools: handoffResults,
       assistant: assistantPlan,
       diffLines: buildDiffLines(
         clientId,
-        language,
+        memberId,
         toolPlan.result,
         topicToolPlan.result,
         handoffResults,
@@ -268,14 +270,14 @@ export async function syncClient(
   return {
     dryRun: false,
     clientId,
-    language,
+    member: memberId,
     tool: toolResult,
     topicTool: topicToolResult,
     handoffTools: handoffResults,
     assistant: finalAssistant,
     diffLines: buildDiffLines(
       clientId,
-      language,
+      memberId,
       toolResult,
       topicToolResult,
       handoffResults,
@@ -311,14 +313,19 @@ export type SyncSquadOptions = Omit<SyncClientOptions, 'baseUrl' | 'credentialId
 
 /** Every state-file name that must exist before the squad can reference it. */
 function squadPrerequisites(config: ClientConfig): { assistants: string[]; tools: string[] } {
-  const languages = config.languages.supported;
+  const memberIds = squadMemberIds(config);
   return {
-    assistants: languages.map((code) => assistantResourceName(config.clientId, code)),
-    tools: languages.flatMap((code) => [
-      toolStateName(config.clientId, code),
-      topicToolStateName(config.clientId, code),
-      ...handoffTargets(config, code).map((to) => handoffToolStateName(config.clientId, code, to)),
-    ]),
+    assistants: memberIds.map((id) => assistantResourceName(config.clientId, id)),
+    tools: memberIds.flatMap((id) => {
+      const language = contentLanguageOf(config, id);
+      return [
+        toolStateName(config.clientId, id),
+        topicToolStateName(config.clientId, id),
+        ...handoffTargets(config, language).map((to) =>
+          handoffToolStateName(config.clientId, id, to),
+        ),
+      ];
+    }),
   };
 }
 
@@ -340,15 +347,15 @@ export async function syncSquad(
   if (missing.length > 0) throw new SquadPrerequisiteError(clientId, missing);
 
   const assistantIds = Object.fromEntries(
-    config.languages.supported.map((code) => [
-      code,
-      state.assistants[assistantResourceName(clientId, code)] ?? '',
+    squadMemberIds(config).map((id) => [
+      id,
+      state.assistants[assistantResourceName(clientId, id)] ?? '',
     ]),
   );
   const payload = renderSquad(config, assistantIds);
   const name = squadStateName(clientId);
   const plan = planResource(name, state.squads[name]);
-  const memberNames = orderedLanguages(config).map((code) => assistantResourceName(clientId, code));
+  const memberNames = squadMemberIds(config).map((id) => assistantResourceName(clientId, id));
 
   const diff = (squad: SyncResourceResult): string[] => [
     `Client: ${clientId}  Squad`,

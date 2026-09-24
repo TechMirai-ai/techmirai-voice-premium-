@@ -3,12 +3,15 @@ import { describe, expect, test } from 'vitest';
 import { loadClient } from '../../src/config/loadClient.js';
 import {
   MissingArrivalScriptError,
+  contentLanguageOf,
   handoffTargets,
   handoffToolStateName,
   orderedLanguages,
   renderArrivalMessage,
   renderHandoffTool,
   renderSquad,
+  returnMemberId,
+  squadMemberIds,
 } from '../../src/vapi/squad.js';
 import { UnsupportedLanguageError } from '../../src/vapi/promptTemplate.js';
 import { SAKURA_ID } from '../helpers/clientFixtures.js';
@@ -30,20 +33,24 @@ describe('renderHandoffTool — Sakura', () => {
     expect(destination?.contextEngineeringPlan).toEqual({ type: 'all' });
   });
 
-  test('en → ja targets the Japanese assistant by name, with the Japanese switchKeywords', () => {
+  test('en → ja targets the ja-return assistant by name (VP-7 R1), not the call-starting ja assistant, with the Japanese switchKeywords', () => {
     const [destination] = renderHandoffTool(config, 'en', 'ja').destinations;
 
-    expect(destination?.assistantName).toBe('sakura-seikotsuin--ja');
+    expect(destination?.type).toBe('assistant');
+    expect(destination?.assistantName).toBe('sakura-seikotsuin--ja-return');
     expect(destination?.description).toContain('"日本語"');
     expect(destination?.description).toContain('"Japanese"');
+    // Same rigor as the ja → en direction above — the redirect to ja-return
+    // must not silently drop the full-history handoff behavior.
+    expect(destination?.contextEngineeringPlan).toEqual({ type: 'all' });
   });
 
-  test("the two tools cross-reference each other: each one's target is the other's owner", () => {
+  test('ja → en targets en directly; en → ja is redirected to ja-return, so the two are not symmetric', () => {
     const toEn = renderHandoffTool(config, 'ja', 'en').destinations[0]?.assistantName;
     const toJa = renderHandoffTool(config, 'en', 'ja').destinations[0]?.assistantName;
 
     expect(toEn).toBe('sakura-seikotsuin--en');
-    expect(toJa).toBe('sakura-seikotsuin--ja');
+    expect(toJa).toBe('sakura-seikotsuin--ja-return');
   });
 
   test("overrides the destination's firstMessage with its arrival script (placeholders filled)", () => {
@@ -70,8 +77,11 @@ describe('renderHandoffTool — Sakura', () => {
     expect(toJa?.assistantOverrides.endCallMessage).not.toContain('[[');
   });
 
-  test('silences the default English filler with an empty request-start message', () => {
+  test('silences the default English filler with an empty request-start message, both directions', () => {
     expect(renderHandoffTool(config, 'ja', 'en').messages).toEqual([
+      { type: 'request-start', content: '' },
+    ]);
+    expect(renderHandoffTool(config, 'en', 'ja').messages).toEqual([
       { type: 'request-start', content: '' },
     ]);
   });
@@ -126,14 +136,51 @@ describe('language ordering and targets', () => {
 });
 
 describe('renderSquad', () => {
-  test('lists the Japanese assistant first (it starts the call), then English', () => {
-    const squad = renderSquad(config, { ja: 'ja-id', en: 'en-id' });
+  test('lists the Japanese assistant first (it starts the call), then English, then ja-return', () => {
+    const squad = renderSquad(config, { ja: 'ja-id', en: 'en-id', 'ja-return': 'ja-return-id' });
 
     expect(squad.name).toBe('sakura-seikotsuin--squad');
-    expect(squad.members).toEqual([{ assistantId: 'ja-id' }, { assistantId: 'en-id' }]);
+    expect(squad.members).toEqual([
+      { assistantId: 'ja-id' },
+      { assistantId: 'en-id' },
+      { assistantId: 'ja-return-id' },
+    ]);
   });
 
   test('throws when an assistant id is missing rather than sending a half-built squad', () => {
     expect(() => renderSquad(config, { ja: 'ja-id' })).toThrow(/"en"/);
+  });
+
+  test('throws when only ja-return is missing', () => {
+    expect(() => renderSquad(config, { ja: 'ja-id', en: 'en-id' })).toThrow(/"ja-return"/);
+  });
+});
+
+describe('squad member ids (VP-7 R1 — ja-return)', () => {
+  test('a two-language client gets three members: default, other, then "<default>-return" last', () => {
+    expect(returnMemberId(config)).toBe('ja-return');
+    expect(squadMemberIds(config)).toEqual(['ja', 'en', 'ja-return']);
+  });
+
+  test('a single-language client has no return member at all', () => {
+    const french = buildMinimalConfig({ language: 'fr' });
+
+    expect(returnMemberId(french)).toBeUndefined();
+    expect(squadMemberIds(french)).toEqual(['fr']);
+  });
+
+  test('contentLanguageOf maps the return member back to the default language; every other id is its own language', () => {
+    expect(contentLanguageOf(config, 'ja')).toBe('ja');
+    expect(contentLanguageOf(config, 'en')).toBe('en');
+    expect(contentLanguageOf(config, 'ja-return')).toBe('ja');
+  });
+
+  test('the return member id generalizes past two languages — always "<default>-return", regardless of how many other languages exist', () => {
+    const three = {
+      ...config,
+      languages: { ...config.languages, supported: ['ja', 'en', 'fr'] },
+    };
+
+    expect(squadMemberIds(three)).toEqual(['ja', 'en', 'fr', 'ja-return']);
   });
 });

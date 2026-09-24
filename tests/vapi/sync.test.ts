@@ -164,6 +164,21 @@ describe('syncClient — apply', () => {
     expect(state.assistants['sakura-seikotsuin--en']).toBe(result.assistant.id);
   });
 
+  test("ja-return (VP-7 R1): syncs as its own independent member, with its own tools distinct from ja's", async () => {
+    const mock = createMockClient();
+
+    const result = await sync(mock.client, false, 'ja-return');
+
+    const state = readState(CLIENT_ID, { repoRoot });
+    expect(state.tools['sakura-seikotsuin--ja-return--request-callback']).toBeDefined();
+    expect(state.tools['sakura-seikotsuin--ja-return--log-call-topic']).toBeDefined();
+    expect(state.tools['sakura-seikotsuin--ja-return--handoff-to-en']).toBe(
+      result.handoffTools[0]?.id,
+    );
+    expect(state.assistants['sakura-seikotsuin--ja-return']).toBe(result.assistant.id);
+    expect(result.member).toBe('ja-return');
+  });
+
   test('calls update for everything when state entries already exist', async () => {
     const mock = createMockClient();
     await sync(mock.client, false);
@@ -248,14 +263,18 @@ describe('syncClient — uncommitted state file guard', () => {
 });
 
 describe('syncSquad', () => {
-  async function syncBothLanguages(mock: MockClient): Promise<void> {
+  // Three squad members now: ja, en, and ja-return (VP-7 R1) — every one
+  // needs its own tools + assistant synced before the squad can reference it.
+  async function syncAllMembers(mock: MockClient): Promise<void> {
     await sync(mock.client, false, 'ja');
     commitState();
     await sync(mock.client, false, 'en');
     commitState();
+    await sync(mock.client, false, 'ja-return');
+    commitState();
   }
 
-  test('refuses until every supported language has been synced, naming what is missing', async () => {
+  test('refuses until every squad member has been synced, naming what is missing', async () => {
     const mock = createMockClient();
     await sync(mock.client, false, 'ja');
     commitState();
@@ -265,16 +284,19 @@ describe('syncSquad', () => {
 
     await expect(attempt).rejects.toThrow(SquadPrerequisiteError);
     await expect(attempt).rejects.toThrow(/sakura-seikotsuin--en/);
+    await expect(attempt).rejects.toThrow(/sakura-seikotsuin--ja-return/);
     expect(mock.callLog).toEqual([]);
   });
 
-  test('creates the squad only after both assistants and all six tools exist', async () => {
+  test('creates the squad only after all three members and all nine tools exist', async () => {
     const mock = createMockClient();
-    await syncBothLanguages(mock);
+    await syncAllMembers(mock);
 
     const result = await syncTheSquad(mock.client, false);
 
     expect(mock.callLog).toEqual([
+      ...Array(3).fill('tools.create'),
+      'assistants.create',
       ...Array(3).fill('tools.create'),
       'assistants.create',
       ...Array(3).fill('tools.create'),
@@ -287,9 +309,9 @@ describe('syncSquad', () => {
     );
   });
 
-  test('sends the Japanese assistant id first, then the English one, using the real synced ids', async () => {
+  test('sends the Japanese assistant id first, then English, then ja-return — using the real synced ids', async () => {
     const mock = createMockClient();
-    await syncBothLanguages(mock);
+    await syncAllMembers(mock);
     const { assistants } = readState(CLIENT_ID, { repoRoot });
 
     await syncTheSquad(mock.client, false);
@@ -299,13 +321,14 @@ describe('syncSquad', () => {
       members: [
         { assistantId: assistants['sakura-seikotsuin--ja'] },
         { assistantId: assistants['sakura-seikotsuin--en'] },
+        { assistantId: assistants['sakura-seikotsuin--ja-return'] },
       ],
     });
   });
 
   test('updates the squad in place on a second run', async () => {
     const mock = createMockClient();
-    await syncBothLanguages(mock);
+    await syncAllMembers(mock);
     await syncTheSquad(mock.client, false);
     commitState();
 
@@ -318,7 +341,7 @@ describe('syncSquad', () => {
 
   test('dry run makes zero client calls and writes nothing', async () => {
     const mock = createMockClient();
-    await syncBothLanguages(mock);
+    await syncAllMembers(mock);
     const before = readState(CLIENT_ID, { repoRoot });
     mock.callLog.length = 0;
 
@@ -326,7 +349,11 @@ describe('syncSquad', () => {
 
     expect(result.dryRun).toBe(true);
     expect(result.squad.action).toBe('create');
-    expect(result.memberNames).toEqual(['sakura-seikotsuin--ja', 'sakura-seikotsuin--en']);
+    expect(result.memberNames).toEqual([
+      'sakura-seikotsuin--ja',
+      'sakura-seikotsuin--en',
+      'sakura-seikotsuin--ja-return',
+    ]);
     expect(mock.callLog).toEqual([]);
     expect(readState(CLIENT_ID, { repoRoot })).toEqual(before);
   });

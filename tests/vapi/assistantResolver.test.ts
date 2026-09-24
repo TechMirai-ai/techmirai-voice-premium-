@@ -75,6 +75,31 @@ describe('StateFileAssistantResolver', () => {
     expect(missing.resolve({ name: `${SAKURA_ID}--ja` })).toBeUndefined();
   });
 
+  test('resolves the ja-return member (VP-7 R1) back to content language "ja"', () => {
+    writeState(
+      SAKURA_ID,
+      {
+        tools: {},
+        assistants: {
+          [`${SAKURA_ID}--ja`]: 'id-ja',
+          [`${SAKURA_ID}--en`]: 'id-en',
+          [`${SAKURA_ID}--ja-return`]: 'id-ja-return',
+        },
+        squads: {},
+      },
+      { repoRoot },
+    );
+
+    expect(resolver.resolve({ id: 'id-ja-return' })).toEqual({
+      clientId: SAKURA_ID,
+      language: 'ja',
+    });
+    expect(resolver.resolve({ name: `${SAKURA_ID}--ja-return` })).toEqual({
+      clientId: SAKURA_ID,
+      language: 'ja',
+    });
+  });
+
   test('sees a fresh sync without a restart (state is read on every lookup)', () => {
     expect(resolver.resolve({ id: 'id-new' })).toBeUndefined();
 

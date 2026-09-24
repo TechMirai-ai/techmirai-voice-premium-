@@ -12,7 +12,7 @@ import { existsSync, readdirSync } from 'node:fs';
 import { defaultClientsDir, loadClient, type LoadClientOptions } from '../config/loadClient.js';
 import type { StateStoreOptions } from './stateStore.js';
 import { readState } from './stateStore.js';
-import { assistantResourceName } from './squad.js';
+import { assistantResourceName, contentLanguageOf, squadMemberIds } from './squad.js';
 
 export interface ResolvedAssistant {
   clientId: string;
@@ -77,11 +77,21 @@ export class StateFileAssistantResolver implements AssistantResolver {
     return known === undefined || known === id;
   }
 
+  /**
+   * The content language a synced assistant *name* speaks — resolved via
+   * every squad member id (language codes plus the default language's
+   * "-return" variant, VP-7 R1), not just `languages.supported` directly, so
+   * a `request_callback`/`log_call_topic` webhook call arriving from the
+   * "-return" leg still resolves to its real content language.
+   */
   private languageOf(clientId: string, name: string): string | undefined {
     try {
       const loadOptions = this.options.clientsDir ? { clientsDir: this.options.clientsDir } : {};
-      const { languages } = loadClient(clientId, loadOptions);
-      return languages.supported.find((code) => assistantResourceName(clientId, code) === name);
+      const config = loadClient(clientId, loadOptions);
+      const memberId = squadMemberIds(config).find(
+        (id) => assistantResourceName(clientId, id) === name,
+      );
+      return memberId === undefined ? undefined : contentLanguageOf(config, memberId);
     } catch {
       return undefined;
     }

@@ -21,6 +21,7 @@ import { LOG_CALL_TOPIC_FUNCTION_NAME, REQUEST_CALLBACK_FUNCTION_NAME } from './
 import type { FaqEntry } from '../knowledge/KnowledgeSource.js';
 import {
   assistantResourceName,
+  contentLanguageOf,
   handoffTargets,
   renderArrivalMessage,
   renderHandoffTool,
@@ -46,7 +47,8 @@ export { LOG_CALL_TOPIC_FUNCTION_NAME, REQUEST_CALLBACK_FUNCTION_NAME };
 
 /** VAPI-FACTS.md R3: primary model choice for VP-2's assistants (fallback: anthropic/claude-sonnet-5). */
 const MODEL_PROVIDER = 'openai';
-const MODEL_ID = 'gpt-4o-mini';
+/** Exported so textTester.ts (VP-7) calls the exact same model, not a substitute — zero drift. */
+export const MODEL_ID = 'gpt-4o-mini';
 
 export interface RenderOptions {
   /** Public HTTPS base URL Vapi will call — from PUBLIC_BASE_URL, never hard-coded (CLAUDE.md / work order §3). */
@@ -158,14 +160,24 @@ function renderTopicTool(
   };
 }
 
+/**
+ * @param memberId A squad member id — a plain language code (e.g. "ja",
+ *   "en") or the default language's "-return" variant (VP-7 R1). Every
+ *   content lookup (voice, transcriber, system prompt, FAQ, scripts) uses
+ *   `contentLanguageOf(config, memberId)`, never `memberId` directly; only
+ *   the resource `name` and the greeting-vs-arrival-message choice use the
+ *   raw member id, since those are the two things a "-return" member needs
+ *   to differ on from its own language's call-starting member.
+ */
 export function renderAssistant(
   config: ClientConfig,
-  language: string,
+  memberId: string,
   faq: FaqEntry[],
   options: RenderOptions,
 ): RenderResult {
+  const language = contentLanguageOf(config, memberId);
   if (!config.languages.supported.includes(language)) {
-    throw new UnsupportedLanguageError(config.clientId, language, config.languages.supported);
+    throw new UnsupportedLanguageError(config.clientId, memberId, config.languages.supported);
   }
 
   const settings = config.languages.settings[language];
@@ -173,7 +185,7 @@ export function renderAssistant(
     // Guaranteed present for every supported language by rules.ts's
     // languageIssues check on a validated config — this is unreachable in
     // practice, kept only to satisfy noUncheckedIndexedAccess.
-    throw new UnsupportedLanguageError(config.clientId, language, config.languages.supported);
+    throw new UnsupportedLanguageError(config.clientId, memberId, config.languages.supported);
   }
   if (!settings.transcriber) {
     throw new UnconfiguredTranscriberError(config.clientId, language);
@@ -188,11 +200,12 @@ export function renderAssistant(
     language,
     pick(config.scripts.callbackFailed, language),
   );
-  // The default language's assistant starts every call, so it opens with the
-  // greeting. Any other language's assistant is only ever reached by a handoff,
-  // so it opens with its arrival message instead.
+  // The member that starts every call (its id equals the default language)
+  // opens with the greeting. Every other member — including the "-return"
+  // variant of the default language — is only ever reached by a handoff, so
+  // it opens with its arrival message instead.
   const firstMessage =
-    language === config.languages.default
+    memberId === config.languages.default
       ? fillClinicPlaceholders(config, language, pick(config.scripts.greeting, language))
       : renderArrivalMessage(config, language);
 
@@ -228,7 +241,7 @@ export function renderAssistant(
   );
 
   const assistant: VapiAssistantPayload = {
-    name: assistantResourceName(config.clientId, language),
+    name: assistantResourceName(config.clientId, memberId),
     firstMessage,
     voice: { provider: settings.voice.provider, voiceId: settings.voice.voiceId },
     transcriber: {
