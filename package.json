@@ -24,6 +24,7 @@
     "vapi:sync": "tsx src/vapi/cli.ts",
     "vapi:test-page": "tsx src/vapi/generateTestPage.ts",
     "vapi:test-page:serve": "tsx src/vapi/serveTestPage.ts",
+    "vapi:test-chat": "tsx src/vapi/textTester.ts",
     "staff:create": "tsx src/cli/createStaffUser.ts"
   },
   "dependencies": {

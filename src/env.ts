@@ -42,6 +42,16 @@ const baseEnvSchema = z.object({
 
   // Optional: how many reverse proxies sit in front of the server (1 behind ngrok).
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(10).optional(),
+
+  // Optional: only needed by `npm run vapi:test-chat` (VP-7's local text-tester,
+  // src/vapi/textTester.ts), never by production or by `npm test`. Calls
+  // OpenAI directly with the same model production uses (render.ts's
+  // MODEL_ID) rather than a substitute — VAPI-FACTS.md VP-7 R4 originally
+  // chose a free OpenRouter/Qwen model, superseded once real gpt-4o-mini
+  // cost turned out to be negligible for this use. Get a key at
+  // https://platform.openai.com/api-keys. Never sent to a browser: this tool
+  // is a CLI, not a served page.
+  OPENAI_API_KEY: z.string().min(1).optional(),
 });
 
 // Rate limiting keys on the client IP, which is only correct if we know how many
