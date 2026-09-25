@@ -5,11 +5,15 @@
     "sakura-seikotsuin--en--handoff-to-ja": "942a25b8-5547-4e49-8a0b-f56907ebfc85",
     "sakura-seikotsuin--ja--handoff-to-en": "8197afcb-8653-487e-ab51-80e161b44512",
     "sakura-seikotsuin--ja--log-call-topic": "c9b33b68-1b3f-40a6-bfb5-105a4fa39475",
-    "sakura-seikotsuin--en--log-call-topic": "ad4329de-1c0e-49d1-97e9-ccc0051decbe"
+    "sakura-seikotsuin--en--log-call-topic": "ad4329de-1c0e-49d1-97e9-ccc0051decbe",
+    "sakura-seikotsuin--ja-return--request-callback": "5693c68f-bae8-4794-9e06-ee4210216f5f",
+    "sakura-seikotsuin--ja-return--log-call-topic": "4c7d0255-0eac-4374-9d9f-fee1cdb4476f",
+    "sakura-seikotsuin--ja-return--handoff-to-en": "b37c11ef-adb5-43cd-b87b-59b44fb2b08d"
   },
   "assistants": {
     "sakura-seikotsuin--ja": "5783f9a4-7051-4595-b391-997c080fc61b",
-    "sakura-seikotsuin--en": "b75e0b2a-080a-49d1-a236-649b81a85290"
+    "sakura-seikotsuin--en": "b75e0b2a-080a-49d1-a236-649b81a85290",
+    "sakura-seikotsuin--ja-return": "0d766e19-593b-40fa-b8ef-8a1a4cfac0a8"
   },
   "squads": {
     "sakura-seikotsuin--squad": "8f369634-2fb0-48d6-99a3-e940b97614b8"
