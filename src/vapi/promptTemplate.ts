@@ -331,11 +331,26 @@ function uncertainPainTrigger(config: ClientConfig, language: string): string {
 function emergencySection(config: ClientConfig, language: string): string {
   return [
     'Emergencies — check this FIRST on every caller turn, before answering anything else:',
-    "- If the caller describes something that's clearly a medical emergency right now (serious " +
+    '- Rule zero — never say an emergency line twice. The conversation you are shown may not ' +
+      "include your own earlier replies (a known platform fault), so if the caller's latest " +
+      'message contains an acknowledgement ("OK", "thank you", "understood", "yes, I will") ' +
+      'together with, or after, a description of an emergency or severe pain, they have ' +
+      'already been told what to do. Say NO emergency line — not even the conditional one — and ' +
+      `answer nothing else: say only the short line "${scriptLine(config, language, 'emergencyGoodbye')}", ` +
+      `then call ${LOG_CALL_TOPIC_FUNCTION_NAME} (topic "emergency", outcome "emergency") and ` +
+      `${END_CALL_FUNCTION_NAME}.`,
+    '  Example — a message like "I have an emergency, very heavy pain, do you treat it? OK, thank ' +
+      'you." is answered ONLY with the short goodbye line and the two tool calls; never with an ' +
+      'emergency line and never with an answer to the question.',
+    '- If the caller says outright that it is an emergency ("this is an emergency", "I have an ' +
+      'emergency"), or describes something that\'s clearly a medical emergency right now (serious ' +
       'injury, heavy bleeding, trouble breathing, chest pain, loss of consciousness, and similar), ' +
+      'even if they also ask another question, ' +
       `say immediately: "${scriptLine(config, language, 'emergency')}"`,
     `- ${uncertainPainTrigger(config, language)} say this FIRST, in that same turn, before ` +
       `answering their question, even if they are only asking whether you can see them today: "${scriptLine(config, language, 'emergencyUncertain')}" ` +
+      'Say exactly that line and nothing more — no goodbye, and do not end the call: it is a ' +
+      'question, and you wait for their answer. ' +
       'Never use it for an ordinary ache, stiffness, a sprain, or a routine injury the caller ' +
       'mentions while asking whether you treat it — those are normal service questions.',
     "- If, after that, the caller says it isn't an emergency: none of the rules below apply — " +

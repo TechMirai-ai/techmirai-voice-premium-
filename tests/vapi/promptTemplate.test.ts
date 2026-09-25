@@ -260,8 +260,8 @@ describe('buildSystemPrompt — emergency handling (VP-7)', () => {
       prompt.indexOf('Language switching:'),
     );
 
-    const goodbye = emergency.indexOf('say the short line');
-    const log = emergency.indexOf(
+    const goodbye = emergency.indexOf('Once the caller responds or goes quiet, say the short line');
+    const log = emergency.lastIndexOf(
       'log_call_topic (topic "emergency", outcome "emergency") and endCall',
     );
     expect(goodbye).toBeGreaterThan(-1);
@@ -392,6 +392,72 @@ describe('buildSystemPrompt — over-triggering guards (VP-7 follow-up)', () => 
       const line = config.scripts.repeatedMisunderstanding[language]!.toLowerCase();
       const phrases = config.languages.settings[language]!.endCallPhrases!;
       expect(phrases.some((phrase) => line.includes(phrase.toLowerCase()))).toBe(true);
+    }
+  });
+});
+
+describe('buildSystemPrompt — emergency loop guard (production call 01a0d7e1)', () => {
+  test('rule zero — never repeat an emergency line — is the FIRST emergency rule, and survives a history that omits the assistant’s own replies', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    for (const language of ['ja', 'en']) {
+      const prompt = buildSystemPrompt(config, language, faq);
+      const emergency = prompt.slice(
+        prompt.indexOf('Emergencies —'),
+        prompt.indexOf('Language switching:'),
+      );
+
+      expect(emergency.indexOf('Rule zero')).toBeGreaterThan(-1);
+      expect(emergency.indexOf('Rule zero')).toBeLessThan(
+        emergency.indexOf('If the caller says outright'),
+      );
+      expect(emergency).toContain('may not include your own earlier replies');
+      expect(emergency).toContain('Say NO emergency line — not even the conditional one');
+      expect(emergency).toContain(
+        'is answered ONLY with the short goodbye line and the two tool calls',
+      );
+    }
+  });
+
+  test('a caller who says outright that it is an emergency gets the clear-emergency line, even if they also ask a question', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'en', faq);
+
+    expect(prompt).toContain('says outright that it is an emergency');
+    expect(prompt).toContain('even if they also ask another question');
+  });
+
+  test('the conditional (uncertain) line stays open-ended: the model must say only that line, no goodbye, and wait', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'en', faq);
+
+    expect(prompt).toContain(
+      'Say exactly that line and nothing more — no goodbye, and do not end the call',
+    );
+  });
+
+  test('the clear-emergency line itself ends with a configured hang-up phrase, so the call ends without any later turn', () => {
+    const config = loadClient(SAKURA_ID);
+
+    for (const language of ['ja', 'en']) {
+      const line = config.scripts.emergency[language]!.toLowerCase();
+      const phrases = config.languages.settings[language]!.endCallPhrases!;
+      expect(phrases.some((phrase) => line.includes(phrase.toLowerCase()))).toBe(true);
+    }
+  });
+
+  test('the conditional emergency line does NOT contain a hang-up phrase (it must let a non-emergency caller answer)', () => {
+    const config = loadClient(SAKURA_ID);
+
+    for (const language of ['ja', 'en']) {
+      const line = config.scripts.emergencyUncertain[language]!.toLowerCase();
+      const phrases = config.languages.settings[language]!.endCallPhrases!;
+      expect(phrases.some((phrase) => line.includes(phrase.toLowerCase()))).toBe(false);
     }
   });
 });
