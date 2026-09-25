@@ -57,6 +57,23 @@ export interface VapiEndCallToolPayload {
   type: 'endCall';
 }
 
+/**
+ * Assistant hook that hangs up after a long caller silence, with no model decision involved
+ * (VAPI-FACTS.md VP-7 R8; shape checked against the live OpenAPI `CallHookCustomerSpeechTimeout`).
+ */
+export interface VapiSilenceHangupHook {
+  on: 'customer.speech.timeout';
+  name: string;
+  options: {
+    /** 1–1000 seconds. */
+    timeoutSeconds: number;
+    /** 1–10. */
+    triggerMaxCount: number;
+    triggerResetMode: 'onUserSpeech' | 'never';
+  };
+  do: [{ type: 'tool'; tool: VapiEndCallToolPayload }];
+}
+
 export interface VapiServerConfig {
   url: string;
   credentialId?: string;
@@ -121,6 +138,14 @@ export interface VapiAssistantPayload {
    * canned goodbye.
    */
   endCallMessage: string;
+  /**
+   * Hang up as soon as the assistant SAYS one of these (case-insensitive substring) — the
+   * platform-level backstop for a model that speaks a farewell instead of calling `endCall`
+   * (VAPI-FACTS.md VP-7 R8). Omitted when the client configures none.
+   */
+  endCallPhrases?: string[];
+  /** Silence-hangup hook — see `callEnding.ts`. */
+  hooks: VapiSilenceHangupHook[];
   /** Not set in VP-2 — the callback webhook is reached via the tool's own server.url instead. */
   server?: VapiServerConfig;
 }
@@ -194,7 +219,16 @@ export interface VapiHandoffDestination {
    * assistant is reached via handoff — it must be threaded through here,
    * the same as `firstMessage`, or a handed-off-to leg hangs up silently.
    */
-  assistantOverrides: { firstMessage: string; endCallMessage: string };
+  assistantOverrides: {
+    firstMessage: string;
+    endCallMessage: string;
+    /**
+     * Threaded through for the same reason as `endCallMessage`: the destination's own saved
+     * `endCallPhrases`/`hooks` are not assumed to carry over a handoff (VAPI-FACTS.md VP-7 R8).
+     */
+    endCallPhrases?: string[];
+    hooks: VapiSilenceHangupHook[];
+  };
 }
 
 export interface VapiHandoffToolPayload {

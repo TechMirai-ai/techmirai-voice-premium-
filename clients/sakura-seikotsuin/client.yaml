@@ -43,12 +43,34 @@ languages:
       # VP-2 (VAPI-FACTS.md R1): Azure's own supported-language table lists ja-JP directly.
       transcriber: { provider: azure, language: ja-JP }
       switchKeywords: ["日本語", "Japanese"]   # 日本語 = "Japanese"
+      # VP-7 R8: if the assistant SAYS one of these, Vapi hangs up after it finishes speaking —
+      # a backstop for when the model speaks a farewell instead of calling endCall.
+      # 失礼いたします = "goodbye" (lit. "I'm being rude by leaving"); 失礼します = its plainer form.
+      endCallPhrases: ["失礼いたします", "失礼します"]
+      # Words that signal possibly-serious pain (激痛 = "intense/sharp pain", ひどい痛み = "terrible pain",
+      # 耐えられない = "unbearable", 突然 = "suddenly", 動けない = "can't move", 我慢できない = "can't bear").
+      severePainWords: ["激痛", "ひどい痛み", "耐えられない", "我慢できない", "突然", "動けない"]
+      # Things a caller says when finished (shown to the model as examples): "Thank you very much",
+      # "That's all", "No, that's all, thank you", "Understood, thank you", "OK, thanks".
+      callerDoneExamples: ["ありがとうございました", "以上です", "いえ、大丈夫です、ありがとうございます", "わかりました、ありがとうございました", "はい、結構です"]
+      # VP-7: digits for the phone read-back (0..9). Example is 090-1234-5678 (11 digits, 3-4-4).
+      # ニー/ゴー use a long vowel so 2 and 5 are unmistakable on the phone.
+      phoneReadback:
+        digitWords: ["ゼロ", "イチ", "ニー", "サン", "ヨン", "ゴー", "ロク", "ナナ", "ハチ", "キュウ"]
+        example: "ゼロキュウゼロ、イチニーサンヨン、ゴーロクナナハチ"
     en:
       voice: { provider: azure, voiceId: en-US-JennyNeural }
       transcriber: { provider: azure, language: en-US }
       # 英語 = "English"; イングリッシュ = "English" in katakana — how a Japanese
       # transcriber is likely to actually write the spoken word (source docs A7).
       switchKeywords: ["English", "英語", "イングリッシュ"]
+      # VP-7 R8: same backstop as `ja` — the assistant saying one of these hangs up the call.
+      endCallPhrases: ["goodbye", "have a great day"]
+      severePainWords: ["severe", "intense", "excruciating", "unbearable", "sudden", "sharp", "can't move"]
+      callerDoneExamples: ["Thank you very much", "That's all", "No, that's all, thank you", "Got it, thank you", "OK, thanks"]
+      phoneReadback:
+        digitWords: ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
+        example: "zero nine zero, one two three four, five six seven eight"
 
 callback:
   enabled: true
@@ -65,21 +87,24 @@ safety:
 scripts:
   # Japanese assistant's first message. Includes the English option.
   greeting:
+    # VP-7: wording from the source test suite (04-test-suite.md case 1) — identifies as AI, and no
+    # longer promises "お取り次ぎ" (putting the call through), which this assistant cannot do.
+    # Gloss for the project owner (never spoken): "Thank you for calling. This is [clinic], AI
+    # reception. For English, please say 'English'. How may I help you?" NEEDS NATIVE-SPEAKER REVIEW.
     en: >-
-      Thank you for calling [[clinicName]]. I'm the receptionist.
-      I can help you with information about the clinic and pass your details to our staff.
-      For English, please say "English". How can I help you today?
+      Thank you for calling [[clinicName]]. This is the AI reception.
+      For English, please say "English". How may I help you?
     ja: >-
-      お電話ありがとうございます。[[clinicName]]の受付です。
-      当院に関するご案内や、スタッフへのお取り次ぎを承ります。
-      For English, please say "English". ご用件をお聞かせください。
+      お電話ありがとうございます。[[clinicName]]、AI受付でございます。
+      For English, please say "English". どのようなご用件でしょうか。
   # English assistant's first message after the handoff.
   englishGreeting:
+    # VP-7: wording from the source test suite (E1) — no "English receptionist"/handoff wording.
     en: >-
-      Hello, this is the English receptionist for [[clinicName]].
+      Hello, you've reached [[clinicName]]. This is the clinic's AI receptionist, speaking in English.
       How can I help you today?
     ja: >-
-      こんにちは。[[clinicName]]の英語対応の受付です。ご用件をお聞かせください。
+      こんにちは。[[clinicName]]です。こちらは英語でご案内するAI受付でございます。ご用件をお聞かせください。
   # Japanese assistant's first message when a caller is handed BACK to it from
   # the English assistant (VP-3). Only the assistant's own language is spoken
   # (.ja); .en is a gloss for the project owner's review, never spoken.
@@ -125,14 +150,25 @@ scripts:
   didNotCatch:
     en: I'm sorry, I didn't quite catch that. Could you say it again, please?
     ja: 申し訳ございません。うまく聞き取れませんでした。もう一度おっしゃっていただけますか？
+  # VP-7 follow-up: asks for a phone number again (wrong digit count, or "no" to the read-back).
+  # Wording from the source test suite (cases 18/19). Separate from didNotCatch on purpose, so it
+  # never counts toward the three-strikes hang-up. NEEDS NATIVE-SPEAKER REVIEW.
+  phoneRetry:
+    en: >-
+      Excuse me, I'm not sure I caught all of that. Could you give me the phone number once more, please?
+    ja: >-
+      恐れ入ります、少し聞き取れなかったようでして、もう一度お電話番号をお願いできますでしょうか。
   # VP-7: spoken after three failed attempts in a row to understand the caller,
   # right before the call ends — NEEDS NATIVE-SPEAKER REVIEW.
   repeatedMisunderstanding:
+    # VP-7 follow-up: now ends with the same closing phrase as `endCallPhrases`, so speaking this
+    # line hangs up the call on the platform side even if the model forgets the endCall tool
+    # (case 29 showed it speaking the line and then leaving the call open). NEEDS NATIVE-SPEAKER REVIEW.
     en: >-
-      I'm sorry, the line seems unclear. Could you please call again a little later?
+      I'm sorry, the line seems unclear. Could you please call again a little later? Goodbye.
     ja: >-
       申し訳ございません。お電話が遠いようですので、お手数ですが、
-      少し時間をおいておかけ直しいただけますでしょうか。
+      少し時間をおいておかけ直しいただけますでしょうか。失礼いたします。
   noMedicalAdvice:
     en: >-
       I'm sorry, I can't give medical advice.

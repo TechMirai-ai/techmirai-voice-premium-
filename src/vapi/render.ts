@@ -9,6 +9,7 @@
  * the edges, in cli.ts, matching every other module in this codebase).
  */
 import { allowedTopics, CALL_OUTCOMES } from '../lib/callTopics.js';
+import { endCallPhrasesFor, silenceHangupHook } from './callEnding.js';
 import {
   UnsupportedLanguageError,
   buildSystemPrompt,
@@ -240,6 +241,8 @@ export function renderAssistant(
     allowedTopics(faq.map((entry) => entry.id)),
   );
 
+  const endCallPhrases = endCallPhrasesFor(config, language);
+
   const assistant: VapiAssistantPayload = {
     name: assistantResourceName(config.clientId, memberId),
     firstMessage,
@@ -270,6 +273,10 @@ export function renderAssistant(
     // be a no-op by a real call (VAPI-FACTS.md VP-6 R2) — `endCallMessage`
     // is the assistant-level field Vapi actually speaks on hangup.
     endCallMessage: goodbyeMessage(config, language),
+    // Platform-level backstops for a model that doesn't call endCall itself (VAPI-FACTS.md VP-7
+    // R8) — the same values squad.ts threads through each handoff leg's overrides.
+    ...(endCallPhrases ? { endCallPhrases } : {}),
+    hooks: [silenceHangupHook()],
   };
 
   const handoffTools = handoffTargets(config, language).map((toLanguage) => ({

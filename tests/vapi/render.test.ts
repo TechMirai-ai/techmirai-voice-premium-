@@ -137,7 +137,10 @@ describe('renderAssistant — handoff (Sakura)', () => {
 
     expect(assistant.name).toBe('sakura-seikotsuin--en');
     // Spoken text uses the VP-6 D phonetic override (namePronunciation.en), not the written name.
-    expect(assistant.firstMessage).toContain('English receptionist for Sakura Say-koh-tsoo-in');
+    expect(assistant.firstMessage).toContain("you've reached Sakura Say-koh-tsoo-in");
+    expect(assistant.firstMessage).toContain("clinic's AI receptionist, speaking in English");
+    // Suite E1: no handoff/"English receptionist" wording.
+    expect(assistant.firstMessage).not.toContain('English receptionist');
     expect(assistant.firstMessage).not.toContain('For English');
     expect(assistant.voice).toEqual({ provider: 'azure', voiceId: 'en-US-JennyNeural' });
     expect(assistant.transcriber).toEqual({ provider: 'azure', language: 'en-US' });

@@ -212,6 +212,10 @@ function answeringSection(config: ClientConfig, language: string): string {
       'prices, availability, directions, names, or policies not listed.',
     '- Whether the clinic treats something is a service question, not a request for medical ' +
       'advice — answer it from the information below.',
+    '- Questions about today\'s or tomorrow\'s hours ("until when today?", "open tomorrow?"): work ' +
+      'out that exact day of the week from Today below and answer for that day only, from the ' +
+      'hours listed. If the clinic is closed that day, say so plainly — never say "yes" or give ' +
+      'opening hours for a day it is closed.',
     '- Visiting or booking (for example "I\'d like to come in tomorrow"): give that day\'s hours ' +
       "(see Today, below), explain how to book online, and offer a staff callback if they'd " +
       "rather arrange it by phone. Never say a specific time is free or taken — you can't see the schedule.",
@@ -220,6 +224,18 @@ function answeringSection(config: ClientConfig, language: string): string {
     "- When a question is fully answered and you haven't just asked something else, ask once: " +
       `"${scriptLine(config, language, 'anythingElse')}"`,
   ].join('\n');
+}
+
+/**
+ * The digit-word table and worked example for `language`'s phone read-back, from
+ * `languages.settings.<lang>.phoneReadback` (VP-7). Empty when the client sets none — the
+ * prompt's generic "say every digit as a word" rule still applies.
+ */
+function phoneReadbackGuide(config: ClientConfig, language: string): string {
+  const readback = config.languages.settings[language]?.phoneReadback;
+  if (!readback) return '';
+  const words = readback.digitWords.map((word, digit) => `${digit}=${word}`).join(', ');
+  return ` Digit words: ${words}. Example — 09012345678 is read back as "${readback.example}".`;
 }
 
 // 5. Callback requests
@@ -233,7 +249,9 @@ function callbackSection(config: ClientConfig, language: string): string {
     `- If you can't answer their question: "${scriptLine(config, language, 'noMatch')}"`,
     '- A reply like "that\'s fine" / "I\'m good" (or the equivalent in whatever language you\'re ' +
       'speaking) to either offer above often means "no thank you," not agreement — if it\'s ' +
-      'ambiguous whether they want a callback, check explicitly before continuing.',
+      'ambiguous whether they want a callback, check explicitly before continuing. A reply that ' +
+      'starts with an explicit "no" (in any language) is a clear decline — accept it and move on; ' +
+      'do not ask again.',
     'Collect one item per turn, skipping anything the caller already gave you:',
     "1. Reason, if not already clear: ask briefly what it's about.",
     '2. Full name (both given and family name). If they give only one part, ask once for the ' +
@@ -244,12 +262,19 @@ function callbackSection(config: ClientConfig, language: string): string {
       'unclear, and read the spelling back.',
     `3. Phone number, if not already asked: "${scriptLine(config, language, 'askPhone')}"`,
     '4. Read the number back, as its own turn, then stop and wait: ' +
-      `"${scriptLine(config, language, 'confirmDetails')}" Say every digit individually as a word ` +
-      '(never a combined number — never "ninety") — Japanese in katakana, English as words — ' +
-      'grouped the way the caller said it. Before reading it back, sanity-check the digit count ' +
-      "for the format the caller used (for example, an 11-digit Japanese mobile number shouldn't " +
-      'come out as 10); if the count looks wrong, ask for the number again instead of reading ' +
-      'back a probably-wrong one.',
+      `"${scriptLine(config, language, 'confirmDetails')}"\n` +
+      '   - Speak every digit the caller gave, one at a time and in order, as a word — never a ' +
+      'combined number (never "ninety"), and never skip, merge or change a digit — Japanese in ' +
+      'katakana, English as words — grouped the way the caller said it. The caller checks the ' +
+      `number against your read-back, so a wrong digit here means a wrong number is saved.${phoneReadbackGuide(config, language)}\n` +
+      '   - Check the digits BEFORE reading anything back. A Japanese mobile number (090, 080, 070…) ' +
+      'is exactly 11 digits in groups of 3-4-4; a landline is 10. If any group is short or long ' +
+      '— for example the caller says "090 1234 567", where the last group has only 3 digits — do ' +
+      'NOT read it back. Say instead: ' +
+      `"${scriptLine(config, language, 'phoneRetry')}" and wait. Asking for the number again is ` +
+      'not one of the "didn\'t catch it" attempts above.\n' +
+      '   - If the caller says no to a read-back, say that same phone-number line and ask for the ' +
+      'whole number again.',
     '5. Short acknowledgement sounds the caller makes WHILE you are still speaking (a quick ' +
       '"mm-hm" or "yeah", or the Japanese equivalent such as 「はい」/「うん」 said mid-sentence) ' +
       "are not a yes — they're just the caller listening. Only an explicit affirmative answer " +
@@ -278,29 +303,53 @@ function medicalSection(config: ClientConfig, language: string): string[] {
     'Medical questions:\n' +
       `- Never give medical advice — never diagnose, judge how serious something is, or suggest ` +
       `treatment, medicine, exercise, rest, ice or heat. If asked, say: ` +
-      `"${scriptLine(config, language, 'noMedicalAdvice')}"`,
+      `"${scriptLine(config, language, 'noMedicalAdvice')}"\n` +
+      '- Use that line only when the caller asks what to do about their symptoms (medicine, ' +
+      'treatment, whether something is serious). A caller who merely mentions pain while asking ' +
+      'whether you can see them is asking a service question — never answer that with this line.',
   ];
+}
+
+/**
+ * When the "possibly serious" emergency line applies. Uses the language's `severePainWords` as a
+ * concrete trigger list when the client sets one — a vague "strong terms" rule made the model say
+ * the line for any mention of pain (English cases 6/7 in the VP-7 suite run).
+ */
+function uncertainPainTrigger(config: ClientConfig, language: string): string {
+  const words = config.languages.settings[language]?.severePainWords ?? [];
+  if (words.length === 0) {
+    return "If they describe sudden or severe pain and you're not sure it's that serious,";
+  }
+  const list = words.map((word) => `"${word}"`).join(', ');
+  return (
+    "If the caller's own words describe pain with an intensity word such as " +
+    `${list} and you're not sure it's that serious,`
+  );
 }
 
 // 7. Emergencies (two-tier — source docs A8)
 function emergencySection(config: ClientConfig, language: string): string {
   return [
-    'Emergencies:',
+    'Emergencies — check this FIRST on every caller turn, before answering anything else:',
     "- If the caller describes something that's clearly a medical emergency right now (serious " +
       'injury, heavy bleeding, trouble breathing, chest pain, loss of consciousness, and similar), ' +
       `say immediately: "${scriptLine(config, language, 'emergency')}"`,
-    "- If they describe sudden or severe pain and you're not sure it's that serious, say: " +
-      `"${scriptLine(config, language, 'emergencyUncertain')}"`,
+    `- ${uncertainPainTrigger(config, language)} say this FIRST, in that same turn, before ` +
+      `answering their question, even if they are only asking whether you can see them today: "${scriptLine(config, language, 'emergencyUncertain')}" ` +
+      'Never use it for an ordinary ache, stiffness, a sprain, or a routine injury the caller ' +
+      'mentions while asking whether you treat it — those are normal service questions.',
     "- If, after that, the caller says it isn't an emergency: none of the rules below apply — " +
-      'resume the call completely normally, exactly as if this section had never come up ' +
-      "(collecting a name/phone number, offering a callback, etc. are all fine again). Don't " +
+      'resume the call completely normally, exactly as if this section had never come up: answer ' +
+      "the question they originally asked (for example today's hours and how to book), and " +
+      "collecting a name/phone number, offering a callback, etc. are all fine again. Don't " +
       'force the call into the emergency path just because it was raised and dismissed.',
     '- Otherwise — a clear red flag, or the caller confirms the uncertain case is serious — do ' +
       `not collect a name or phone number, and do not call ${REQUEST_CALLBACK_FUNCTION_NAME}. Once ` +
-      `the caller responds or goes quiet, say the short line "${scriptLine(config, language, 'emergencyGoodbye')}" ` +
-      'yourself, then follow the call classification and end-call steps below (topic ' +
-      '"emergency", outcome "emergency") — this is the one case where you speak a goodbye ' +
-      'yourself instead of leaving it to the system.',
+      'the caller responds or goes quiet, say the short line ' +
+      `"${scriptLine(config, language, 'emergencyGoodbye')}" yourself, then call ` +
+      `${LOG_CALL_TOPIC_FUNCTION_NAME} (topic "emergency", outcome "emergency") and ` +
+      `${END_CALL_FUNCTION_NAME}. This is the one case where you speak a goodbye yourself instead ` +
+      'of leaving it to the system.',
   ].join('\n');
 }
 
@@ -349,12 +398,28 @@ function callClassificationSection(faq: FaqEntry[]): string {
 }
 
 // 8. Ending the call
-function endingSection(faq: FaqEntry[]): string {
+function endingSection(config: ClientConfig, language: string, faq: FaqEntry[]): string {
+  const examples = config.languages.settings[language]?.callerDoneExamples ?? [];
+  const examplesBullet =
+    examples.length === 0
+      ? []
+      : [
+          '- Examples of a caller who is finished: ' +
+            examples.map((example) => `"${example}"`).join(', ') +
+            '. Each of these gets no words from you — only the two tool calls.',
+        ];
   const goodbyeBullet = [
     'Ending the call:',
-    '- When the caller is finished, do not say a goodbye line yourself — the system speaks it ' +
-      'automatically when the call ends. Saying it yourself would say it twice. (Exception: the ' +
-      'emergency path above, where you say a short goodbye first.)',
+    '- When the caller is finished — they thank you, say that is all, say they understand, or ' +
+      'otherwise signal they are done — your ONLY response is the two silent tool calls in the ' +
+      'call classification section below. Say nothing, ask nothing, and never start a callback or ' +
+      'a new question at that point. No words at all: not even "you\'re welcome" or a goodbye — ' +
+      'the system speaks the goodbye automatically when the call ends, and saying it yourself ' +
+      'would say it twice. Make the two calls through the tool-calling interface itself; never ' +
+      'write them out or announce them (no "I\'ll record this", no asterisks). A reply that has ' +
+      'words but no tool calls is wrong here. (Exception: the emergency path above, where you ' +
+      'say a short goodbye yourself.)',
+    ...examplesBullet,
   ].join('\n');
   return [goodbyeBullet, callClassificationSection(faq)].join('\n\n');
 }
@@ -418,7 +483,7 @@ export function buildSystemPrompt(config: ClientConfig, language: string, faq: F
     ...medicalSection(config, language),
     emergencySection(config, language),
     ...languageSwitchSection(config, language),
-    endingSection(faq),
+    endingSection(config, language, faq),
     clinicInformationSection(config, language, faq),
     todaySection(config),
   ];

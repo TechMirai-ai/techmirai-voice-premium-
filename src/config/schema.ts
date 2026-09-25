@@ -89,6 +89,33 @@ const languageSettingsSchema = z.strictObject({
    */
   transcriber: z.strictObject({ provider: nonEmpty, language: nonEmpty }).nullable(),
   switchKeywords: z.array(nonEmpty).min(1, 'needs at least one keyword'),
+  /**
+   * Phrases that make Vapi hang up when the ASSISTANT says one (VAPI-FACTS.md VP-7 R8) — a
+   * platform-level backstop for when the model speaks a farewell instead of calling `endCall`.
+   * Case-insensitive substring match, 2–140 characters each. Choose specific closing phrases:
+   * anything the assistant might say mid-call would hang up on the caller.
+   */
+  endCallPhrases: z.array(z.string().min(2).max(140)).min(1).optional(),
+  /**
+   * Things a caller typically says when they are finished (VP-7 follow-up). Shown to the model as
+   * examples of when to end the call silently — a concrete anchor, since "the caller is done" was
+   * not recognised reliably from the description alone.
+   */
+  callerDoneExamples: z.array(nonEmpty).min(1).optional(),
+  /**
+   * Words a caller uses to describe pain that might be an emergency (VP-7 follow-up). The
+   * "possibly serious" 119 line is only used when the caller's own words include one — without a
+   * concrete trigger list the model said it for any mention of pain ("my back hurts").
+   */
+  severePainWords: z.array(nonEmpty).min(1).optional(),
+  /**
+   * How to speak a phone number aloud in this language (VP-7): the ten digit words, indexed by
+   * digit (0–9), plus one worked example for the prompt. The example is for 090-1234-5678 and is
+   * only ever shown to the model as a pattern to follow.
+   */
+  phoneReadback: z
+    .strictObject({ digitWords: z.array(nonEmpty).length(10), example: nonEmpty })
+    .optional(),
 });
 
 const languagesSchema = z.strictObject({
@@ -123,6 +150,12 @@ const scriptsSchema = z.strictObject({
   callbackSaved: localizedTextSchema,
   callbackFailed: localizedTextSchema,
   didNotCatch: localizedTextSchema,
+  /**
+   * Asks for a phone number again — after a wrong digit count or a "no" to the read-back (VP-7).
+   * Deliberately separate from `didNotCatch`: it must not count toward the "three failed attempts
+   * to understand the caller" hang-up.
+   */
+  phoneRetry: localizedTextSchema,
   /** Spoken after three failed attempts in a row to understand the caller — ends the call. */
   repeatedMisunderstanding: localizedTextSchema,
   noMedicalAdvice: localizedTextSchema,

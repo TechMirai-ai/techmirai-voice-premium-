@@ -143,7 +143,9 @@ describe('prompt: conditional collection and silent classification (VP-4 §4.4)'
 
     expect(prompt).toContain(`Call ${LOG_CALL_TOPIC_FUNCTION_NAME} exactly once`);
     expect(prompt).toMatch(/then call endCall to hang up/);
-    expect(prompt).toMatch(/do not say a goodbye line yourself/i);
+    // VP-7: the wording that fixes "model speaks a farewell instead of calling the tools".
+    expect(prompt).toMatch(/your ONLY response is the two silent tool calls/);
+    expect(prompt).toMatch(/saying it yourself would say it twice/i);
     expect(prompt).toMatch(/never mention either tool/i);
   });
 

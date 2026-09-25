@@ -179,7 +179,7 @@ describe('buildSystemPrompt — section order (VP-7 source docs §B)', () => {
     const answering = at('Answering questions:');
     const callback = at('Callback requests:');
     const medical = at('Medical questions:');
-    const emergency = at('Emergencies:');
+    const emergency = at('Emergencies —');
     const language = at('Language switching:');
     const ending = at('Ending the call:');
     const clinicInfo = at('Clinic information (for your own grounding');
@@ -246,8 +246,194 @@ describe('buildSystemPrompt — emergency handling (VP-7)', () => {
 
     expect(prompt).toContain(config.scripts.emergencyGoodbye['ja']!);
     expect(prompt).toContain(
-      'this is the one case where you speak a goodbye yourself instead of leaving it to the system',
+      'This is the one case where you speak a goodbye yourself instead of leaving it to the system',
     );
+  });
+
+  test('on the emergency path the model says the short goodbye itself, then logs the emergency and ends the call', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'ja', faq);
+    const emergency = prompt.slice(
+      prompt.indexOf('Emergencies —'),
+      prompt.indexOf('Language switching:'),
+    );
+
+    const goodbye = emergency.indexOf('say the short line');
+    const log = emergency.indexOf(
+      'log_call_topic (topic "emergency", outcome "emergency") and endCall',
+    );
+    expect(goodbye).toBeGreaterThan(-1);
+    expect(log).toBeGreaterThan(goodbye);
+  });
+
+  test('the uncertain-pain line comes before answering a "can you see me today?" question, and the medical-advice line is scoped to advice requests', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'ja', faq);
+
+    expect(prompt).toContain('check this FIRST on every caller turn');
+    expect(prompt).toContain('even if they are only asking whether you can see them today');
+    expect(prompt).toContain(
+      config.scripts.emergencyUncertain['ja']!.replace('[[emergencyNumber]]', '119'),
+    );
+    expect(prompt).toContain('answer the question they originally asked');
+    expect(prompt).toContain(
+      'A caller who merely mentions pain while asking whether you can see them is asking a service question',
+    );
+  });
+});
+
+describe('buildSystemPrompt — caller-done examples (VP-7 follow-up)', () => {
+  test("shows the model the language's own examples of a finished caller, from client.yaml", async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const ja = buildSystemPrompt(config, 'ja', faq);
+    const en = buildSystemPrompt(config, 'en', faq);
+
+    expect(ja).toContain(
+      'Examples of a caller who is finished: "ありがとうございました", "以上です"',
+    );
+    expect(en).toContain(
+      'Examples of a caller who is finished: "Thank you very much", "That\'s all"',
+    );
+    expect(en).toContain('Each of these gets no words from you — only the two tool calls.');
+  });
+
+  test('tells the model not to announce the tool calls or say "you\'re welcome"', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'en', faq);
+
+    expect(prompt).toContain('not even "you\'re welcome" or a goodbye');
+    expect(prompt).toContain('never write them out or announce them');
+    expect(prompt).toContain('A reply that has words but no tool calls is wrong here');
+  });
+
+  test('omits the examples line for a client that configures none', () => {
+    const prompt = buildSystemPrompt(buildMinimalConfig(), 'fr', []);
+
+    expect(prompt).not.toContain('Examples of a caller who is finished');
+  });
+});
+
+describe("buildSystemPrompt — today's / tomorrow's hours (VP-7 follow-up)", () => {
+  test('tells the model to answer for the exact weekday from Today and never say yes or give hours for a closed day', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    for (const language of ['ja', 'en']) {
+      const prompt = buildSystemPrompt(config, language, faq);
+
+      expect(prompt).toContain("Questions about today's or tomorrow's hours");
+      expect(prompt).toContain('answer for that day only');
+      expect(prompt).toContain('never say "yes" or give opening hours for a day it is closed');
+    }
+  });
+});
+
+describe('buildSystemPrompt — over-triggering guards (VP-7 follow-up)', () => {
+  test("the uncertain-emergency line is tied to the language's own severe-pain words from client.yaml, and never to an ordinary ache or routine injury", async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const ja = buildSystemPrompt(config, 'ja', faq);
+    const en = buildSystemPrompt(config, 'en', faq);
+
+    expect(ja).toContain('with an intensity word such as "激痛", "ひどい痛み"');
+    expect(en).toContain('with an intensity word such as "severe", "intense"');
+    for (const prompt of [ja, en]) {
+      expect(prompt).toContain(
+        'Never use it for an ordinary ache, stiffness, a sprain, or a routine injury the caller mentions while asking whether you treat it',
+      );
+    }
+  });
+
+  test('does not quote example injuries next to the emergency line — that primed the model to say it for them (VP-7 suite run)', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'en', faq);
+    const emergency = prompt.slice(
+      prompt.indexOf('Emergencies —'),
+      prompt.indexOf('Language switching:'),
+    );
+
+    expect(emergency).not.toContain('twisted my ankle');
+    expect(emergency).not.toContain('my back hurts');
+  });
+
+  test('falls back to the generic "sudden or severe pain" wording for a client with no severePainWords', () => {
+    const prompt = buildSystemPrompt(buildMinimalConfig(), 'fr', []);
+
+    expect(prompt).toContain(
+      "If they describe sudden or severe pain and you're not sure it's that serious,",
+    );
+  });
+
+  test('an explicit "no" to a callback offer is a clear decline — no second check', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'en', faq);
+
+    expect(prompt).toContain('starts with an explicit "no" (in any language) is a clear decline');
+    expect(prompt).toContain('do not ask again');
+  });
+
+  test('the three-strikes goodbye ends with a configured hang-up phrase, so speaking it ends the call on the platform side', () => {
+    const config = loadClient(SAKURA_ID);
+
+    for (const language of ['ja', 'en']) {
+      const line = config.scripts.repeatedMisunderstanding[language]!.toLowerCase();
+      const phrases = config.languages.settings[language]!.endCallPhrases!;
+      expect(phrases.some((phrase) => line.includes(phrase.toLowerCase()))).toBe(true);
+    }
+  });
+});
+
+describe('buildSystemPrompt — phone read-back (VP-7)', () => {
+  test('gives the model the per-language digit words and a worked example from client.yaml', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const ja = buildSystemPrompt(config, 'ja', faq);
+    const en = buildSystemPrompt(config, 'en', faq);
+
+    expect(ja).toContain(
+      '0=ゼロ, 1=イチ, 2=ニー, 3=サン, 4=ヨン, 5=ゴー, 6=ロク, 7=ナナ, 8=ハチ, 9=キュウ',
+    );
+    expect(ja).toContain('"ゼロキュウゼロ、イチニーサンヨン、ゴーロクナナハチ"');
+    expect(en).toContain('0=zero, 1=one, 2=two');
+    expect(en).toContain('"zero nine zero, one two three four, five six seven eight"');
+  });
+
+  test('tells the model to check the 3-4-4 digit grouping BEFORE reading back, and to ask again instead of reading back a wrong-length number', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'ja', faq);
+
+    expect(prompt).toContain('Check the digits BEFORE reading anything back');
+    expect(prompt).toContain('exactly 11 digits in groups of 3-4-4');
+    expect(prompt).toContain('do NOT read it back');
+    expect(prompt).toContain('never skip, merge or change a digit');
+    // The retry line is its own script, so it never counts toward the three-strikes hang-up.
+    expect(prompt).toContain(config.scripts.phoneRetry['ja']!);
+    expect(prompt).toContain('not one of the "didn\'t catch it" attempts');
+  });
+
+  test('omits the digit guide (but keeps the generic rule) for a client that configures none', () => {
+    const config = buildMinimalConfig();
+
+    const prompt = buildSystemPrompt(config, 'fr', []);
+
+    expect(prompt).not.toContain('Digit words:');
+    expect(prompt).toContain('Speak every digit the caller gave');
   });
 });
 

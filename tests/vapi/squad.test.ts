@@ -93,7 +93,8 @@ describe('renderHandoffTool — Sakura', () => {
 
 describe('renderArrivalMessage', () => {
   test('is englishGreeting for en and handoffToJapanese for ja — never the call-opening greeting', () => {
-    expect(renderArrivalMessage(config, 'en')).toContain('English receptionist');
+    expect(renderArrivalMessage(config, 'en')).toContain('AI receptionist, speaking in English');
+    expect(renderArrivalMessage(config, 'en')).not.toContain('English receptionist');
     expect(renderArrivalMessage(config, 'ja')).toBe(
       '日本語の受付にお繋ぎしました。ご用件をお聞かせください。',
     );

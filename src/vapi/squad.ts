@@ -12,6 +12,7 @@ import {
   goodbyeMessage,
   pick,
 } from './promptTemplate.js';
+import { endCallPhrasesFor, silenceHangupHook } from './callEnding.js';
 import type { ClientConfig, ScriptKey } from '../config/schema.js';
 import type { VapiHandoffToolPayload, VapiSquadPayload } from './types.js';
 
@@ -129,6 +130,7 @@ export function renderHandoffTool(
   // return member, never the call-starting one — its firstMessage is the
   // full opening greeting, which must never replay mid-call (VP-7 R1).
   const destinationId = to === config.languages.default ? (returnMemberId(config) ?? to) : to;
+  const endCallPhrases = endCallPhrasesFor(config, to);
 
   return {
     type: 'handoff',
@@ -146,6 +148,9 @@ export function renderHandoffTool(
         assistantOverrides: {
           firstMessage: renderArrivalMessage(config, to),
           endCallMessage: goodbyeMessage(config, to),
+          // Same reasoning for the platform-level hang-up backstops (VAPI-FACTS.md VP-7 R8).
+          ...(endCallPhrases ? { endCallPhrases } : {}),
+          hooks: [silenceHangupHook()],
         },
       },
     ],
