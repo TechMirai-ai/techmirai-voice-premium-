@@ -176,6 +176,11 @@ tradeoff, not a bug).
 
 Gloss: "Please hang up right away, call 119, and call for an ambulance."
 
+**`emergency.ja` — CHANGED again (2026-09-25, emergency-loop fix):** now ends with 「失礼いたします」 ("Goodbye") so the call hangs up as soon as the line finishes, without waiting for the caller to reply:
+> すぐにお電話を切って、[[emergencyNumber]]番に連絡し、救急車を呼んでください。失礼いたします。
+
+Gloss: "Please hang up right away, call 119 and ask for an ambulance. Goodbye." **Question for a native speaker:** is ending the call immediately after this instruction acceptable and natural for an emergency caller? (The conditional line `emergencyUncertain` deliberately does NOT end the call.)
+
 **`emergencyUncertain.ja`** (NEW (VP-7) — uncertain/possibly-serious pain):
 > 緊急の場合は、このお電話を切って、すぐに119番で救急車を呼んでください。
 

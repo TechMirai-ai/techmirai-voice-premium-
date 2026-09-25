@@ -1,13 +1,13 @@
 {
   "days": {
     "2026-09-25": {
-      "used": 2699
+      "used": 2958
     }
   },
   "lastHeaders": {
     "status": "200",
     "x-ratelimit-limit-requests": "10000",
-    "x-ratelimit-remaining-requests": "7955",
-    "x-ratelimit-reset-requests": "4h54m23.117s"
+    "x-ratelimit-remaining-requests": "8801",
+    "x-ratelimit-reset-requests": "2h52m31.263s"
   }
 }

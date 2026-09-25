@@ -1,0 +1,18 @@
+calls returned: 40
+2026-09-25T09:28 01a0d7e4-dfb2 ended=assistant-ended-call handoff=Y bot-msgs-recorded=11 assistant-turns-in-model-history= 9 mergedUsers=no  endpointing700= 0  hist=SAUAUA(t)TAUAUAUAUAUAUA(t)TAU
+2026-09-25T09:24 01a0d7e1-d0b6 ended=customer-ended-call  handoff=Y bot-msgs-recorded= 1 assistant-turns-in-model-history= 1 mergedUsers=no  endpointing700=21  hist=SAUA(t)TU
+2026-09-23T09:29 01a0cd99-8ae8 ended=assistant-ended-call handoff=n bot-msgs-recorded=10 assistant-turns-in-model-history= 6 mergedUsers=no  endpointing700= 0  hist=SAUAUAUAUAUA(t)TAU
+2026-09-23T08:07 01a0cd4e-8b87 ended=assistant-ended-call handoff=n bot-msgs-recorded= 9 assistant-turns-in-model-history= 5 mergedUsers=no  endpointing700= 0  hist=SAUAUAUAUA(t)TAU
+2026-09-23T08:05 01a0cd4c-d04b ended=customer-ended-call  handoff=n bot-msgs-recorded= 2 assistant-turns-in-model-history= 1 mergedUsers=no  endpointing700= 0  hist=SAU
+2026-09-23T06:43 01a0cd01-63c4 ended=customer-ended-call  handoff=Y bot-msgs-recorded= 6 assistant-turns-in-model-history= 6 mergedUsers=no  endpointing700= 0  hist=SAUA(t)TAUAUAUAUAU
+2026-09-23T05:28 01a0ccbc-b0ab ended=assistant-ended-call handoff=Y bot-msgs-recorded= 9 assistant-turns-in-model-history= 7 mergedUsers=no  endpointing700= 0  hist=SAUA(t)TAUAUAUAUAUA(t)TAU
+2026-09-23T05:05 01a0cca7-6e36 ended=customer-ended-call  handoff=Y bot-msgs-recorded=11 assistant-turns-in-model-history= 8 mergedUsers=no  endpointing700= 0  hist=SAUA(t)TAUAUAUAUAUAUA(t)TAU
+2026-09-23T04:49 01a0cc99-3794 ended=silence-timed-out    handoff=Y bot-msgs-recorded= 4 assistant-turns-in-model-history= 3 mergedUsers=no  endpointing700= 0  hist=SAUA(t)TAUAU
+2026-09-23T04:20 01a0cc7e-9a8f ended=assistant-ended-call handoff=Y bot-msgs-recorded= 5 assistant-turns-in-model-history= 4 mergedUsers=no  endpointing700= 0  hist=SAUA(t)TAUAUAUA(t)TU
+2026-09-22T17:24 01a0ca25-d4ce ended=customer-ended-call  handoff=Y bot-msgs-recorded= 6 assistant-turns-in-model-history= 5 mergedUsers=no  endpointing700= 0  hist=SAUA(t)TAUAUAUAU
+2026-09-22T17:06 01a0ca15-2666 ended=customer-ended-call  handoff=Y bot-msgs-recorded= 3 assistant-turns-in-model-history= 2 mergedUsers=no  endpointing700= 0  hist=SAUA(t)TAU
+2026-09-22T05:41 01a0c7a1-dd56 ended=assistant-ended-call handoff=Y bot-msgs-recorded=13 assistant-turns-in-model-history=10 mergedUsers=no  endpointing700= 0  hist=SAUA(t)TAUAUAUAUAUAUAUA(t)TAUAU
+2026-09-22T05:28 01a0c796-b6e9 ended=assistant-ended-call handoff=Y bot-msgs-recorded= 9 assistant-turns-in-model-history= 6 mergedUsers=no  endpointing700= 0  hist=SAUA(t)TAUAUAUAUAUA(t)T
+2026-09-22T04:49 01a0c772-9f92 ended=assistant-ended-call handoff=Y bot-msgs-recorded= 4 assistant-turns-in-model-history= 4 mergedUsers=no  endpointing700= 0  hist=SAUA(t)TAUAUAU
+2026-09-22T04:09 01a0c74e-0aaf ended=customer-ended-call  handoff=Y bot-msgs-recorded= 8 assistant-turns-in-model-history= 8 mergedUsers=no  endpointing700= 0  hist=SAUA(t)TAUAUAUAUAUA(t)TAUAU
+2026-09-21T09:03 01a0c334-7807 ended=customer-ended-call  handoff=Y bot-msgs-recorded= 7 assistant-turns-in-model-history= 6 mergedUsers=no  endpointing700= 0  hist=SAUAUAUA(t)TAUAUA(t)TAU

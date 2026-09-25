@@ -128,3 +128,28 @@ The silence hook (40 s) needs a fourth call where you say nothing; skip it if cr
 ## 7. Request accounting
 
 2,699 OpenAI requests today in total (the baseline, the iteration runs, four full 96-transcript runs, the controls), all `gpt-4o-mini`, no failed requests, far under the real 10,000/day limit — see `docs/vp7-test-runs/ledger.json`. New untracked files: `docs/VP7-TEST-RESULTS.md`, `docs/vp7-test-runs/`, `src/vapi/callEnding.ts`, `tests/vapi/callEnding.test.ts`. The transcripts hold only the suite's synthetic caller data (「ヤマダ タロウ」 Yamada Taro, 090-1234-5678).
+
+## 8. Addendum (2026-09-25, after the first real calls): the emergency "loop" — root cause and status
+
+**Report:** on a real call the caller said it was an emergency, the agent said "hang up and call 119", the caller said "ok thank you", and the agent repeated the 119 line over and over.
+
+**What I found (all from the call's own log, `docs/vp7-test-runs/prod-call-01a0d7e1/`):**
+1. **Not reproducible with a normal conversation** — 30 of 30 text-tester runs (clear emergencies, both languages) ended after the first acknowledgment, and 24 of 24 runs of the exact caller wording did too.
+2. **The cause is a platform fault, not F-10 and not the model struggling to speak and call tools in one turn.** In that call Vapi never put the assistant's own replies into the message history it sent to OpenAI, and it glued each new caller utterance onto the previous user message. The model saw one growing message ("…Do you treat shoulder pain? OK. Thank you. OK. OK. Thank you.") and no reply of its own, so it answered it identically every time. **Replaying the exact logged request: 20/20 repeat the line.**
+3. **Rare, and it coincides with a config setting of ours:** 1 of 17 logged calls. It is also the only call with 21 `Endpointing timeout 700ms (rule: heuristic)` events — that 700 ms is our own `onNoPunctuationSeconds = 0.7` (VP-6 R7); a long unpunctuated English sentence fired it repeatedly. Causation is **unproven**.
+4. The tier matters: the caller said "I have an emergency" plus a question, and the model chose the *conditional* line ("If this is an emergency…"), which waits for an answer — so the ending path never ran.
+
+**What I changed (prompt + `client.yaml`, replay- and lossy-history-tested; not yet proven on a real call):**
+- A **declared** emergency ("I have an emergency") is the clear-emergency tier even if a question is attached.
+- The clear-emergency line **now ends with the hang-up phrase** (`…救急車を呼んでください。失礼いたします。` / "…right away. Goodbye."), so Vapi hangs up as soon as it finishes — no later turn, no history needed. *Behaviour change:* previously the assistant waited for the caller's "understood" before ending.
+- The conditional line stays open-ended ("say exactly that line — no goodbye").
+- A first **"rule zero"**: if a message contains an acknowledgment together with an emergency description, say only the goodbye and end — never repeat the line.
+- New runner mode `LOSSY=1` reproduces the platform fault (drops the assistant's replies, merges the caller's messages).
+
+**Measured:** replay of the three logged production requests — turn 2 loops **4/20** (was **20/20**), turn 3 **1/20**. Simulated lossy history, 9 emergency scenarios × 5 samples: clear emergencies **0/30** loops; English vague **0/10**; Japanese vague repeats **once** then ends (5/5). Normal-history regression (3 samples): 23a and E4 still end, 23b still 3/3 in both languages, back pain 3/3, English ankle unchanged (2/3), no loops anywhere.
+
+**Still open:**
+- **Prompt steering is only partly reliable for this** (the residual 4/20) — adding more examples made it *worse* (18/20), so I stopped tuning wording. The real fix is upstream.
+- **Endpointing (recommended, not applied):** raise `onNoPunctuationSeconds` (VP-6 R7's original default was 1.5 s). It trades ~0.8 s of answer latency on every turn for not chopping stressed, run-on speech — a product decision, and it needs one real call (a long, hesitant, unpunctuated English sentence) to prove.
+- The emergency call is still **not logged** (F-10) — unchanged.
+- The mitigation is **not live until `npm run vapi:sync` is run.**

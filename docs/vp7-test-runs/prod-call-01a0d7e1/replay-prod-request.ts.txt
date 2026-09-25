@@ -1,0 +1,21 @@
+import { readFileSync } from 'node:fs';
+import { loadEnv } from '/home/rupta/Documents/techMirai/client-work/techmirai-voice-premium/src/env.ts';
+import { loadRenderedMember, initialMessages } from '/home/rupta/Documents/techMirai/client-work/techmirai-voice-premium/src/vapi/textTester.ts';
+const key = loadEnv().OPENAI_API_KEY!;
+const [file, nStr, member] = [process.argv[2]!, process.argv[3] ?? '20', process.argv[4] ?? 'en'];
+const N = Number(nStr);
+const req = JSON.parse(readFileSync(file, 'utf8'));
+const today = /Today:\n([^\n]*)\n/.exec(req.messages[0].content)![1]!;
+const sys = initialMessages(await loadRenderedMember('sakura-seikotsuin', member))[0]!.content!.replace(/\{\{"now"[^}]*\}\}/, today);
+const messages = [{ role: 'system', content: sys }, ...req.messages.slice(1)];
+const has119 = (x: string) => /119|one[- ]one[- ]nine/i.test(x);
+const tally: Record<string, number> = {}; const ex: Record<string, string> = {};
+for (let i = 0; i < N; i++) {
+  const r = await fetch('https://api.openai.com/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` }, body: JSON.stringify({ model: 'gpt-4o-mini', temperature: req.temperature, messages, tools: req.tools }) });
+  const txt = await r.text(); let j: any; try { j = JSON.parse(txt); } catch { i--; await new Promise((z) => setTimeout(z, 1500)); continue; } const m = j.choices[0].message; const tools = (m.tool_calls ?? []).map((c: any) => c.function.name).join('+');
+  const said = m.content ?? '';
+  const kind = tools ? `TOOLS(${tools})${said ? ' + speech' : ''}` : /goodbye|失礼/i.test(said) ? 'goodbye (phrase → hangs up)' : has119(said) ? 'REPEATS 119 LINE' : 'other speech';
+  tally[kind] = (tally[kind] ?? 0) + 1; ex[kind] ??= JSON.stringify(said).slice(0, 110);
+}
+console.log(file.split('prod-req-')[1], '→', Object.entries(tally).map(([k, v]) => `${v}/${N} ${k}`).join('  |  '));
+for (const [k, v] of Object.entries(ex)) console.log('     e.g.', k.slice(0, 28).padEnd(28), v);

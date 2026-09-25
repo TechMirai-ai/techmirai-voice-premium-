@@ -26,8 +26,19 @@ import {
 const ROOT = '/home/rupta/Documents/techMirai/client-work/techmirai-voice-premium';
 const RUN_DIR = path.join(ROOT, 'docs/vp7-test-runs');
 const TEMP = process.env.TEMPERATURE; // undefined = the tester's default (OpenAI 1.0); Vapi's own default is 0.5
+const LOSSY = process.env.LOSSY === '1'; // simulate the platform fault: assistant text replies missing from history, consecutive user messages merged
+function lossy(ms: ChatMessage[]): ChatMessage[] {
+  const out: ChatMessage[] = [];
+  for (const m of ms) {
+    if (m.role === 'assistant' && !m.tool_calls) continue;
+    const prev = out[out.length - 1];
+    if (m.role === 'user' && prev?.role === 'user') { out[out.length - 1] = { ...prev, content: `${prev.content} ${m.content}` }; continue; }
+    out.push(m);
+  }
+  return out;
+}
 const FAKE_NOW = process.env.FAKE_NOW; // e.g. 2026-09-27T10:00:00+09:00 — pin "Today" (Sunday tests)
-const RUN2_DIR = path.join(RUN_DIR, `run2-t${TEMP ?? '1.0'}${FAKE_NOW ? '-fakenow' : ''}`);
+const RUN2_DIR = path.join(RUN_DIR, `run2-t${TEMP ?? '1.0'}${FAKE_NOW ? '-fakenow' : ''}${process.env.LABEL ? '-' + process.env.LABEL : ''}`);
 let SAMPLE = 1;
 const CLIENT = 'sakura-seikotsuin';
 const DAILY_CAP = 9000; // OpenAI reports 10,000 RPD for this key; the user lifted the 50/day cap (2026-09-25)
@@ -157,6 +168,31 @@ export const RUNS: RunDef[] = [
     S('E4', "My friend collapsed and isn't breathing properly."), S('E4', 'Okay, calling now.')] },
 ];
 
+// Emergency loop reproduction (user report 2026-09-25): trigger, then acknowledgments — does it end or repeat 119?
+const EMERGENCY_TRIGGERS: Record<string, string[]> = {
+  ja: ['父が転んで頭を打って、意識がはっきりしないんです。', '胸が痛くて息ができません。', '友達が倒れて息をしていないんです。'],
+  en: ['My father fell and hit his head, and he is not fully conscious.', "I have chest pain and I can't breathe.", "My friend collapsed and isn't breathing properly."],
+};
+const ACKS: Record<string, string[]> = { ja: ['ok、ありがとう', 'ありがとうございます', 'はい'], en: ['ok thank you', 'thank you', 'ok'] };
+for (const lang of ['ja', 'en']) {
+  EMERGENCY_TRIGGERS[lang]!.forEach((trigger, i) => {
+    RUNS.push({ id: `${lang}-Q${i + 1}-emergency-loop`, member: lang, cases: 'emergency-loop', steps: [
+      S('trigger', trigger), ...ACKS[lang]!.map((a) => S('ack', a))] });
+  });
+}
+
+// The REAL failing exchange from production call 01a0d7e1 (vague-tier emergency, then acknowledgments).
+RUNS.push({ id: 'en-R1-vague-emergency-ack', member: 'en', cases: 'emergency-ack', steps: [
+  S('trigger', 'I have a emergency. I have a very heavy shoulder pain. Do your clinic treat shoulder pain?'),
+  S('ack', 'OK. Thank you.'), S('ack', 'OK. OK. Thank you.'), S('ack', 'OK.')] });
+RUNS.push({ id: 'ja-R1-vague-emergency-ack', member: 'ja', cases: 'emergency-ack', steps: [
+  S('trigger', '緊急事態です。肩がとても痛いです。肩の痛みは診てもらえますか？'),
+  S('ack', 'ok、ありがとう'), S('ack', 'ok、ok、ありがとう'), S('ack', 'はい')] });
+RUNS.push({ id: 'en-R2-vague-emergency-ack-after-handoff', member: 'en', cases: 'emergency-ack (handoff context)',
+  seed: [{ role: 'user', content: 'English.' }, { role: 'assistant', content: "Hello, you've reached Sakura Say-koh-tsoo-in. This is the clinic's AI receptionist, speaking in English. How can I help you today?" }],
+  steps: [S('trigger', 'I have a emergency. I have a very heavy shoulder pain. Do your clinic treat shoulder pain?'),
+  S('ack', 'OK. Thank you.'), S('ack', 'OK. OK. Thank you.'), S('ack', 'OK.')] });
+
 // Case 21c without a seeded history: a real callback flow whose FINAL save fails.
 RUNS.push({ id: 'ja-O2-toolfail-flow', member: 'ja', cases: '21c (real flow)', steps: [
   S('13', 'スタッフの方に代わってもらえますか？'), S('13', 'はい、お願いします。'),
@@ -255,7 +291,7 @@ async function runOne(def: RunDef): Promise<'done' | 'budget'> {
     let endReason: string | undefined;
     try {
       for (let round = 0; round < MAX_ROUNDS; round += 1) {
-        const reply = await callModel(messages, tools);
+        const reply = await callModel(LOSSY ? lossy(messages) : messages, tools);
         messages = [...messages, reply];
         if (reply.content) rec.lines.push(reply.content);
         const said = (reply.content ?? '').toLowerCase();

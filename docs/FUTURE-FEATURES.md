@@ -123,6 +123,7 @@ staff dashboard's call list), or a real call shows a missing classification that
   route must not be mountable unauthenticated.
 - The assistant payload has room for an assistant-level `server.url` (see `VapiAssistantPayload.server`,
   currently unset) and `artifactPlan`; nothing in `render.ts` should hard-code either away.
+**Not this:** the 2026-09-25 emergency-line repeat loop was a Vapi history-loss fault, not a symptom of this gap (VAPI-FACTS.md VP-7 R9). F-10 only concerns whether a topic row exists.
 **Unverified:** structured-output run timing and whether it fires for calls ended by
 `assistant-said-end-call-phrase` / silence hangup (docs say "runs after each call" by default) —
 confirm with a real call before relying on it.

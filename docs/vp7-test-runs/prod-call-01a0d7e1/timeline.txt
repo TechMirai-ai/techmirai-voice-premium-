@@ -1,0 +1,158 @@
+Production call 01a0d7e1-d0b6-744b-87e0-a5f96c70b53f (2026-09-25 09:24Z) — condensed log timeline, seconds from call start
+
+  33.79s Bot stopped speaking                    
+  33.79s First message completed                 
+  35.28s User speech possibly starting           
+  35.42s User speech started                     
+  35.42s User started speaking                   
+  35.84s User speech possibly stopping           
+  36.40s Endpointing timeout 700ms (rule: `heuristic`)
+  36.40s Turn started                            
+  36.40s Pipeline cleared                        
+  36.40s LLM stream clearing                     
+  36.60s Endpointing timeout 700ms (rule: `heuristic`)
+  36.60s Turn started                            
+  36.60s Pipeline cleared                        
+  36.60s LLM stream clearing                     
+  36.70s Endpointing timeout 700ms (rule: `heuristic`)
+  36.70s Turn started                            
+  36.70s Pipeline cleared                        
+  36.70s LLM stream clearing                     
+  36.90s Endpointing timeout 700ms (rule: `heuristic`)
+  36.90s Turn started                            
+  36.90s Pipeline cleared                        
+  36.90s LLM stream clearing                     
+  37.02s Endpointing timeout 700ms (rule: `heuristic`)
+  37.02s Turn started                            
+  37.02s Pipeline cleared                        
+  37.02s LLM stream clearing                     
+  37.30s Endpointing timeout 700ms (rule: `heuristic`)
+  37.30s Turn started                            
+  37.30s Pipeline cleared                        
+  37.30s LLM stream clearing                     
+  37.50s Endpointing timeout 700ms (rule: `heuristic`)
+  37.50s Turn started                            
+  37.50s Pipeline cleared                        
+  37.50s LLM stream clearing                     
+  37.60s Endpointing timeout 700ms (rule: `heuristic`)
+  37.60s Turn started                            
+  37.60s Pipeline cleared                        
+  37.60s LLM stream clearing                     
+  37.70s User speech possibly stopping           
+  37.90s Endpointing timeout 700ms (rule: `heuristic`)
+  37.90s Turn started                            
+  37.90s Pipeline cleared                        
+  37.90s LLM stream clearing                     
+  38.20s Endpointing timeout 700ms (rule: `heuristic`)
+  38.20s Turn started                            
+  38.20s Pipeline cleared                        
+  38.20s LLM stream clearing                     
+  38.30s Endpointing timeout 700ms (rule: `heuristic`)
+  38.30s Turn started                            
+  38.30s Pipeline cleared                        
+  38.30s LLM stream clearing                     
+  38.40s User speech possibly stopping           
+  39.10s Endpointing timeout 700ms (rule: `heuristic`)
+  39.10s Turn started                            
+  39.10s Pipeline cleared                        
+  39.10s LLM stream clearing                     
+  39.12s User speech possibly stopping           
+  39.51s Endpointing timeout 700ms (rule: `heuristic`)
+  39.50s Turn started                            
+  39.51s Pipeline cleared                        
+  39.51s LLM stream clearing                     
+  39.81s Endpointing timeout 700ms (rule: `heuristic`)
+  39.81s Turn started                            
+  39.81s Pipeline cleared                        
+  39.81s LLM stream clearing                     
+  39.90s Endpointing timeout 700ms (rule: `heuristic`)
+  39.90s Turn started                            
+  39.90s Pipeline cleared                        
+  39.90s LLM stream clearing                     
+  40.12s User speech possibly stopping           
+  40.20s Endpointing timeout 700ms (rule: `heuristic`)
+  40.20s Turn started                            
+  40.20s Pipeline cleared                        
+  40.20s LLM stream clearing                     
+  40.51s Endpointing timeout 700ms (rule: `heuristic`)
+  40.50s Turn started                            
+  40.51s Pipeline cleared                        
+  40.51s LLM stream clearing                     
+  40.64s User stopped speaking                   
+  40.65s User speech stopped                     
+  41.19s Endpointing timeout 100ms (rule: `heuristic`)
+  41.19s Turn started                            
+  41.19s Pipeline cleared                        
+  41.19s LLM stream clearing                     
+  41.29s Endpointing triggered                   
+  41.29s LLM request started                     
+  41.75s call.driftDetected                      
+  42.06s LLM first token received                
+  42.21s LLM response completed                  
+  42.21s LLM stream clearing                     
+  42.21s LLM request aborted before completion   
+  42.62s Bot started speaking                    
+  48.43s Bot stopped speaking                    
+  51.71s User speech possibly starting           
+  52.08s User speech started                     
+  52.08s User started speaking                   
+  52.34s User speech possibly stopping           
+  52.88s User stopped speaking                   
+  52.88s User speech stopped                     
+  53.22s User speech possibly starting           
+  53.34s User speech started                     
+  53.34s User started speaking                   
+  53.79s Endpointing timeout 700ms (rule: `heuristic`)
+  53.79s Turn started                            
+  53.79s Pipeline cleared                        
+  53.79s LLM stream clearing                     
+  53.84s User speech possibly stopping           
+  54.34s User stopped speaking                   
+  54.34s User speech stopped                     
+  54.71s call.driftDetected                      
+  54.72s Endpointing triggered                   
+  54.72s LLM request started                     
+  54.91s Endpointing timeout 100ms (rule: `heuristic`)
+  54.91s Turn started                            
+  54.91s Pipeline cleared                        
+  54.91s LLM stream clearing                     
+  54.91s LLM request aborted before completion   
+  55.01s Endpointing triggered                   
+  55.01s LLM request started                     
+  55.93s LLM first token received                
+  56.13s LLM response completed                  
+  56.13s LLM stream clearing                     
+  56.13s LLM request aborted before completion   
+  56.49s Bot started speaking                    
+  62.30s Bot stopped speaking                    
+  64.46s User speech possibly starting           
+  64.58s User speech started                     
+  64.58s User started speaking                   
+  64.86s User speech possibly stopping           
+  65.09s Endpointing timeout 700ms (rule: `heuristic`)
+  65.09s Turn started                            
+  65.09s Pipeline cleared                        
+  65.09s LLM stream clearing                     
+  65.64s User speech possibly stopping           
+  66.09s Endpointing timeout 700ms (rule: `heuristic`)
+  66.09s Turn started                            
+  66.09s Pipeline cleared                        
+  66.09s LLM stream clearing                     
+  66.16s User stopped speaking                   
+  66.16s User speech stopped                     
+  66.62s Endpointing timeout 100ms (rule: `heuristic`)
+  66.62s Turn started                            
+  66.62s Pipeline cleared                        
+  66.62s LLM stream clearing                     
+  66.72s Endpointing triggered                   
+  66.72s LLM request started                     
+  67.52s LLM first token received                
+  67.68s LLM response completed                  
+  67.68s LLM stream clearing                     
+  67.68s LLM request aborted before completion   
+  68.34s call.driftDetected                      
+  68.50s Bot started speaking                    
+  74.22s Bot stopped speaking                    
+  77.81s call.ended                              customer-ended-call
+  80.37s LLM stream cleanup                      
+  80.37s LLM stream clearing                     
