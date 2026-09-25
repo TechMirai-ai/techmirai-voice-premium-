@@ -146,10 +146,10 @@ The silence hook (40 s) needs a fourth call where you say nothing; skip it if cr
 - A first **"rule zero"**: if a message contains an acknowledgment together with an emergency description, say only the goodbye and end — never repeat the line.
 - New runner mode `LOSSY=1` reproduces the platform fault (drops the assistant's replies, merges the caller's messages).
 
-**Measured:** replay of the three logged production requests — turn 2 loops **4/20** (was **20/20**), turn 3 **1/20**. Simulated lossy history, 9 emergency scenarios × 5 samples: clear emergencies **0/30** loops; English vague **0/10**; Japanese vague repeats **once** then ends (5/5). Normal-history regression (3 samples): 23a and E4 still end, 23b still 3/3 in both languages, back pain 3/3, English ankle unchanged (2/3), no loops anywhere.
+**Measured (corrected 2026-09-25 — an earlier single 20-sample run showed 4/20 and 1/20, which did not reproduce):** replay of the logged production requests against the final prompt, pooled over four runs of 20 — turn 2 still loops **11/80 (14 %)** and turn 3 **37/80 (46 %)** (was 20/20 each). That is a large improvement but only a **partial** defence, with high run-to-run variance. Simulated lossy history, 9 emergency scenarios × 5 samples: clear emergencies **0/30** loops; English vague **0/10**; Japanese vague repeats **once** then ends (5/5). Normal-history regression (3 samples): 23a and E4 still end, 23b still 3/3 in both languages, back pain 3/3, English ankle unchanged (2/3), no loops anywhere.
 
 **Still open:**
-- **Prompt steering is only partly reliable for this** (the residual 4/20) — adding more examples made it *worse* (18/20), so I stopped tuning wording. The real fix is upstream.
+- **Prompt steering is only partly reliable for this** (the residual 14 % / 46 %) — adding more examples made it *worse* (18/20), so I stopped tuning wording. The real fix is upstream.
 - **Endpointing (recommended, not applied):** raise `onNoPunctuationSeconds` (VP-6 R7's original default was 1.5 s). It trades ~0.8 s of answer latency on every turn for not chopping stressed, run-on speech — a product decision, and it needs one real call (a long, hesitant, unpunctuated English sentence) to prove.
 - The emergency call is still **not logged** (F-10) — unchanged.
 - The mitigation is **not live until `npm run vapi:sync` is run.**
