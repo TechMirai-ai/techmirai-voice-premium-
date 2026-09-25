@@ -1,0 +1,78 @@
+{
+ "runId": "ja-L-handoff-en",
+ "member": "ja",
+ "cases": "27,27b",
+ "renderedNow": "Friday, September 25, 2026, 15:14",
+ "startedAt": "2026-09-25T06:14:56.576Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "お電話ありがとうございます。さくら整骨院、AI受付でございます。 For English, please say \"English\". どのようなご用件でしょうか。"
+  },
+  {
+   "role": "user",
+   "content": "子どもが英語の授業中にケガをして…"
+  },
+  {
+   "role": "assistant",
+   "content": "緊急の場合は、このお電話を切って、すぐに119番で救急車を呼んでください。 どのようなケガをされたのか、教えていただけますか？"
+  },
+  {
+   "role": "user",
+   "content": "English, please."
+  },
+  {
+   "role": "assistant",
+   "content": null,
+   "tool_calls": [
+    {
+     "id": "call_wMDP1aBi4hWXkmAcQFOLAFP6",
+     "type": "function",
+     "function": {
+      "name": "handoff_to_en",
+      "arguments": "{\"destination\":\"en\"}"
+     }
+    }
+   ]
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_wMDP1aBi4hWXkmAcQFOLAFP6",
+   "name": "handoff_to_en",
+   "content": ""
+  }
+ ],
+ "nextStep": 2,
+ "ended": true,
+ "turns": [
+  {
+   "tag": "27b",
+   "caller": "子どもが英語の授業中にケガをして…",
+   "lines": [
+    "緊急の場合は、このお電話を切って、すぐに119番で救急車を呼んでください。 どのようなケガをされたのか、教えていただけますか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "27",
+   "caller": "English, please.",
+   "lines": [],
+   "toolCalls": [
+    {
+     "name": "handoff_to_en",
+     "args": "{\"destination\":\"en\"}",
+     "result": ""
+    }
+   ],
+   "requests": 1
+  }
+ ],
+ "requests": 2,
+ "status": "done",
+ "endReason": "handoff_to_en"
+}

@@ -21,12 +21,16 @@ given it a native-speaker pass yet, it is not "already checked."
 
 ### 1. Greeting and re-entry — `greeting`, `handoffToJapanese` (ja-return's firstMessage)
 
-**`greeting.ja`** (`clients/sakura-seikotsuin/client.yaml`) — carried over, not yet reviewed:
-> お電話ありがとうございます。[[clinicName]]の受付です。当院に関するご案内や、スタッフへのお取り次ぎを承ります。For English, please say "English". ご用件をお聞かせください。
+**`greeting.ja`** (`clients/sakura-seikotsuin/client.yaml`) — CHANGED (VP-7 follow-up, 2026-09-25;
+wording taken from the source test suite, case 1). Now says it is an AI, and no longer promises
+お取り次ぎ (putting the call through to staff), which the assistant cannot do:
+> お電話ありがとうございます。[[clinicName]]、AI受付でございます。For English, please say "English". どのようなご用件でしょうか。
 
-Gloss: "Thank you for calling. This is [[clinicName]]'s reception. I can give information about
-the clinic and pass messages along to staff. For English, please say 'English'. Please tell me
-what you need."
+Gloss: "Thank you for calling. This is [[clinicName]], AI reception. For English, please say
+'English'. How may I help you?" (lit. "What kind of business is it?")
+
+*(Before, for comparison: 「…の受付です。当院に関するご案内や、スタッフへのお取り次ぎを承ります。…ご用件をお聞かせください。」
+— "This is …'s reception. I handle information about the clinic and putting you through to staff…")*
 
 **`handoffToJapanese.ja`** (also `ja-return`'s spoken firstMessage as of VP-7 — see
 `docs/VAPI-FACTS.md` VP-7 R1) — carried over, not yet reviewed:
@@ -57,10 +61,14 @@ Gloss: "I'm sorry, I didn't catch that clearly. Could you say it again?"
 
 **`repeatedMisunderstanding.ja`** (NEW (VP-7) — spoken after three failed attempts in a row to
 understand the caller, right before the call ends):
-> 申し訳ございません。お電話が遠いようですので、お手数ですが、少し時間をおいておかけ直しいただけますでしょうか。
+> 申し訳ございません。お電話が遠いようですので、お手数ですが、少し時間をおいておかけ直しいただけますでしょうか。失礼いたします。
 
 Gloss: "I'm sorry, the line seems to be faint. Sorry for the trouble, but could you please wait a
-little while and call again?"
+little while and call again? Goodbye."
+**CHANGED (2026-09-25):** now ends with 「失礼いたします」 ("Goodbye"), which is also one of the
+`endCallPhrases` — so speaking this line hangs the call up on the platform side even when the model
+forgets to call `endCall`. The source test suite's version (case 29) ends at 「…いただけますでしょうか。」
+without it.
 
 **Question for a native speaker:** is blaming the phone line ("お電話が遠いようです") rather than
 the caller the right politeness move here, and does ending the call this way (after three failed
@@ -275,6 +283,63 @@ unchanged since VP-2/VP-3 and have never had a native-speaker pass either.
 receptionist (not written/webpage-style phrasing), and specifically for the four changed answers
 (3, 4, 7, 9) — does "スタッフがご説明いたします" / "担当の者から折り返しご連絡いたします" read as
 a genuine offer to help rather than a brush-off?
+
+**Status:** open, not yet reviewed.
+
+---
+
+### 9. Call-ending phrases and phone-number digit words — NEW (VP-7 follow-up, 2026-09-25)
+
+**`languages.settings.ja.endCallPhrases`** — if the assistant *says* either phrase, Vapi hangs up the
+call after it finishes speaking (a backstop for when the model speaks a farewell instead of calling
+`endCall` — `docs/VAPI-FACTS.md` VP-7 R8):
+> 失礼いたします
+> 失礼します
+
+Gloss: "Goodbye" (lit. "I am being rude [by leaving / hanging up]") — the polite and the plainer form.
+**Question for a native speaker:** are these the words a Japanese receptionist actually uses to close
+a call, and are there other closing phrases the model is likely to say (e.g. 「ありがとうございました」
+"thank you" — deliberately NOT included, because it is also said mid-call and would hang up on the
+caller)? The list must contain only phrases that mean "the call is over".
+
+**`languages.settings.ja.phoneReadback`** — how the model speaks a phone number back to the caller.
+Digit words, 0 to 9:
+> ゼロ、イチ、ニー、サン、ヨン、ゴー、ロク、ナナ、ハチ、キュウ
+
+Gloss: "zero, one, two, three, four, five, six, seven, eight, nine". ニー and ゴー carry a long vowel so
+"2" and "5" cannot be misheard on a phone line.
+Worked example the model is shown (for 090-1234-5678):
+> ゼロキュウゼロ、イチニーサンヨン、ゴーロクナナハチ
+
+Gloss: "zero-nine-zero, one-two-three-four, five-six-seven-eight".
+**Question for a native speaker:** is this how a receptionist reads a number back over the phone
+(4 as ヨン, 7 as ナナ, 9 as キュウ, groups separated by a pause)?
+
+**`languages.settings.ja.severePainWords`** — NOT spoken to the caller; the trigger list for the
+"possibly serious" 119 line (`emergencyUncertain`). The model only says that line when the caller's own
+words include one of these; without a concrete list it said it for any mention of pain:
+> 激痛 / ひどい痛み / 耐えられない / 我慢できない / 突然 / 動けない
+
+Gloss: "intense/sharp pain" / "terrible pain" / "unbearable" / "can't bear it" / "suddenly" / "can't move".
+**Question for a native speaker (safety-relevant):** what else do callers say when pain might be an
+emergency — e.g. 「ズキズキ」 (throbbing), 「息ができない」 (can't breathe), 「痺れる」 (numb/tingling),
+「意識」 (consciousness)? Too few words means a real emergency gets no 119 line; too many brings back
+the over-triggering on ordinary aches.
+
+**`phoneRetry.ja`** (NEW — asks for a phone number again after a wrong digit count or a "no" to the
+read-back; wording from the source test suite, cases 18/19):
+> 恐れ入ります、少し聞き取れなかったようでして、もう一度お電話番号をお願いできますでしょうか。
+
+Gloss: "Excuse me, it seems I couldn't quite catch that — could you give me the phone number once more,
+please?" **Question for a native speaker:** natural and polite enough for a clinic receptionist?
+
+**`languages.settings.ja.callerDoneExamples`** — NOT spoken to the caller; shown to the model as
+examples of a caller who has finished, so it ends the call silently instead of chatting on:
+> ありがとうございました / 以上です / いえ、大丈夫です、ありがとうございます / わかりました、ありがとうございました / はい、結構です
+
+Gloss: "Thank you very much" / "That's all" / "No, I'm fine, thank you" / "Understood, thank you very
+much" / "Yes, that's enough". **Question for a native speaker:** are these the things a caller
+really says at the end of a clinic call? Missing ones the model should also treat as "finished"?
 
 **Status:** open, not yet reviewed.
 

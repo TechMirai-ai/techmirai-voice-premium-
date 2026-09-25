@@ -1,0 +1,58 @@
+{
+ "runId": "ja-G-unknown-question",
+ "member": "ja",
+ "cases": "12",
+ "renderedNow": "Friday, September 25, 2026, 15:14",
+ "startedAt": "2026-09-25T06:14:45.312Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "お電話ありがとうございます。さくら整骨院、AI受付でございます。 For English, please say \"English\". どのようなご用件でしょうか。"
+  },
+  {
+   "role": "user",
+   "content": "土曜日は女性の先生いますか？"
+  },
+  {
+   "role": "assistant",
+   "content": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？"
+  },
+  {
+   "role": "user",
+   "content": "いえ、大丈夫です。"
+  },
+  {
+   "role": "assistant",
+   "content": "かしこまりました。もし他に何かお手伝いできることがございましたら、いつでもお知らせください。失礼いたします。"
+  }
+ ],
+ "nextStep": 2,
+ "ended": true,
+ "turns": [
+  {
+   "tag": "12",
+   "caller": "土曜日は女性の先生いますか？",
+   "lines": [
+    "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "12",
+   "caller": "いえ、大丈夫です。",
+   "lines": [
+    "かしこまりました。もし他に何かお手伝いできることがございましたら、いつでもお知らせください。失礼いたします。"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  }
+ ],
+ "requests": 2,
+ "status": "done",
+ "endReason": "endCallPhrase:失礼いたします"
+}

@@ -1,0 +1,61 @@
+{
+ "runId": "ja-P-en-to-ja",
+ "member": "en",
+ "cases": "28",
+ "renderedNow": "Friday, September 25, 2026, 15:15",
+ "startedAt": "2026-09-25T06:15:08.894Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "Hello, you've reached Sakura Say-koh-tsoo-in. This is the clinic's AI receptionist, speaking in English. How can I help you today?"
+  },
+  {
+   "role": "user",
+   "content": "Can we speak in Japanese?"
+  },
+  {
+   "role": "assistant",
+   "content": null,
+   "tool_calls": [
+    {
+     "id": "call_mmGSsL2kSZ3lQHIWoK6jbHiH",
+     "type": "function",
+     "function": {
+      "name": "handoff_to_ja",
+      "arguments": "{\"destination\":\"ja\"}"
+     }
+    }
+   ]
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_mmGSsL2kSZ3lQHIWoK6jbHiH",
+   "name": "handoff_to_ja",
+   "content": ""
+  }
+ ],
+ "nextStep": 1,
+ "ended": true,
+ "turns": [
+  {
+   "tag": "28",
+   "caller": "Can we speak in Japanese?",
+   "lines": [],
+   "toolCalls": [
+    {
+     "name": "handoff_to_ja",
+     "args": "{\"destination\":\"ja\"}",
+     "result": ""
+    }
+   ],
+   "requests": 1
+  }
+ ],
+ "requests": 1,
+ "status": "done",
+ "endReason": "handoff_to_ja"
+}

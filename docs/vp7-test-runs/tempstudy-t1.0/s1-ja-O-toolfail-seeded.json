@@ -1,0 +1,72 @@
+{
+ "runId": "ja-O-toolfail-seeded",
+ "member": "ja",
+ "cases": "21c",
+ "renderedNow": "Friday, September 25, 2026, 15:15",
+ "startedAt": "2026-09-25T06:15:06.082Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "お電話ありがとうございます。さくら整骨院、AI受付でございます。 For English, please say \"English\". どのようなご用件でしょうか。"
+  },
+  {
+   "role": "user",
+   "content": "予約したいんですけど。"
+  },
+  {
+   "role": "assistant",
+   "content": "ご予約ですね。ご予約は、当院ホームページのオンライン予約から承っております。お電話でのご予約をご希望でしたら、担当の者から折り返しお電話を差し上げますが、いかがいたしましょうか。"
+  },
+  {
+   "role": "user",
+   "content": "じゃあ、電話でお願いします。"
+  },
+  {
+   "role": "assistant",
+   "content": "かしこまりました。それでは、お名前をお伺いしてもよろしいでしょうか。"
+  },
+  {
+   "role": "user",
+   "content": "ヤマダタロウです。"
+  },
+  {
+   "role": "assistant",
+   "content": "ヤマダ タロウ様ですね。では、ご連絡のつくお電話番号をお願いできますでしょうか。"
+  },
+  {
+   "role": "user",
+   "content": "090の1234の5678です。"
+  },
+  {
+   "role": "assistant",
+   "content": "復唱いたします。ゼロキュウゼロの、イチニーサンヨンの、ゴーロクナナハチ。お間違いないでしょうか。"
+  },
+  {
+   "role": "user",
+   "content": "はい、合ってます。"
+  },
+  {
+   "role": "assistant",
+   "content": "ありがとうございます。ヤマダ タロウ様、お電話番号はゼロキュウゼロの、イチニーサンヨンの、ゴーロクナナハチでよろしいですね。それでは、スタッフにお伝えいたしますので、折り返しご連絡いたします。少々お待ちください。"
+  }
+ ],
+ "nextStep": 1,
+ "ended": false,
+ "turns": [
+  {
+   "tag": "21c",
+   "caller": "はい、合ってます。",
+   "lines": [
+    "ありがとうございます。ヤマダ タロウ様、お電話番号はゼロキュウゼロの、イチニーサンヨンの、ゴーロクナナハチでよろしいですね。それでは、スタッフにお伝えいたしますので、折り返しご連絡いたします。少々お待ちください。"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  }
+ ],
+ "requests": 1,
+ "status": "done"
+}

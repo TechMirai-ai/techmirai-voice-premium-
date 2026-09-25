@@ -1,0 +1,114 @@
+{
+ "runId": "ja-G-unknown-question",
+ "member": "ja",
+ "cases": "12",
+ "renderedNow": "Friday, September 25, 2026, 15:27",
+ "startedAt": "2026-09-25T06:27:58.587Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "お電話ありがとうございます。さくら整骨院、AI受付でございます。 For English, please say \"English\". どのようなご用件でしょうか。"
+  },
+  {
+   "role": "user",
+   "content": "土曜日は女性の先生いますか？"
+  },
+  {
+   "role": "assistant",
+   "content": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？"
+  },
+  {
+   "role": "user",
+   "content": "いえ、大丈夫です。"
+  },
+  {
+   "role": "assistant",
+   "content": "かしこまりました。ほかに何かお手伝いできることはございますか？"
+  },
+  {
+   "role": "user",
+   "content": "ありがとうございました。"
+  },
+  {
+   "role": "assistant",
+   "content": null,
+   "tool_calls": [
+    {
+     "id": "call_PxpeX7kreHpEBIvFR81QrPwQ",
+     "type": "function",
+     "function": {
+      "name": "log_call_topic",
+      "arguments": "{\"topic\": \"other\", \"outcome\": \"resolved\"}"
+     }
+    },
+    {
+     "id": "call_OeBh4lAdZr0mxgSQyq0moDPO",
+     "type": "function",
+     "function": {
+      "name": "endCall",
+      "arguments": "{}"
+     }
+    }
+   ]
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_PxpeX7kreHpEBIvFR81QrPwQ",
+   "name": "log_call_topic",
+   "content": "Success."
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_OeBh4lAdZr0mxgSQyq0moDPO",
+   "name": "endCall",
+   "content": "Call ended."
+  }
+ ],
+ "nextStep": 3,
+ "ended": true,
+ "turns": [
+  {
+   "tag": "12",
+   "caller": "土曜日は女性の先生いますか？",
+   "lines": [
+    "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "12",
+   "caller": "いえ、大丈夫です。",
+   "lines": [
+    "かしこまりました。ほかに何かお手伝いできることはございますか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "30",
+   "caller": "ありがとうございました。",
+   "lines": [],
+   "toolCalls": [
+    {
+     "name": "log_call_topic",
+     "args": "{\"topic\": \"other\", \"outcome\": \"resolved\"}",
+     "result": "Success."
+    },
+    {
+     "name": "endCall",
+     "args": "{}",
+     "result": "Call ended."
+    }
+   ],
+   "requests": 1
+  }
+ ],
+ "requests": 3,
+ "status": "done",
+ "endReason": "endCall"
+}

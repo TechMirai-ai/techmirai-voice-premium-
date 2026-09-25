@@ -1,0 +1,57 @@
+{
+ "runId": "en-K-interrupt",
+ "member": "en",
+ "cases": "24",
+ "renderedNow": "Friday, September 25, 2026, 15:21",
+ "startedAt": "2026-09-25T06:21:00.919Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "Hello, you've reached Sakura Say-koh-tsoo-in. This is the clinic's AI receptionist, speaking in English. How can I help you today?"
+  },
+  {
+   "role": "user",
+   "content": "I'd like to make an appointment."
+  },
+  {
+   "role": "assistant",
+   "content": "You can book an appointment through the online reservation form on our website. Alternatively, I can have a staff member call you back to arrange it. Would you like to do that?"
+  },
+  {
+   "role": "user",
+   "content": "Oh, I'll book online."
+  },
+  {
+   "role": "assistant",
+   "content": "Great choice! If you need any help with that or have questions later, feel free to ask. Is there anything else I can help you with today?"
+  }
+ ],
+ "nextStep": 2,
+ "ended": false,
+ "turns": [
+  {
+   "tag": "24",
+   "caller": "I'd like to make an appointment.",
+   "lines": [
+    "You can book an appointment through the online reservation form on our website. Alternatively, I can have a staff member call you back to arrange it. Would you like to do that?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "24",
+   "caller": "Oh, I'll book online.",
+   "lines": [
+    "Great choice! If you need any help with that or have questions later, feel free to ask. Is there anything else I can help you with today?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  }
+ ],
+ "requests": 2,
+ "status": "done"
+}

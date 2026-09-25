@@ -1,0 +1,57 @@
+{
+ "runId": "ja-K-interrupt",
+ "member": "ja",
+ "cases": "24",
+ "renderedNow": "Friday, September 25, 2026, 15:32",
+ "startedAt": "2026-09-25T06:32:42.665Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "お電話ありがとうございます。さくら整骨院、AI受付でございます。 For English, please say \"English\". どのようなご用件でしょうか。"
+  },
+  {
+   "role": "user",
+   "content": "予約したいんですけど。"
+  },
+  {
+   "role": "assistant",
+   "content": "初めてご来院の方は、事前のご予約をおすすめしています。オンライン予約も可能ですが、お電話での予約をご希望ですか？"
+  },
+  {
+   "role": "user",
+   "content": "あ、ネットで予約します。"
+  },
+  {
+   "role": "assistant",
+   "content": "かしこまりました。オンライン予約は当院のホームページから行えます。ほかに何かお手伝いできることはございますか？"
+  }
+ ],
+ "nextStep": 2,
+ "ended": false,
+ "turns": [
+  {
+   "tag": "24",
+   "caller": "予約したいんですけど。",
+   "lines": [
+    "初めてご来院の方は、事前のご予約をおすすめしています。オンライン予約も可能ですが、お電話での予約をご希望ですか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "24",
+   "caller": "あ、ネットで予約します。",
+   "lines": [
+    "かしこまりました。オンライン予約は当院のホームページから行えます。ほかに何かお手伝いできることはございますか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  }
+ ],
+ "requests": 2,
+ "status": "done"
+}

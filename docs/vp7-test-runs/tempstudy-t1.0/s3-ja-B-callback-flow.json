@@ -1,0 +1,293 @@
+{
+ "runId": "ja-B-callback-flow",
+ "member": "ja",
+ "cases": "3,4,14,17,18,19,20,21",
+ "renderedNow": "Friday, September 25, 2026, 15:18",
+ "startedAt": "2026-09-25T06:18:53.443Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "お電話ありがとうございます。さくら整骨院、AI受付でございます。 For English, please say \"English\". どのようなご用件でしょうか。"
+  },
+  {
+   "role": "user",
+   "content": "予約しないと行けないですか？"
+  },
+  {
+   "role": "assistant",
+   "content": "初めてご来院の方は、事前のご予約をおすすめしていますが、予約状況によっては予約なしでもご来院いただけます。ほかに何かお手伝いできることはございますか？"
+  },
+  {
+   "role": "user",
+   "content": "予約したいんですけど。"
+  },
+  {
+   "role": "assistant",
+   "content": "当院ホームページのオンライン予約からご予約いただけます。お電話でのご予約をご希望の場合は、スタッフから折り返しご連絡いたします。どちらがよろしいでしょうか？"
+  },
+  {
+   "role": "user",
+   "content": "じゃあ、電話でお願いします。"
+  },
+  {
+   "role": "assistant",
+   "content": "かしこまりました。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？"
+  },
+  {
+   "role": "user",
+   "content": "ヤマダです。"
+  },
+  {
+   "role": "assistant",
+   "content": "ヤマダ様ですね。もう一度名前を教えていただけますか？お名前はフルネームでお願いできますか？"
+  },
+  {
+   "role": "user",
+   "content": "タロウです。"
+  },
+  {
+   "role": "assistant",
+   "content": "ヤマダタロウ様ですね。ありがとうございます。スタッフからご連絡できるお電話番号を教えていただけますか？"
+  },
+  {
+   "role": "user",
+   "content": "090の1234の567です。"
+  },
+  {
+   "role": "assistant",
+   "content": "恐れ入りますが、少し聞き取れなかったようでして、もう一度お電話番号をお願いできますでしょうか。"
+  },
+  {
+   "role": "user",
+   "content": "090の1234の5678です。"
+  },
+  {
+   "role": "assistant",
+   "content": "ありがとうございます。お電話番号はゼロキュウゼロ、イチニーサンヨン、ゴーロクナナハチでよろしいでしょうか？"
+  },
+  {
+   "role": "user",
+   "content": "最後が5679です。"
+  },
+  {
+   "role": "assistant",
+   "content": "ありがとうございます。お電話番号を確認いたします。お名前はヤマダタロウ様、お電話番号はゼロキュウゼロ、イチニーサンヨン、ゴーロクナナキュウでよろしいでしょうか？"
+  },
+  {
+   "role": "user",
+   "content": "いえ、違います。"
+  },
+  {
+   "role": "assistant",
+   "content": "恐れ入ります。もう一度お電話番号をお願いできますでしょうか。"
+  },
+  {
+   "role": "user",
+   "content": "090の1234の5678です。"
+  },
+  {
+   "role": "assistant",
+   "content": "恐れ入ります、少し聞き取れなかったようでして、もう一度お電話番号をお願いできますでしょうか。"
+  },
+  {
+   "role": "user",
+   "content": "はい、合ってます。"
+  },
+  {
+   "role": "assistant",
+   "content": null,
+   "tool_calls": [
+    {
+     "id": "call_QMH8M78ZGhisEltC7jbAtrA6",
+     "type": "function",
+     "function": {
+      "name": "request_callback",
+      "arguments": "{\"callerName\":\"ヤマダタロウ\",\"callerPhone\":\"09012345678\",\"reason\":\"予約希望の電話予約\"}"
+     }
+    }
+   ]
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_QMH8M78ZGhisEltC7jbAtrA6",
+   "name": "request_callback",
+   "content": "The callback request was saved. Staff will call the caller back."
+  },
+  {
+   "role": "assistant",
+   "content": "ありがとうございます。スタッフにお伝えいたしますので、翌営業日までにご連絡いたします。ほかに何かお手伝いできることはございますか？"
+  },
+  {
+   "role": "user",
+   "content": "ありがとうございました。"
+  },
+  {
+   "role": "assistant",
+   "content": null,
+   "tool_calls": [
+    {
+     "id": "call_mX5TLBUcVSUHM97fJXjUldvu",
+     "type": "function",
+     "function": {
+      "name": "log_call_topic",
+      "arguments": "{\"topic\": \"appointment-needed\", \"outcome\": \"resolved\"}"
+     }
+    },
+    {
+     "id": "call_uyGWBK5dst6vT55v19Hj8k8B",
+     "type": "function",
+     "function": {
+      "name": "endCall",
+      "arguments": "{}"
+     }
+    }
+   ]
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_mX5TLBUcVSUHM97fJXjUldvu",
+   "name": "log_call_topic",
+   "content": "Success."
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_uyGWBK5dst6vT55v19Hj8k8B",
+   "name": "endCall",
+   "content": "Call ended."
+  }
+ ],
+ "nextStep": 12,
+ "ended": true,
+ "turns": [
+  {
+   "tag": "3",
+   "caller": "予約しないと行けないですか？",
+   "lines": [
+    "初めてご来院の方は、事前のご予約をおすすめしていますが、予約状況によっては予約なしでもご来院いただけます。ほかに何かお手伝いできることはございますか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "4",
+   "caller": "予約したいんですけど。",
+   "lines": [
+    "当院ホームページのオンライン予約からご予約いただけます。お電話でのご予約をご希望の場合は、スタッフから折り返しご連絡いたします。どちらがよろしいでしょうか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "4",
+   "caller": "じゃあ、電話でお願いします。",
+   "lines": [
+    "かしこまりました。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "14v",
+   "caller": "ヤマダです。",
+   "lines": [
+    "ヤマダ様ですね。もう一度名前を教えていただけますか？お名前はフルネームでお願いできますか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "14",
+   "caller": "タロウです。",
+   "lines": [
+    "ヤマダタロウ様ですね。ありがとうございます。スタッフからご連絡できるお電話番号を教えていただけますか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "18",
+   "caller": "090の1234の567です。",
+   "lines": [
+    "恐れ入りますが、少し聞き取れなかったようでして、もう一度お電話番号をお願いできますでしょうか。"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "17",
+   "caller": "090の1234の5678です。",
+   "lines": [
+    "ありがとうございます。お電話番号はゼロキュウゼロ、イチニーサンヨン、ゴーロクナナハチでよろしいでしょうか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "20",
+   "caller": "最後が5679です。",
+   "lines": [
+    "ありがとうございます。お電話番号を確認いたします。お名前はヤマダタロウ様、お電話番号はゼロキュウゼロ、イチニーサンヨン、ゴーロクナナキュウでよろしいでしょうか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "19",
+   "caller": "いえ、違います。",
+   "lines": [
+    "恐れ入ります。もう一度お電話番号をお願いできますでしょうか。"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "17b",
+   "caller": "090の1234の5678です。",
+   "lines": [
+    "恐れ入ります、少し聞き取れなかったようでして、もう一度お電話番号をお願いできますでしょうか。"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "21",
+   "caller": "はい、合ってます。",
+   "lines": [
+    "ありがとうございます。スタッフにお伝えいたしますので、翌営業日までにご連絡いたします。ほかに何かお手伝いできることはございますか？"
+   ],
+   "toolCalls": [
+    {
+     "name": "request_callback",
+     "args": "{\"callerName\":\"ヤマダタロウ\",\"callerPhone\":\"09012345678\",\"reason\":\"予約希望の電話予約\"}",
+     "result": "The callback request was saved. Staff will call the caller back."
+    }
+   ],
+   "requests": 2
+  },
+  {
+   "tag": "30",
+   "caller": "ありがとうございました。",
+   "lines": [],
+   "toolCalls": [
+    {
+     "name": "log_call_topic",
+     "args": "{\"topic\": \"appointment-needed\", \"outcome\": \"resolved\"}",
+     "result": "Success."
+    },
+    {
+     "name": "endCall",
+     "args": "{}",
+     "result": "Call ended."
+    }
+   ],
+   "requests": 1
+  }
+ ],
+ "requests": 13,
+ "status": "done",
+ "endReason": "endCall"
+}

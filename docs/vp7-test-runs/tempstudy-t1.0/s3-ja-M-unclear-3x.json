@@ -1,0 +1,74 @@
+{
+ "runId": "ja-M-unclear-3x",
+ "member": "ja",
+ "cases": "29",
+ "renderedNow": "Friday, September 25, 2026, 15:19",
+ "startedAt": "2026-09-25T06:19:47.775Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "お電話ありがとうございます。さくら整骨院、AI受付でございます。 For English, please say \"English\". どのようなご用件でしょうか。"
+  },
+  {
+   "role": "user",
+   "content": "…ガ…ザ…"
+  },
+  {
+   "role": "assistant",
+   "content": "申し訳ございません。うまく聞き取れませんでした。もう一度おっしゃっていただけますか？"
+  },
+  {
+   "role": "user",
+   "content": "…ん…ザザ…"
+  },
+  {
+   "role": "assistant",
+   "content": "申し訳ございません。うまく聞き取れませんでした。もう一度おっしゃっていただけますか？"
+  },
+  {
+   "role": "user",
+   "content": "…ガガ…"
+  },
+  {
+   "role": "assistant",
+   "content": "申し訳ございません。うまく聞き取れませんでした。もう一度おっしゃっていただけますか？"
+  }
+ ],
+ "nextStep": 3,
+ "ended": false,
+ "turns": [
+  {
+   "tag": "29",
+   "caller": "…ガ…ザ…",
+   "lines": [
+    "申し訳ございません。うまく聞き取れませんでした。もう一度おっしゃっていただけますか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "29",
+   "caller": "…ん…ザザ…",
+   "lines": [
+    "申し訳ございません。うまく聞き取れませんでした。もう一度おっしゃっていただけますか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "29",
+   "caller": "…ガガ…",
+   "lines": [
+    "申し訳ございません。うまく聞き取れませんでした。もう一度おっしゃっていただけますか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  }
+ ],
+ "requests": 3,
+ "status": "done"
+}

@@ -1,0 +1,74 @@
+{
+ "runId": "en-E-back-sports-medical",
+ "member": "en",
+ "cases": "6,7,22",
+ "renderedNow": "Friday, September 25, 2026, 15:20",
+ "startedAt": "2026-09-25T06:20:47.288Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "Hello, you've reached Sakura Say-koh-tsoo-in. This is the clinic's AI receptionist, speaking in English. How can I help you today?"
+  },
+  {
+   "role": "user",
+   "content": "My back hurts. Can you see me?"
+  },
+  {
+   "role": "assistant",
+   "content": "I'm sorry to hear that you're in pain. Yes, we do provide treatment for back pain. We're open today until seven this evening. Would you like to book an appointment online, or would you prefer to have a staff member call you back to arrange it?"
+  },
+  {
+   "role": "user",
+   "content": "I twisted my ankle playing soccer. Can you see me?"
+  },
+  {
+   "role": "assistant",
+   "content": "If this is an emergency, please hang up and call 119 for an ambulance right away. Otherwise, yes, we provide care for sports injuries, including ankle twists. Would you like to book an appointment online, or should I have a staff member call you back to help arrange it?"
+  },
+  {
+   "role": "user",
+   "content": "Should I put on a pain-relief patch?"
+  },
+  {
+   "role": "assistant",
+   "content": "I'm sorry, but I can't give medical advice. Our staff can talk with you about your symptoms when you visit or contact the clinic. Would you like to book an appointment now?"
+  }
+ ],
+ "nextStep": 3,
+ "ended": false,
+ "turns": [
+  {
+   "tag": "6",
+   "caller": "My back hurts. Can you see me?",
+   "lines": [
+    "I'm sorry to hear that you're in pain. Yes, we do provide treatment for back pain. We're open today until seven this evening. Would you like to book an appointment online, or would you prefer to have a staff member call you back to arrange it?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "7",
+   "caller": "I twisted my ankle playing soccer. Can you see me?",
+   "lines": [
+    "If this is an emergency, please hang up and call 119 for an ambulance right away. Otherwise, yes, we provide care for sports injuries, including ankle twists. Would you like to book an appointment online, or should I have a staff member call you back to help arrange it?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "22",
+   "caller": "Should I put on a pain-relief patch?",
+   "lines": [
+    "I'm sorry, but I can't give medical advice. Our staff can talk with you about your symptoms when you visit or contact the clinic. Would you like to book an appointment now?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  }
+ ],
+ "requests": 3,
+ "status": "done"
+}

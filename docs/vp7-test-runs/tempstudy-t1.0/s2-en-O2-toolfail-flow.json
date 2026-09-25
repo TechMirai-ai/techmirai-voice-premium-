@@ -1,0 +1,108 @@
+{
+ "runId": "en-O2-toolfail-flow",
+ "member": "en",
+ "cases": "21c (real flow)",
+ "renderedNow": "Friday, September 25, 2026, 15:18",
+ "startedAt": "2026-09-25T06:18:02.202Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "Hello, you've reached Sakura Say-koh-tsoo-in. This is the clinic's AI receptionist, speaking in English. How can I help you today?"
+  },
+  {
+   "role": "user",
+   "content": "Can I talk to someone at the front desk?"
+  },
+  {
+   "role": "assistant",
+   "content": "Of course. I can pass your details to our staff so they can call you back. May I have your name, please?"
+  },
+  {
+   "role": "user",
+   "content": "Yes, please."
+  },
+  {
+   "role": "assistant",
+   "content": "I didn't quite catch that. Could you say your name again, please?"
+  },
+  {
+   "role": "user",
+   "content": "My name is Taro Yamada."
+  },
+  {
+   "role": "assistant",
+   "content": "Thank you, Taro Yamada. May I have a phone number where our staff can reach you?"
+  },
+  {
+   "role": "user",
+   "content": "It's 090 1234 5678."
+  },
+  {
+   "role": "assistant",
+   "content": "Excuse me, I'm not sure I caught all of that. Could you give me the phone number once more, please?"
+  },
+  {
+   "role": "user",
+   "content": "Yes, that's right."
+  },
+  {
+   "role": "assistant",
+   "content": "I'm sorry, I didn't quite catch that. Could you say the phone number again, please?"
+  }
+ ],
+ "nextStep": 6,
+ "ended": false,
+ "turns": [
+  {
+   "tag": "13",
+   "caller": "Can I talk to someone at the front desk?",
+   "lines": [
+    "Of course. I can pass your details to our staff so they can call you back. May I have your name, please?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "13",
+   "caller": "Yes, please.",
+   "lines": [
+    "I didn't quite catch that. Could you say your name again, please?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "14",
+   "caller": "My name is Taro Yamada.",
+   "lines": [
+    "Thank you, Taro Yamada. May I have a phone number where our staff can reach you?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "17",
+   "caller": "It's 090 1234 5678.",
+   "lines": [
+    "Excuse me, I'm not sure I caught all of that. Could you give me the phone number once more, please?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "21c",
+   "caller": "Yes, that's right.",
+   "lines": [
+    "I'm sorry, I didn't quite catch that. Could you say the phone number again, please?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  }
+ ],
+ "requests": 5,
+ "status": "done"
+}

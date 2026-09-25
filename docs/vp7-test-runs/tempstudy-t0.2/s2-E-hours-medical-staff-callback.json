@@ -1,0 +1,168 @@
+{
+ "runId": "E-hours-medical-staff-callback",
+ "member": "en",
+ "cases": "E2,E5,E6,E3",
+ "renderedNow": "Friday, September 25, 2026, 15:44",
+ "startedAt": "2026-09-25T06:44:41.305Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "Hello, you've reached Sakura Say-koh-tsoo-in. This is the clinic's AI receptionist, speaking in English. How can I help you today?"
+  },
+  {
+   "role": "user",
+   "content": "Are you open tomorrow?"
+  },
+  {
+   "role": "assistant",
+   "content": "Yes, we are open tomorrow, which is Saturday, from nine in the morning until seven in the evening. Is there anything else I can help you with today?"
+  },
+  {
+   "role": "user",
+   "content": "Should I put ice on it?"
+  },
+  {
+   "role": "assistant",
+   "content": "I'm sorry, I can't give medical advice. Our staff can talk with you about your symptoms when you visit or contact the clinic. Is there anything else I can help you with today?"
+  },
+  {
+   "role": "user",
+   "content": "Can I talk to someone at the front desk?"
+  },
+  {
+   "role": "assistant",
+   "content": "Of course. I can pass your details to our staff so they can call you back. May I have your name, please?"
+  },
+  {
+   "role": "user",
+   "content": "Yes, please."
+  },
+  {
+   "role": "assistant",
+   "content": "I didn't quite catch that. Could you say your name again, please?"
+  },
+  {
+   "role": "user",
+   "content": "My name is Taro Yamada."
+  },
+  {
+   "role": "assistant",
+   "content": "Thank you, Taro Yamada. May I have a phone number where our staff can reach you?"
+  },
+  {
+   "role": "user",
+   "content": "It's 080 7708 3004."
+  },
+  {
+   "role": "assistant",
+   "content": "Let me confirm. Your name is Taro Yamada, and your phone number is zero eight zero, seven seven zero eight, three zero zero four. Is that correct?"
+  },
+  {
+   "role": "user",
+   "content": "Yes, that is correct."
+  },
+  {
+   "role": "assistant",
+   "content": null,
+   "tool_calls": [
+    {
+     "id": "call_FoWaH5Uy8I6iMs1UIybqk94p",
+     "type": "function",
+     "function": {
+      "name": "request_callback",
+      "arguments": "{\"callerName\":\"Taro Yamada\",\"callerPhone\":\"08077083004\",\"reason\":\"Request to talk to someone at the front desk.\"}"
+     }
+    }
+   ]
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_FoWaH5Uy8I6iMs1UIybqk94p",
+   "name": "request_callback",
+   "content": "The callback request was saved. Staff will call the caller back."
+  },
+  {
+   "role": "assistant",
+   "content": "Thank you, Taro. I'll pass your information to our staff, and they will contact you within one business day. Is there anything else I can help you with today?"
+  }
+ ],
+ "nextStep": 8,
+ "ended": false,
+ "turns": [
+  {
+   "tag": "E2",
+   "caller": "Are you open tomorrow?",
+   "lines": [
+    "Yes, we are open tomorrow, which is Saturday, from nine in the morning until seven in the evening. Is there anything else I can help you with today?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "E5",
+   "caller": "Should I put ice on it?",
+   "lines": [
+    "I'm sorry, I can't give medical advice. Our staff can talk with you about your symptoms when you visit or contact the clinic. Is there anything else I can help you with today?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "E6",
+   "caller": "Can I talk to someone at the front desk?",
+   "lines": [
+    "Of course. I can pass your details to our staff so they can call you back. May I have your name, please?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "E6",
+   "caller": "Yes, please.",
+   "lines": [
+    "I didn't quite catch that. Could you say your name again, please?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "E3",
+   "caller": "My name is Taro Yamada.",
+   "lines": [
+    "Thank you, Taro Yamada. May I have a phone number where our staff can reach you?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "E3",
+   "caller": "It's 080 7708 3004.",
+   "lines": [
+    "Let me confirm. Your name is Taro Yamada, and your phone number is zero eight zero, seven seven zero eight, three zero zero four. Is that correct?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "E3",
+   "caller": "Yes, that is correct.",
+   "lines": [
+    "Thank you, Taro. I'll pass your information to our staff, and they will contact you within one business day. Is there anything else I can help you with today?"
+   ],
+   "toolCalls": [
+    {
+     "name": "request_callback",
+     "args": "{\"callerName\":\"Taro Yamada\",\"callerPhone\":\"08077083004\",\"reason\":\"Request to talk to someone at the front desk.\"}",
+     "result": "The callback request was saved. Staff will call the caller back."
+    }
+   ],
+   "requests": 2
+  }
+ ],
+ "requests": 8,
+ "status": "done"
+}

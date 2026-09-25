@@ -1,0 +1,57 @@
+{
+ "runId": "ja-D-fees",
+ "member": "ja",
+ "cases": "5",
+ "renderedNow": "Friday, September 25, 2026, 15:14",
+ "startedAt": "2026-09-25T06:14:30.918Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "お電話ありがとうございます。さくら整骨院、AI受付でございます。 For English, please say \"English\". どのようなご用件でしょうか。"
+  },
+  {
+   "role": "user",
+   "content": "料金っていくらくらいですか？"
+  },
+  {
+   "role": "assistant",
+   "content": "施術料金は施術内容やお身体の状態によって異なります。詳しくはスタッフがご説明いたします。ほかに何かお手伝いできることはございますか？"
+  },
+  {
+   "role": "user",
+   "content": "だいたいでいいんですけど。"
+  },
+  {
+   "role": "assistant",
+   "content": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？"
+  }
+ ],
+ "nextStep": 2,
+ "ended": false,
+ "turns": [
+  {
+   "tag": "5",
+   "caller": "料金っていくらくらいですか？",
+   "lines": [
+    "施術料金は施術内容やお身体の状態によって異なります。詳しくはスタッフがご説明いたします。ほかに何かお手伝いできることはございますか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "5",
+   "caller": "だいたいでいいんですけど。",
+   "lines": [
+    "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  }
+ ],
+ "requests": 2,
+ "status": "done"
+}

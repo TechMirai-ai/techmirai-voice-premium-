@@ -1,0 +1,114 @@
+{
+ "runId": "en-G-unknown-question",
+ "member": "en",
+ "cases": "12",
+ "renderedNow": "Friday, September 25, 2026, 15:18",
+ "startedAt": "2026-09-25T06:18:41.233Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "Hello, you've reached Sakura Say-koh-tsoo-in. This is the clinic's AI receptionist, speaking in English. How can I help you today?"
+  },
+  {
+   "role": "user",
+   "content": "Is there a female practitioner on Saturdays?"
+  },
+  {
+   "role": "assistant",
+   "content": "I'm sorry, I don't have that information right now. I can pass your details to our staff so they can get back to you. May I have your name, please?"
+  },
+  {
+   "role": "user",
+   "content": "No, it's fine."
+  },
+  {
+   "role": "assistant",
+   "content": "Alright. Is there anything else I can help you with today?"
+  },
+  {
+   "role": "user",
+   "content": "Thank you very much."
+  },
+  {
+   "role": "assistant",
+   "content": null,
+   "tool_calls": [
+    {
+     "id": "call_KgnEG0IZ6vfIlYEFW1LKNgiT",
+     "type": "function",
+     "function": {
+      "name": "log_call_topic",
+      "arguments": "{\"topic\": \"other\", \"outcome\": \"resolved\"}"
+     }
+    },
+    {
+     "id": "call_NaoLmoOVYR9NJfOCSqpFX4Xb",
+     "type": "function",
+     "function": {
+      "name": "endCall",
+      "arguments": "{}"
+     }
+    }
+   ]
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_KgnEG0IZ6vfIlYEFW1LKNgiT",
+   "name": "log_call_topic",
+   "content": "Success."
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_NaoLmoOVYR9NJfOCSqpFX4Xb",
+   "name": "endCall",
+   "content": "Call ended."
+  }
+ ],
+ "nextStep": 3,
+ "ended": true,
+ "turns": [
+  {
+   "tag": "12",
+   "caller": "Is there a female practitioner on Saturdays?",
+   "lines": [
+    "I'm sorry, I don't have that information right now. I can pass your details to our staff so they can get back to you. May I have your name, please?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "12",
+   "caller": "No, it's fine.",
+   "lines": [
+    "Alright. Is there anything else I can help you with today?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "30",
+   "caller": "Thank you very much.",
+   "lines": [],
+   "toolCalls": [
+    {
+     "name": "log_call_topic",
+     "args": "{\"topic\": \"other\", \"outcome\": \"resolved\"}",
+     "result": "Success."
+    },
+    {
+     "name": "endCall",
+     "args": "{}",
+     "result": "Call ended."
+    }
+   ],
+   "requests": 1
+  }
+ ],
+ "requests": 3,
+ "status": "done",
+ "endReason": "endCall"
+}

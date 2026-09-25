@@ -1,0 +1,114 @@
+{
+ "runId": "en-A-hours-parking-end",
+ "member": "en",
+ "cases": "2,25,30",
+ "renderedNow": "Friday, September 25, 2026, 15:18",
+ "startedAt": "2026-09-25T06:18:28.540Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "Hello, you've reached Sakura Say-koh-tsoo-in. This is the clinic's AI receptionist, speaking in English. How can I help you today?"
+  },
+  {
+   "role": "user",
+   "content": "Until what time are you open today?"
+  },
+  {
+   "role": "assistant",
+   "content": "We are open until seven o'clock this evening. Is there anything else I can assist you with?"
+  },
+  {
+   "role": "user",
+   "content": "Also, do you have parking?"
+  },
+  {
+   "role": "assistant",
+   "content": "Yes, parking is available near the clinic. If you have more questions, feel free to ask!"
+  },
+  {
+   "role": "user",
+   "content": "Got it, thank you very much."
+  },
+  {
+   "role": "assistant",
+   "content": null,
+   "tool_calls": [
+    {
+     "id": "call_5xvkdkK2F8GSRcN9srgHJPXU",
+     "type": "function",
+     "function": {
+      "name": "log_call_topic",
+      "arguments": "{\"topic\": \"parking\", \"outcome\": \"resolved\"}"
+     }
+    },
+    {
+     "id": "call_1e2Jpm28ROOgF1FysPTv0FSy",
+     "type": "function",
+     "function": {
+      "name": "endCall",
+      "arguments": "{}"
+     }
+    }
+   ]
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_5xvkdkK2F8GSRcN9srgHJPXU",
+   "name": "log_call_topic",
+   "content": "Success."
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_1e2Jpm28ROOgF1FysPTv0FSy",
+   "name": "endCall",
+   "content": "Call ended."
+  }
+ ],
+ "nextStep": 3,
+ "ended": true,
+ "turns": [
+  {
+   "tag": "2",
+   "caller": "Until what time are you open today?",
+   "lines": [
+    "We are open until seven o'clock this evening. Is there anything else I can assist you with?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "25",
+   "caller": "Also, do you have parking?",
+   "lines": [
+    "Yes, parking is available near the clinic. If you have more questions, feel free to ask!"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "30",
+   "caller": "Got it, thank you very much.",
+   "lines": [],
+   "toolCalls": [
+    {
+     "name": "log_call_topic",
+     "args": "{\"topic\": \"parking\", \"outcome\": \"resolved\"}",
+     "result": "Success."
+    },
+    {
+     "name": "endCall",
+     "args": "{}",
+     "result": "Call ended."
+    }
+   ],
+   "requests": 1
+  }
+ ],
+ "requests": 3,
+ "status": "done",
+ "endReason": "endCall"
+}

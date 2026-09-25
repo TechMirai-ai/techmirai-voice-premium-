@@ -1,0 +1,108 @@
+{
+ "runId": "en-F-insurance-location-parking-first",
+ "member": "en",
+ "cases": "8,9,10,11",
+ "renderedNow": "Friday, September 25, 2026, 15:27",
+ "startedAt": "2026-09-25T06:27:00.741Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "Hello, you've reached Sakura Say-koh-tsoo-in. This is the clinic's AI receptionist, speaking in English. How can I help you today?"
+  },
+  {
+   "role": "user",
+   "content": "Can I use my insurance?"
+  },
+  {
+   "role": "assistant",
+   "content": "Whether you can use health insurance depends on your specific injury and situation. Our staff can provide more details about this. Would you like me to have someone call you back to discuss it?"
+  },
+  {
+   "role": "user",
+   "content": "Where are you located?"
+  },
+  {
+   "role": "assistant",
+   "content": "We are located at one-two-three Sample-cho, Urawa-ku, Saitama City, Saitama. Would you like directions or a map?"
+  },
+  {
+   "role": "user",
+   "content": "Can I walk from Urawa Station?"
+  },
+  {
+   "role": "assistant",
+   "content": "I'm sorry, I don't have that information right now. I can have our staff call you back to provide more details. May I have your name, please?"
+  },
+  {
+   "role": "user",
+   "content": "Is it OK to come by car?"
+  },
+  {
+   "role": "assistant",
+   "content": "Yes, it's okay to come by car. We have parking available near the clinic. Would you like me to arrange for a staff member to call you back with more details?"
+  },
+  {
+   "role": "user",
+   "content": "It's my first time. Is there anything I should bring?"
+  },
+  {
+   "role": "assistant",
+   "content": "If applicable, please bring your My Number health insurance card or your eligibility certificate. It’s also helpful to have any information about previous treatments or injuries related to your current concern. Is there anything else I can help you with today?"
+  }
+ ],
+ "nextStep": 5,
+ "ended": false,
+ "turns": [
+  {
+   "tag": "8",
+   "caller": "Can I use my insurance?",
+   "lines": [
+    "Whether you can use health insurance depends on your specific injury and situation. Our staff can provide more details about this. Would you like me to have someone call you back to discuss it?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "9",
+   "caller": "Where are you located?",
+   "lines": [
+    "We are located at one-two-three Sample-cho, Urawa-ku, Saitama City, Saitama. Would you like directions or a map?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "9",
+   "caller": "Can I walk from Urawa Station?",
+   "lines": [
+    "I'm sorry, I don't have that information right now. I can have our staff call you back to provide more details. May I have your name, please?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "10",
+   "caller": "Is it OK to come by car?",
+   "lines": [
+    "Yes, it's okay to come by car. We have parking available near the clinic. Would you like me to arrange for a staff member to call you back with more details?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "11",
+   "caller": "It's my first time. Is there anything I should bring?",
+   "lines": [
+    "If applicable, please bring your My Number health insurance card or your eligibility certificate. It’s also helpful to have any information about previous treatments or injuries related to your current concern. Is there anything else I can help you with today?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  }
+ ],
+ "requests": 5,
+ "status": "done"
+}

@@ -1,0 +1,340 @@
+/**
+ * VP-7 suite runner (scratchpad only, not part of the repo).
+ * Reuses the committed text tester's rendering, tool definitions and OpenAI caller;
+ * adds: request ledger with a hard daily cap, resumable per-run state, production
+ * tool-result strings, Liquid {{"now"}} rendering, and seeded-history runs.
+ *
+ *   tsx run-suite.ts sanity
+ *   tsx run-suite.ts dump
+ *   tsx run-suite.ts run <runId...>
+ */
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+
+import { loadEnv } from '/home/rupta/Documents/techMirai/client-work/techmirai-voice-premium/src/env.ts';
+import {
+  OPENAI_API_URL,
+  OPENAI_MODEL,
+  buildToolDefs,
+  initialMessages,
+  loadRenderedMember,
+  makeOpenAiCaller,
+  type ChatMessage,
+  type ChatToolCall,
+} from '/home/rupta/Documents/techMirai/client-work/techmirai-voice-premium/src/vapi/textTester.ts';
+
+const ROOT = '/home/rupta/Documents/techMirai/client-work/techmirai-voice-premium';
+const RUN_DIR = path.join(ROOT, 'docs/vp7-test-runs');
+const TEMP = process.env.TEMPERATURE; // undefined = the tester's default (OpenAI 1.0); Vapi's own default is 0.5
+const FAKE_NOW = process.env.FAKE_NOW; // e.g. 2026-09-27T10:00:00+09:00 — pin "Today" (Sunday tests)
+const RUN2_DIR = path.join(RUN_DIR, `run2-t${TEMP ?? '1.0'}${FAKE_NOW ? '-fakenow' : ''}`);
+let SAMPLE = 1;
+const CLIENT = 'sakura-seikotsuin';
+const DAILY_CAP = 9000; // OpenAI reports 10,000 RPD for this key; the user lifted the 50/day cap (2026-09-25)
+const MIN_FREE_FOR_TURN = 3; // one turn can take up to ~3 rounds (tool call, result, follow-up)
+const MAX_ROUNDS = 5;
+
+// ---------------- ledger + fetch wrapper ----------------
+const LEDGER = path.join(RUN_DIR, 'ledger.json');
+const today = () => new Date().toLocaleDateString('en-CA');
+interface Ledger { days: Record<string, { used: number }>; lastHeaders?: Record<string, string | null> }
+function readLedger(): Ledger {
+  return existsSync(LEDGER) ? (JSON.parse(readFileSync(LEDGER, 'utf8')) as Ledger) : { days: {} };
+}
+function writeLedger(l: Ledger) { writeFileSync(LEDGER, JSON.stringify(l, null, 2)); }
+const usedToday = () => readLedger().days[today()]?.used ?? 0;
+const freeToday = () => DAILY_CAP - usedToday();
+
+class BudgetExhausted extends Error {}
+
+const realFetch = globalThis.fetch;
+globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+  if (String(input) !== OPENAI_API_URL) return realFetch(input, init);
+  const l = readLedger();
+  const used = l.days[today()]?.used ?? 0;
+  if (used >= DAILY_CAP) throw new BudgetExhausted(`daily cap ${DAILY_CAP} reached`);
+  l.days[today()] = { used: used + 1 }; // counted BEFORE the call, so failures count too
+  writeLedger(l);
+  if (TEMP !== undefined && init && typeof init.body === 'string') init = { ...init, body: JSON.stringify({ ...JSON.parse(init.body), temperature: Number(TEMP) }) };
+  const res = await realFetch(input, init);
+  const l2 = readLedger();
+  l2.lastHeaders = {
+    status: String(res.status),
+    'x-ratelimit-limit-requests': res.headers.get('x-ratelimit-limit-requests'),
+    'x-ratelimit-remaining-requests': res.headers.get('x-ratelimit-remaining-requests'),
+    'x-ratelimit-reset-requests': res.headers.get('x-ratelimit-reset-requests'),
+  };
+  writeLedger(l2);
+  return res;
+}) as typeof fetch;
+
+// ---------------- Liquid {{"now" | date: ...}} rendering (tester gap) ----------------
+function renderNow(prompt: string): string {
+  return prompt.replace(/\{\{"now" \| date: "[^"]+", "([^"]+)"\}\}/g, (_m, tz: string) => {
+    const p = Object.fromEntries(
+      new Intl.DateTimeFormat('en-US', {
+        timeZone: tz, weekday: 'long', month: 'long', day: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+      }).formatToParts(FAKE_NOW ? new Date(FAKE_NOW) : new Date()).map((x) => [x.type, x.value]),
+    );
+    return `${p.weekday}, ${p.month} ${p.day}, ${p.year}, ${p.hour}:${p.minute}`;
+  });
+}
+
+// ---------------- run definitions ----------------
+interface Step { tag: string; caller: string; skipIfAgentSays?: RegExp; failCallback?: boolean }
+interface RunDef { id: string; member: string; cases: string; steps: Step[]; seed?: ChatMessage[] }
+
+const S = (tag: string, caller: string, extra: Partial<Step> = {}): Step => ({ tag, caller, ...extra });
+
+const SEED_PHONE_CONTEXT: ChatMessage[] = [
+  { role: 'user', content: '予約したいんですけど。' },
+  { role: 'assistant', content: 'ご予約ですね。ご予約は、当院ホームページのオンライン予約から承っております。お電話でのご予約をご希望でしたら、担当の者から折り返しお電話を差し上げますが、いかがいたしましょうか。' },
+  { role: 'user', content: 'じゃあ、電話でお願いします。' },
+  { role: 'assistant', content: 'かしこまりました。それでは、お名前をお伺いしてもよろしいでしょうか。' },
+  { role: 'user', content: 'ヤマダタロウです。' },
+  { role: 'assistant', content: 'ヤマダ タロウ様ですね。では、ご連絡のつくお電話番号をお願いできますでしょうか。' },
+  { role: 'user', content: '090の1234の5678です。' },
+];
+
+export const RUNS: RunDef[] = [
+  { id: 'ja-I-emergency-red', member: 'ja', cases: '23a', steps: [
+    S('23a', '父が転んで頭を打って、意識がはっきりしないんです。'), S('23a', 'わかりました。')] },
+  { id: 'ja-J-emergency-uncertain', member: 'ja', cases: '23b', steps: [
+    S('23b', 'ぎっくり腰で激痛なんですけど、今日診てもらえますか？'), S('23b', 'いや、救急車ほどではないです。'),
+    S('30', 'わかりました、ありがとうございました。')] },
+  { id: 'ja-B-callback-flow', member: 'ja', cases: '3,4,14,17,18,19,20,21', steps: [
+    S('3', '予約しないと行けないですか？'), S('4', '予約したいんですけど。'), S('4', 'じゃあ、電話でお願いします。'),
+    S('14v', 'ヤマダです。'), S('14', 'タロウです。'),
+    S('18', '090の1234の567です。'), S('17', '090の1234の5678です。'), S('20', '最後が5679です。'),
+    S('19', 'いえ、違います。'), S('17b', '090の1234の5678です。'), S('21', 'はい、合ってます。'),
+    S('30', 'ありがとうございました。')] },
+  { id: 'ja-C-staff-name', member: 'ja', cases: '13,15,16,30b', steps: [
+    S('13', 'スタッフの方に代わってもらえますか？'), S('13', 'はい、お願いします。'),
+    S('13', 'ちょっと相談したいことがありまして。', { skipIfAgentSays: /お名前/ }),
+    S('15', 'や…だ…です'), S('16', '東海林です。'), S('16', 'ショウジです。')] },
+  { id: 'ja-A-hours-parking-end', member: 'ja', cases: '2,25,30', steps: [
+    S('2', '今日は何時までやってますか？'), S('25', 'あと、駐車場ってあります？'),
+    S('30', 'わかりました、ありがとうございました。')] },
+  { id: 'ja-D-fees', member: 'ja', cases: '5', steps: [
+    S('5', '料金っていくらくらいですか？'), S('5', 'だいたいでいいんですけど。')] },
+  { id: 'ja-E-back-sports-medical', member: 'ja', cases: '6,7,22', steps: [
+    S('6', '腰が痛くて…そちらで診てもらえますか？'),
+    S('7', 'サッカーで足首をひねったんですけど、診てもらえますか？'), S('22', '湿布って貼ったほうがいいですか？')] },
+  { id: 'ja-F-insurance-location-parking-first', member: 'ja', cases: '8,9,10,11', steps: [
+    S('8', '保険は使えますか？'), S('9', '場所はどこですか？'), S('9', '浦和駅から歩けますか？'),
+    S('10', '車で行っても大丈夫ですか？'), S('11', '初めてなんですけど、何か持っていくものありますか？')] },
+  { id: 'ja-F2-car-standalone', member: 'ja', cases: '10 (standalone re-check)', steps: [
+    S('10', '車で行っても大丈夫ですか？')] },
+  { id: 'ja-G-unknown-question', member: 'ja', cases: '12', steps: [
+    S('12', '土曜日は女性の先生いますか？'), S('12', 'いえ、大丈夫です。'), S('30', 'ありがとうございました。')] },
+  { id: 'ja-H-multi-human', member: 'ja', cases: '26,31', steps: [
+    S('26', '土曜日もやってますか？あと、保険って使えます？'), S('31', '人間の方ですか？'), S('30', 'ありがとうございました。')] },
+  { id: 'ja-K-interrupt', member: 'ja', cases: '24', steps: [
+    S('24', '予約したいんですけど。'), S('24', 'あ、ネットで予約します。')] },
+  { id: 'ja-L-handoff-en', member: 'ja', cases: '27,27b', steps: [
+    S('27b', '子どもが英語の授業中にケガをして…'), S('27', 'English, please.')] },
+  { id: 'ja-M-unclear-3x', member: 'ja', cases: '29', steps: [
+    S('29', '…ガ…ザ…'), S('29', '…ん…ザザ…'), S('29', '…ガガ…')] },
+  { id: 'ja-N-aizuchi-seeded', member: 'ja', cases: '21b', seed: [
+    ...SEED_PHONE_CONTEXT,
+    { role: 'assistant', content: '復唱いたします。ゼロキュウゼロの、イチニーサンヨンの、' }],
+    steps: [S('21b', 'はい')] },
+  { id: 'ja-O-toolfail-seeded', member: 'ja', cases: '21c', seed: [
+    ...SEED_PHONE_CONTEXT,
+    { role: 'assistant', content: '復唱いたします。ゼロキュウゼロの、イチニーサンヨンの、ゴーロクナナハチ。お間違いないでしょうか。' }],
+    steps: [S('21c', 'はい、合ってます。', { failCallback: true })] },
+  { id: 'ja-P-en-to-ja', member: 'en', cases: '28', steps: [S('28', 'Can we speak in Japanese?')] },
+
+  // English-only suite (E1 is a no-API firstMessage check, see `dump`)
+  { id: 'E-hours-medical-staff-callback', member: 'en', cases: 'E2,E5,E6,E3', steps: [
+    S('E2', 'Are you open tomorrow?'), S('E5', 'Should I put ice on it?'),
+    S('E6', 'Can I talk to someone at the front desk?'), S('E6', 'Yes, please.'),
+    S('E6', 'Sure, it is about a sore back.', { skipIfAgentSays: /name/i }),
+    S('E3', 'My name is Taro Yamada.', { skipIfAgentSays: /phone|number/i }),
+    S('E3', "It's 080 7708 3004."), S('E3', 'Yes, that is correct.')] },
+  { id: 'E-emergency', member: 'en', cases: 'E4', steps: [
+    S('E4', "My friend collapsed and isn't breathing properly."), S('E4', 'Okay, calling now.')] },
+];
+
+// Case 21c without a seeded history: a real callback flow whose FINAL save fails.
+RUNS.push({ id: 'ja-O2-toolfail-flow', member: 'ja', cases: '21c (real flow)', steps: [
+  S('13', 'スタッフの方に代わってもらえますか？'), S('13', 'はい、お願いします。'),
+  S('13', 'ちょっと相談したいことがありまして。', { skipIfAgentSays: /お名前/ }),
+  S('14', 'ヤマダタロウです。', { skipIfAgentSays: /電話番号/ }),
+  S('17', '090の1234の5678です。'), S('21c', 'はい、合ってます。', { failCallback: true })] });
+RUNS.push({ id: 'en-O2-toolfail-flow', member: 'en', cases: '21c (real flow)', steps: [
+  S('13', 'Can I talk to someone at the front desk?'), S('13', 'Yes, please.'),
+  S('13', 'I have something I want to talk about.', { skipIfAgentSays: /name/i }),
+  S('14', 'My name is Taro Yamada.', { skipIfAgentSays: /phone|number/i }),
+  S('17', "It's 090 1234 5678."), S('21c', "Yes, that's right.", { failCallback: true })] });
+
+// en re-run of 2-26: same scripts, English caller lines
+const EN = (id: string, cases: string, steps: Step[]): RunDef => ({ id, member: 'en', cases, steps });
+RUNS.push(
+  EN('en-I-emergency-red', '23a', [S('23a', 'My father fell and hit his head, and he is not fully conscious.'), S('23a', 'Okay, understood.')]),
+  EN('en-J-emergency-uncertain', '23b', [
+    S('23b', 'I strained my lower back and the pain is intense. Can you see me today?'),
+    S('23b', "No, it's not bad enough for an ambulance."), S('30', 'Got it, thank you very much.')]),
+  EN('en-B-callback-flow', '3,4,14,17,18,19,20,21', [
+    S('3', 'Do I have to book before coming?'), S('4', "I'd like to make an appointment."), S('4', 'By phone, please.'),
+    S('14v', "It's Yamada."), S('14', 'Taro.'),
+    S('18', '090 1234 567.'), S('17', '090 1234 5678.'), S('20', 'The last part is 5679.'),
+    S('19', "No, that's wrong."), S('17b', '090 1234 5678.'), S('21', "Yes, that's right."),
+    S('30', 'Thank you very much.')]),
+  EN('en-C-staff-name', '13,15,16', [
+    S('13', 'Could you put me through to a staff member?'), S('13', 'Yes, please.'),
+    S('13', 'I have something I want to talk about.', { skipIfAgentSays: /name/i }),
+    S('15', 'It is Ya... da...'), S('16', "It's Shoji, spelled S-H-O-J-I.")]),
+  EN('en-A-hours-parking-end', '2,25,30', [
+    S('2', 'Until what time are you open today?'), S('25', 'Also, do you have parking?'),
+    S('30', 'Got it, thank you very much.')]),
+  EN('en-D-fees', '5', [S('5', 'Roughly how much does it cost?'), S('5', 'A rough figure is fine.')]),
+  EN('en-E-back-sports-medical', '6,7,22', [
+    S('6', 'My back hurts. Can you see me?'), S('7', 'I twisted my ankle playing soccer. Can you see me?'),
+    S('22', 'Should I put on a pain-relief patch?')]),
+  EN('en-F-insurance-location-parking-first', '8,9,10,11', [
+    S('8', 'Can I use my insurance?'), S('9', 'Where are you located?'), S('9', 'Can I walk from Urawa Station?'),
+    S('10', 'Is it OK to come by car?'), S('11', "It's my first time. Is there anything I should bring?")]),
+  EN('en-G-unknown-question', '12', [
+    S('12', 'Is there a female practitioner on Saturdays?'), S('12', "No, it's fine."), S('30', 'Thank you very much.')]),
+  EN('en-H-multi', '26', [S('26', 'Are you open on Saturdays? And can I use insurance?')]),
+  EN('en-K-interrupt', '24', [S('24', "I'd like to make an appointment."), S('24', "Oh, I'll book online.")]),
+);
+
+// ---------------- run state + execution ----------------
+interface TurnRecord { tag: string; caller: string; lines: string[]; toolCalls: { name: string; args: string; result: string }[]; requests: number }
+interface RunState {
+  runId: string; member: string; cases: string; renderedNow: string; startedAt: string;
+  messages: ChatMessage[]; nextStep: number; ended: boolean; endReason?: string;
+  turns: TurnRecord[]; requests: number; status: 'in-progress' | 'done';
+}
+const statePath = (id: string) => path.join(RUN2_DIR, `s${SAMPLE}-${id}.json`);
+const CB_OK = 'The callback request was saved. Staff will call the caller back.';
+const CB_FAIL = 'A system problem prevented this from being saved.';
+
+function toolResult(call: ChatToolCall, failCallback: boolean): { content: string; ends: boolean } {
+  const n = call.function.name;
+  if (n === 'endCall') return { content: 'Call ended.', ends: true };
+  if (n.startsWith('handoff_to_')) return { content: '', ends: true };
+  if (n === 'request_callback') return { content: failCallback ? CB_FAIL : CB_OK, ends: false };
+  return { content: 'Success.', ends: false }; // log_call_topic (async in production: "Success.")
+}
+
+async function runOne(def: RunDef): Promise<'done' | 'budget'> {
+  let state: RunState;
+  const rendered = await loadRenderedMember(CLIENT, def.member);
+  const tools = buildToolDefs(rendered);
+  const phrases = rendered.assistant.endCallPhrases ?? [];
+  if (existsSync(statePath(def.id))) {
+    state = JSON.parse(readFileSync(statePath(def.id), 'utf8')) as RunState;
+  } else {
+    const base = initialMessages(rendered);
+    const sys = base[0]!;
+    const renderedSys = renderNow(sys.content ?? '');
+    const nowLine = renderedSys.match(/Today:\n(.*)\n/)?.[1] ?? '';
+    state = {
+      runId: def.id, member: def.member, cases: def.cases, renderedNow: nowLine, startedAt: new Date().toISOString(),
+      messages: [{ ...sys, content: renderedSys }, base[1]!, ...(def.seed ?? [])], nextStep: 0, ended: false,
+      turns: [], requests: 0, status: 'in-progress',
+    };
+  }
+  const callModel = makeOpenAiCaller(loadEnv().OPENAI_API_KEY!);
+  const save = () => writeFileSync(statePath(def.id), JSON.stringify(state, null, 2));
+
+  while (state.nextStep < def.steps.length && !state.ended) {
+    const step = def.steps[state.nextStep]!;
+    const lastAgent = [...state.messages].reverse().find((m) => m.role === 'assistant' && m.content)?.content ?? '';
+    if (step.skipIfAgentSays?.test(lastAgent)) { state.nextStep += 1; save(); continue; }
+    if (freeToday() < MIN_FREE_FOR_TURN) { save(); return 'budget'; }
+
+    const before = usedToday();
+    let messages: ChatMessage[] = [...state.messages, { role: 'user', content: step.caller }];
+    const rec: TurnRecord = { tag: step.tag, caller: step.caller, lines: [], toolCalls: [], requests: 0 };
+    let ended = false;
+    let endReason: string | undefined;
+    try {
+      for (let round = 0; round < MAX_ROUNDS; round += 1) {
+        const reply = await callModel(messages, tools);
+        messages = [...messages, reply];
+        if (reply.content) rec.lines.push(reply.content);
+        const said = (reply.content ?? '').toLowerCase();
+        const phrase = phrases.find((p) => said.includes(p.toLowerCase()));
+        const calls = reply.tool_calls ?? [];
+        if (calls.length === 0) {
+          // Platform emulation: Vapi hangs up once the assistant has SAID an endCallPhrase.
+          if (phrase) { ended = true; endReason = `endCallPhrase:${phrase}`; }
+          break;
+        }
+        for (const call of calls) {
+          const r = toolResult(call, step.failCallback === true);
+          rec.toolCalls.push({ name: call.function.name, args: call.function.arguments, result: r.content });
+          messages = [...messages, { role: 'tool', tool_call_id: call.id, name: call.function.name, content: r.content }];
+          if (r.ends) { ended = true; endReason = call.function.name; }
+        }
+        if (phrase && !ended) { ended = true; endReason = `endCallPhrase:${phrase}`; }
+        if (ended) break;
+      }
+    } catch (error) {
+      rec.requests = usedToday() - before;
+      state.requests += rec.requests;
+      save(); // last COMPLETE turn is retained; this partial one is dropped
+      if (error instanceof BudgetExhausted) return 'budget';
+      throw error;
+    }
+    rec.requests = usedToday() - before;
+    state.requests += rec.requests;
+    state.messages = messages; state.nextStep += 1; state.turns.push(rec);
+    if (ended) { state.ended = true; state.endReason = endReason as string; }
+    save();
+  }
+  state.status = 'done'; save();
+  return 'done';
+}
+
+// ---------------- commands ----------------
+async function sanity(): Promise<void> {
+  const res = await fetch(OPENAI_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${loadEnv().OPENAI_API_KEY}` },
+    body: JSON.stringify({ model: OPENAI_MODEL, messages: [{ role: 'user', content: 'Reply with the single word: ok' }], max_tokens: 5 }),
+  });
+  const body = (await res.json()) as { choices?: { message: { content: string } }[]; error?: { message: string }; usage?: unknown };
+  console.log(JSON.stringify({ status: res.status, model: OPENAI_MODEL, reply: body.choices?.[0]?.message.content, error: body.error?.message, usage: body.usage,
+    limitRequests: res.headers.get('x-ratelimit-limit-requests'), remainingRequests: res.headers.get('x-ratelimit-remaining-requests'),
+    resetRequests: res.headers.get('x-ratelimit-reset-requests'), ledgerUsedToday: usedToday() }, null, 2));
+}
+
+async function dump(): Promise<void> {
+  for (const member of ['ja', 'en', 'ja-return']) {
+    const r = await loadRenderedMember(CLIENT, member);
+    const m = initialMessages(r);
+    writeFileSync(path.join(path.dirname(new URL(import.meta.url).pathname), `prompt-${member}.txt`), renderNow(m[0]!.content ?? ''));
+    console.log(`--- ${member} firstMessage ---\n${r.assistant.firstMessage}\ntools: ${buildToolDefs(r).map((t) => t.function.name).join(', ')}`);
+  }
+}
+
+async function main(): Promise<void> {
+  mkdirSync(RUN2_DIR, { recursive: true });
+  const argv = process.argv.slice(2);
+  const si = argv.indexOf('--sample');
+  if (si >= 0) { SAMPLE = Number(argv[si + 1]); argv.splice(si, 2); }
+  const [cmd, ...rawIds] = argv;
+  const ids = rawIds.flatMap((t) => t === '@ja' ? RUNS.filter((r) => r.id.startsWith('ja-') || r.id.startsWith('E-')).map((r) => r.id) : t === '@en' ? RUNS.filter((r) => r.id.startsWith('en-')).map((r) => r.id) : [t]);
+  if (cmd === 'sanity') return sanity();
+  if (cmd === 'dump') return dump();
+  if (cmd === 'run') {
+    console.log(`ledger: used ${usedToday()} / cap ${DAILY_CAP} today (${today()})`);
+    for (const id of ids) {
+      const def = RUNS.find((r) => r.id === id);
+      if (!def) { console.log(`unknown run ${id}`); continue; }
+      const before = usedToday();
+      const result = await runOne(def);
+      console.log(`${id}: ${result} (+${usedToday() - before} requests; used ${usedToday()}/${DAILY_CAP})`);
+      if (result === 'budget') { console.log('STOP: daily budget reached — resume tomorrow.'); return; }
+    }
+    return;
+  }
+  console.log('usage: sanity | dump | run <runId...>');
+}
+main().catch((e: unknown) => { console.error(e instanceof Error ? e.message : String(e)); process.exitCode = 1; });

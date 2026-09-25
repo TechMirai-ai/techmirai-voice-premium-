@@ -1,0 +1,108 @@
+{
+ "runId": "ja-C-staff-name",
+ "member": "ja",
+ "cases": "13,15,16,30b",
+ "renderedNow": "Friday, September 25, 2026, 15:19",
+ "startedAt": "2026-09-25T06:19:09.413Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "お電話ありがとうございます。さくら整骨院、AI受付でございます。 For English, please say \"English\". どのようなご用件でしょうか。"
+  },
+  {
+   "role": "user",
+   "content": "スタッフの方に代わってもらえますか？"
+  },
+  {
+   "role": "assistant",
+   "content": "かしこまりました。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。何についてお話しされたいのかお聞かせいただけますか？"
+  },
+  {
+   "role": "user",
+   "content": "はい、お願いします。"
+  },
+  {
+   "role": "assistant",
+   "content": "お名前を伺ってもよろしいでしょうか？"
+  },
+  {
+   "role": "user",
+   "content": "や…だ…です"
+  },
+  {
+   "role": "assistant",
+   "content": "ありがとうございます。お名前はヤダ様ですね。次に、スタッフからご連絡できるお電話番号を教えていただけますか？"
+  },
+  {
+   "role": "user",
+   "content": "東海林です。"
+  },
+  {
+   "role": "assistant",
+   "content": "申し訳ございません。うまく聞き取れませんでした。もう一度おっしゃっていただけますか？"
+  },
+  {
+   "role": "user",
+   "content": "ショウジです。"
+  },
+  {
+   "role": "assistant",
+   "content": "ありがとうございます。お名前はショウジ様ですね。お電話番号を教えていただけますか？"
+  }
+ ],
+ "nextStep": 6,
+ "ended": false,
+ "turns": [
+  {
+   "tag": "13",
+   "caller": "スタッフの方に代わってもらえますか？",
+   "lines": [
+    "かしこまりました。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。何についてお話しされたいのかお聞かせいただけますか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "13",
+   "caller": "はい、お願いします。",
+   "lines": [
+    "お名前を伺ってもよろしいでしょうか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "15",
+   "caller": "や…だ…です",
+   "lines": [
+    "ありがとうございます。お名前はヤダ様ですね。次に、スタッフからご連絡できるお電話番号を教えていただけますか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "16",
+   "caller": "東海林です。",
+   "lines": [
+    "申し訳ございません。うまく聞き取れませんでした。もう一度おっしゃっていただけますか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "16",
+   "caller": "ショウジです。",
+   "lines": [
+    "ありがとうございます。お名前はショウジ様ですね。お電話番号を教えていただけますか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  }
+ ],
+ "requests": 5,
+ "status": "done"
+}

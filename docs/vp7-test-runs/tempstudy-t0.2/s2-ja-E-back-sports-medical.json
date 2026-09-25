@@ -1,0 +1,74 @@
+{
+ "runId": "ja-E-back-sports-medical",
+ "member": "ja",
+ "cases": "6,7,22",
+ "renderedNow": "Friday, September 25, 2026, 15:44",
+ "startedAt": "2026-09-25T06:44:08.349Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "お電話ありがとうございます。さくら整骨院、AI受付でございます。 For English, please say \"English\". どのようなご用件でしょうか。"
+  },
+  {
+   "role": "user",
+   "content": "腰が痛くて…そちらで診てもらえますか？"
+  },
+  {
+   "role": "assistant",
+   "content": "はい、腰痛の施術を行っています。ご来院の際は、事前にご予約をおすすめしていますが、予約なしでもお越しいただける場合もあります。いつお越しになりたいですか？"
+  },
+  {
+   "role": "user",
+   "content": "サッカーで足首をひねったんですけど、診てもらえますか？"
+  },
+  {
+   "role": "assistant",
+   "content": "はい、スポーツによるケガの施術も行っています。ご来院の際は、予約をおすすめしますが、予約なしでもお越しいただけることもあります。いつご来院をお考えですか？"
+  },
+  {
+   "role": "user",
+   "content": "湿布って貼ったほうがいいですか？"
+  },
+  {
+   "role": "assistant",
+   "content": "申し訳ございません。症状についての医学的なアドバイスはいたしかねます。ご来院の際や当院へのお問い合わせの際に、スタッフが詳しくお話を伺います。ほかに何かお手伝いできることはございますか？"
+  }
+ ],
+ "nextStep": 3,
+ "ended": false,
+ "turns": [
+  {
+   "tag": "6",
+   "caller": "腰が痛くて…そちらで診てもらえますか？",
+   "lines": [
+    "はい、腰痛の施術を行っています。ご来院の際は、事前にご予約をおすすめしていますが、予約なしでもお越しいただける場合もあります。いつお越しになりたいですか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "7",
+   "caller": "サッカーで足首をひねったんですけど、診てもらえますか？",
+   "lines": [
+    "はい、スポーツによるケガの施術も行っています。ご来院の際は、予約をおすすめしますが、予約なしでもお越しいただけることもあります。いつご来院をお考えですか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "22",
+   "caller": "湿布って貼ったほうがいいですか？",
+   "lines": [
+    "申し訳ございません。症状についての医学的なアドバイスはいたしかねます。ご来院の際や当院へのお問い合わせの際に、スタッフが詳しくお話を伺います。ほかに何かお手伝いできることはございますか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  }
+ ],
+ "requests": 3,
+ "status": "done"
+}

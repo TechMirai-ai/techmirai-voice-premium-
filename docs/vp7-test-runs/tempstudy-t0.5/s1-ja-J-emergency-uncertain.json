@@ -1,0 +1,114 @@
+{
+ "runId": "ja-J-emergency-uncertain",
+ "member": "ja",
+ "cases": "23b",
+ "renderedNow": "Friday, September 25, 2026, 15:24",
+ "startedAt": "2026-09-25T06:24:43.851Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "お電話ありがとうございます。さくら整骨院、AI受付でございます。 For English, please say \"English\". どのようなご用件でしょうか。"
+  },
+  {
+   "role": "user",
+   "content": "ぎっくり腰で激痛なんですけど、今日診てもらえますか？"
+  },
+  {
+   "role": "assistant",
+   "content": "緊急の場合は、このお電話を切って、すぐに119番で救急車を呼んでください。お話を続けますが、ぎっくり腰の施術についてお答えしますね。今日は診療していますが、予約をおすすめしています。どうされますか？"
+  },
+  {
+   "role": "user",
+   "content": "いや、救急車ほどではないです。"
+  },
+  {
+   "role": "assistant",
+   "content": "わかりました。今日は診療していますが、予約をおすすめしています。オンライン予約が可能ですが、お電話での予約を希望される場合は、スタッフから折り返しご連絡いたします。どちらがよろしいでしょうか？"
+  },
+  {
+   "role": "user",
+   "content": "わかりました、ありがとうございました。"
+  },
+  {
+   "role": "assistant",
+   "content": null,
+   "tool_calls": [
+    {
+     "id": "call_fvmwhIkaNaO9e0YltiShvs8T",
+     "type": "function",
+     "function": {
+      "name": "log_call_topic",
+      "arguments": "{\"topic\": \"back-pain\", \"outcome\": \"resolved\"}"
+     }
+    },
+    {
+     "id": "call_QbyU1VG4aKjfNZzGqdlwckO6",
+     "type": "function",
+     "function": {
+      "name": "endCall",
+      "arguments": "{}"
+     }
+    }
+   ]
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_fvmwhIkaNaO9e0YltiShvs8T",
+   "name": "log_call_topic",
+   "content": "Success."
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_QbyU1VG4aKjfNZzGqdlwckO6",
+   "name": "endCall",
+   "content": "Call ended."
+  }
+ ],
+ "nextStep": 3,
+ "ended": true,
+ "turns": [
+  {
+   "tag": "23b",
+   "caller": "ぎっくり腰で激痛なんですけど、今日診てもらえますか？",
+   "lines": [
+    "緊急の場合は、このお電話を切って、すぐに119番で救急車を呼んでください。お話を続けますが、ぎっくり腰の施術についてお答えしますね。今日は診療していますが、予約をおすすめしています。どうされますか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "23b",
+   "caller": "いや、救急車ほどではないです。",
+   "lines": [
+    "わかりました。今日は診療していますが、予約をおすすめしています。オンライン予約が可能ですが、お電話での予約を希望される場合は、スタッフから折り返しご連絡いたします。どちらがよろしいでしょうか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "30",
+   "caller": "わかりました、ありがとうございました。",
+   "lines": [],
+   "toolCalls": [
+    {
+     "name": "log_call_topic",
+     "args": "{\"topic\": \"back-pain\", \"outcome\": \"resolved\"}",
+     "result": "Success."
+    },
+    {
+     "name": "endCall",
+     "args": "{}",
+     "result": "Call ended."
+    }
+   ],
+   "requests": 1
+  }
+ ],
+ "requests": 3,
+ "status": "done",
+ "endReason": "endCall"
+}

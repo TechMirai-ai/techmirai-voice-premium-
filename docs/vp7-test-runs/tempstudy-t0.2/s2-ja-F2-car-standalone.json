@@ -1,0 +1,40 @@
+{
+ "runId": "ja-F2-car-standalone",
+ "member": "ja",
+ "cases": "10 (standalone re-check)",
+ "renderedNow": "Friday, September 25, 2026, 15:44",
+ "startedAt": "2026-09-25T06:44:20.738Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "お電話ありがとうございます。さくら整骨院、AI受付でございます。 For English, please say \"English\". どのようなご用件でしょうか。"
+  },
+  {
+   "role": "user",
+   "content": "車で行っても大丈夫ですか？"
+  },
+  {
+   "role": "assistant",
+   "content": "はい、当院の近くに駐車場がございます。詳しい場所はスタッフがご案内いたします。ほかに何かお手伝いできることはございますか？"
+  }
+ ],
+ "nextStep": 1,
+ "ended": false,
+ "turns": [
+  {
+   "tag": "10",
+   "caller": "車で行っても大丈夫ですか？",
+   "lines": [
+    "はい、当院の近くに駐車場がございます。詳しい場所はスタッフがご案内いたします。ほかに何かお手伝いできることはございますか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  }
+ ],
+ "requests": 1,
+ "status": "done"
+}

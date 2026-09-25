@@ -1,0 +1,152 @@
+{
+ "runId": "ja-O2-toolfail-flow",
+ "member": "ja",
+ "cases": "21c (real flow)",
+ "renderedNow": "Friday, September 25, 2026, 15:17",
+ "startedAt": "2026-09-25T06:17:53.930Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "お電話ありがとうございます。さくら整骨院、AI受付でございます。 For English, please say \"English\". どのようなご用件でしょうか。"
+  },
+  {
+   "role": "user",
+   "content": "スタッフの方に代わってもらえますか？"
+  },
+  {
+   "role": "assistant",
+   "content": "かしこまりました。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。 何についてのご連絡でしょうか？"
+  },
+  {
+   "role": "user",
+   "content": "はい、お願いします。"
+  },
+  {
+   "role": "assistant",
+   "content": "内容をお伺いしたいのですが、具体的に何についてお聞きになりたいですか？"
+  },
+  {
+   "role": "user",
+   "content": "ちょっと相談したいことがありまして。"
+  },
+  {
+   "role": "assistant",
+   "content": "ありがとうございます。スタッフから折り返しご連絡できるように、お客様のお名前を伺ってもよろしいでしょうか？"
+  },
+  {
+   "role": "user",
+   "content": "ヤマダタロウです。"
+  },
+  {
+   "role": "assistant",
+   "content": "ヤマダタロウ様ですね。ありがとうございます。スタッフからご連絡できるお電話番号を教えていただけますか？"
+  },
+  {
+   "role": "user",
+   "content": "090の1234の5678です。"
+  },
+  {
+   "role": "assistant",
+   "content": "確認いたします。お名前はヤマダタロウ様、お電話番号はゼロキュウゼロ、イチニーサンヨン、ゴーロクナナハチでよろしいでしょうか？"
+  },
+  {
+   "role": "user",
+   "content": "はい、合ってます。"
+  },
+  {
+   "role": "assistant",
+   "content": null,
+   "tool_calls": [
+    {
+     "id": "call_QSQQb8Qk3yzh87HiFJWWVe9A",
+     "type": "function",
+     "function": {
+      "name": "request_callback",
+      "arguments": "{\"callerName\":\"ヤマダタロウ\",\"callerPhone\":\"09012345678\",\"reason\":\"相談したいこと\"}"
+     }
+    }
+   ]
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_QSQQb8Qk3yzh87HiFJWWVe9A",
+   "name": "request_callback",
+   "content": "A system problem prevented this from being saved."
+  },
+  {
+   "role": "assistant",
+   "content": "申し訳ございません。システムの不具合により、お客様の情報を保存できませんでした。お手数ですが、少し時間をおいて改めてお電話いただけますでしょうか。失礼いたします。"
+  }
+ ],
+ "nextStep": 6,
+ "ended": true,
+ "turns": [
+  {
+   "tag": "13",
+   "caller": "スタッフの方に代わってもらえますか？",
+   "lines": [
+    "かしこまりました。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。 何についてのご連絡でしょうか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "13",
+   "caller": "はい、お願いします。",
+   "lines": [
+    "内容をお伺いしたいのですが、具体的に何についてお聞きになりたいですか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "13",
+   "caller": "ちょっと相談したいことがありまして。",
+   "lines": [
+    "ありがとうございます。スタッフから折り返しご連絡できるように、お客様のお名前を伺ってもよろしいでしょうか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "14",
+   "caller": "ヤマダタロウです。",
+   "lines": [
+    "ヤマダタロウ様ですね。ありがとうございます。スタッフからご連絡できるお電話番号を教えていただけますか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "17",
+   "caller": "090の1234の5678です。",
+   "lines": [
+    "確認いたします。お名前はヤマダタロウ様、お電話番号はゼロキュウゼロ、イチニーサンヨン、ゴーロクナナハチでよろしいでしょうか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "21c",
+   "caller": "はい、合ってます。",
+   "lines": [
+    "申し訳ございません。システムの不具合により、お客様の情報を保存できませんでした。お手数ですが、少し時間をおいて改めてお電話いただけますでしょうか。失礼いたします。"
+   ],
+   "toolCalls": [
+    {
+     "name": "request_callback",
+     "args": "{\"callerName\":\"ヤマダタロウ\",\"callerPhone\":\"09012345678\",\"reason\":\"相談したいこと\"}",
+     "result": "A system problem prevented this from being saved."
+    }
+   ],
+   "requests": 2
+  }
+ ],
+ "requests": 7,
+ "status": "done",
+ "endReason": "endCallPhrase:失礼いたします"
+}

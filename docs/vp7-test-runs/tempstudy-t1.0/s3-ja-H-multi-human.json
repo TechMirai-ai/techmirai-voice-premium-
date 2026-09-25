@@ -1,0 +1,114 @@
+{
+ "runId": "ja-H-multi-human",
+ "member": "ja",
+ "cases": "26,31",
+ "renderedNow": "Friday, September 25, 2026, 15:19",
+ "startedAt": "2026-09-25T06:19:39.011Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "お電話ありがとうございます。さくら整骨院、AI受付でございます。 For English, please say \"English\". どのようなご用件でしょうか。"
+  },
+  {
+   "role": "user",
+   "content": "土曜日もやってますか？あと、保険って使えます？"
+  },
+  {
+   "role": "assistant",
+   "content": "はい、土曜日も午前九時から午後七時まで営業しております。また、健康保険が使えるかどうかは、ケガの種類や状況によって異なりますので、詳しくはスタッフがご説明いたします。ほかに何かお手伝いできることはございますか？"
+  },
+  {
+   "role": "user",
+   "content": "人間の方ですか？"
+  },
+  {
+   "role": "assistant",
+   "content": "私は、さくら整骨院のAI受付です。何かお手伝いできることがありましたら教えてください。"
+  },
+  {
+   "role": "user",
+   "content": "ありがとうございました。"
+  },
+  {
+   "role": "assistant",
+   "content": null,
+   "tool_calls": [
+    {
+     "id": "call_SxaHHaETfUnts4Ieiym07ZFC",
+     "type": "function",
+     "function": {
+      "name": "log_call_topic",
+      "arguments": "{\"topic\": \"other\", \"outcome\": \"resolved\"}"
+     }
+    },
+    {
+     "id": "call_oLqBgbcKJWOznPwC0rDXcD0D",
+     "type": "function",
+     "function": {
+      "name": "endCall",
+      "arguments": "{}"
+     }
+    }
+   ]
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_SxaHHaETfUnts4Ieiym07ZFC",
+   "name": "log_call_topic",
+   "content": "Success."
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_oLqBgbcKJWOznPwC0rDXcD0D",
+   "name": "endCall",
+   "content": "Call ended."
+  }
+ ],
+ "nextStep": 3,
+ "ended": true,
+ "turns": [
+  {
+   "tag": "26",
+   "caller": "土曜日もやってますか？あと、保険って使えます？",
+   "lines": [
+    "はい、土曜日も午前九時から午後七時まで営業しております。また、健康保険が使えるかどうかは、ケガの種類や状況によって異なりますので、詳しくはスタッフがご説明いたします。ほかに何かお手伝いできることはございますか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "31",
+   "caller": "人間の方ですか？",
+   "lines": [
+    "私は、さくら整骨院のAI受付です。何かお手伝いできることがありましたら教えてください。"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "30",
+   "caller": "ありがとうございました。",
+   "lines": [],
+   "toolCalls": [
+    {
+     "name": "log_call_topic",
+     "args": "{\"topic\": \"other\", \"outcome\": \"resolved\"}",
+     "result": "Success."
+    },
+    {
+     "name": "endCall",
+     "args": "{}",
+     "result": "Call ended."
+    }
+   ],
+   "requests": 1
+  }
+ ],
+ "requests": 3,
+ "status": "done",
+ "endReason": "endCall"
+}

@@ -1,0 +1,114 @@
+{
+ "runId": "ja-A-hours-parking-end",
+ "member": "ja",
+ "cases": "2,25,30",
+ "renderedNow": "Friday, September 25, 2026, 15:32",
+ "startedAt": "2026-09-25T06:32:14.789Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "お電話ありがとうございます。さくら整骨院、AI受付でございます。 For English, please say \"English\". どのようなご用件でしょうか。"
+  },
+  {
+   "role": "user",
+   "content": "今日は何時までやってますか？"
+  },
+  {
+   "role": "assistant",
+   "content": "当院の受付時間は、月曜日から土曜日の午前9時から午後7時までです。日曜日と祝日はお休みです。ほかに何かお手伝いできることはございますか？"
+  },
+  {
+   "role": "user",
+   "content": "あと、駐車場ってあります？"
+  },
+  {
+   "role": "assistant",
+   "content": "はい、当院の近くに駐車場がございます。詳しい場所はスタッフがご案内いたします。ほかに何かお手伝いできることはございますか？"
+  },
+  {
+   "role": "user",
+   "content": "わかりました、ありがとうございました。"
+  },
+  {
+   "role": "assistant",
+   "content": null,
+   "tool_calls": [
+    {
+     "id": "call_9Qrgi2yguTIauL9iYICzBdkE",
+     "type": "function",
+     "function": {
+      "name": "log_call_topic",
+      "arguments": "{\"topic\": \"hours\", \"outcome\": \"resolved\"}"
+     }
+    },
+    {
+     "id": "call_HDCxNiX5GodGaL1plhMESKA0",
+     "type": "function",
+     "function": {
+      "name": "endCall",
+      "arguments": "{}"
+     }
+    }
+   ]
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_9Qrgi2yguTIauL9iYICzBdkE",
+   "name": "log_call_topic",
+   "content": "Success."
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_HDCxNiX5GodGaL1plhMESKA0",
+   "name": "endCall",
+   "content": "Call ended."
+  }
+ ],
+ "nextStep": 3,
+ "ended": true,
+ "turns": [
+  {
+   "tag": "2",
+   "caller": "今日は何時までやってますか？",
+   "lines": [
+    "当院の受付時間は、月曜日から土曜日の午前9時から午後7時までです。日曜日と祝日はお休みです。ほかに何かお手伝いできることはございますか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "25",
+   "caller": "あと、駐車場ってあります？",
+   "lines": [
+    "はい、当院の近くに駐車場がございます。詳しい場所はスタッフがご案内いたします。ほかに何かお手伝いできることはございますか？"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "30",
+   "caller": "わかりました、ありがとうございました。",
+   "lines": [],
+   "toolCalls": [
+    {
+     "name": "log_call_topic",
+     "args": "{\"topic\": \"hours\", \"outcome\": \"resolved\"}",
+     "result": "Success."
+    },
+    {
+     "name": "endCall",
+     "args": "{}",
+     "result": "Call ended."
+    }
+   ],
+   "requests": 1
+  }
+ ],
+ "requests": 3,
+ "status": "done",
+ "endReason": "endCall"
+}

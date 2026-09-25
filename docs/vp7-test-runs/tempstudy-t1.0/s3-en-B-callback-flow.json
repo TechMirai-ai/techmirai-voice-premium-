@@ -1,0 +1,293 @@
+{
+ "runId": "en-B-callback-flow",
+ "member": "en",
+ "cases": "3,4,14,17,18,19,20,21",
+ "renderedNow": "Friday, September 25, 2026, 15:20",
+ "startedAt": "2026-09-25T06:20:22.425Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "Hello, you've reached Sakura Say-koh-tsoo-in. This is the clinic's AI receptionist, speaking in English. How can I help you today?"
+  },
+  {
+   "role": "user",
+   "content": "Do I have to book before coming?"
+  },
+  {
+   "role": "assistant",
+   "content": "Appointments are recommended, especially for first-time visitors, but we do accept walk-ins depending on availability. Would you like to know how to book an appointment?"
+  },
+  {
+   "role": "user",
+   "content": "I'd like to make an appointment."
+  },
+  {
+   "role": "assistant",
+   "content": "You can book through the online reservation form on our website. If you'd prefer to arrange it by phone, I can take a message for our staff to call you back. Which would you prefer?"
+  },
+  {
+   "role": "user",
+   "content": "By phone, please."
+  },
+  {
+   "role": "assistant",
+   "content": "Of course. I can pass your details to our staff so they can call you back. May I ask what your appointment is about?"
+  },
+  {
+   "role": "user",
+   "content": "It's Yamada."
+  },
+  {
+   "role": "assistant",
+   "content": "Thank you, Yamada. Could you please provide your full name for the callback?"
+  },
+  {
+   "role": "user",
+   "content": "Taro."
+  },
+  {
+   "role": "assistant",
+   "content": "Great! So that's Taro Yamada. May I have a phone number where our staff can reach you?"
+  },
+  {
+   "role": "user",
+   "content": "090 1234 567."
+  },
+  {
+   "role": "assistant",
+   "content": "Excuse me, I'm not sure I caught all of that. Could you give me the phone number once more, please?"
+  },
+  {
+   "role": "user",
+   "content": "090 1234 5678."
+  },
+  {
+   "role": "assistant",
+   "content": "Thank you. Let me confirm. Your name is Taro Yamada, and your phone number is zero nine zero, one two three four, five six seven eight. Is that correct?"
+  },
+  {
+   "role": "user",
+   "content": "The last part is 5679."
+  },
+  {
+   "role": "assistant",
+   "content": "Thank you for the correction. Let me confirm again. Your name is Taro Yamada, and your phone number is zero nine zero, one two three four, five six seven nine. Is that correct?"
+  },
+  {
+   "role": "user",
+   "content": "No, that's wrong."
+  },
+  {
+   "role": "assistant",
+   "content": "I'm sorry, could you please provide the whole phone number again?"
+  },
+  {
+   "role": "user",
+   "content": "090 1234 5678."
+  },
+  {
+   "role": "assistant",
+   "content": "Thank you. Let me confirm. Your name is Taro Yamada, and your phone number is zero nine zero, one two three four, five six seven eight. Is that correct?"
+  },
+  {
+   "role": "user",
+   "content": "Yes, that's right."
+  },
+  {
+   "role": "assistant",
+   "content": null,
+   "tool_calls": [
+    {
+     "id": "call_ugerRTaX7w5O0dVkKZ01d3Um",
+     "type": "function",
+     "function": {
+      "name": "request_callback",
+      "arguments": "{\"callerName\":\"Taro Yamada\",\"callerPhone\":\"09012345678\",\"reason\":\"Appointment request\"}"
+     }
+    }
+   ]
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_ugerRTaX7w5O0dVkKZ01d3Um",
+   "name": "request_callback",
+   "content": "The callback request was saved. Staff will call the caller back."
+  },
+  {
+   "role": "assistant",
+   "content": "Thank you, Taro. I'll pass your information to our staff, and they will contact you within one business day. Is there anything else I can help you with today?"
+  },
+  {
+   "role": "user",
+   "content": "Thank you very much."
+  },
+  {
+   "role": "assistant",
+   "content": null,
+   "tool_calls": [
+    {
+     "id": "call_2Y3bR8vMevYY2dHz48b4z7iv",
+     "type": "function",
+     "function": {
+      "name": "log_call_topic",
+      "arguments": "{\"topic\": \"appointment-needed\", \"outcome\": \"resolved\"}"
+     }
+    },
+    {
+     "id": "call_icBVlNVDyZuH3cqBKUBbKvhq",
+     "type": "function",
+     "function": {
+      "name": "endCall",
+      "arguments": "{}"
+     }
+    }
+   ]
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_2Y3bR8vMevYY2dHz48b4z7iv",
+   "name": "log_call_topic",
+   "content": "Success."
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_icBVlNVDyZuH3cqBKUBbKvhq",
+   "name": "endCall",
+   "content": "Call ended."
+  }
+ ],
+ "nextStep": 12,
+ "ended": true,
+ "turns": [
+  {
+   "tag": "3",
+   "caller": "Do I have to book before coming?",
+   "lines": [
+    "Appointments are recommended, especially for first-time visitors, but we do accept walk-ins depending on availability. Would you like to know how to book an appointment?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "4",
+   "caller": "I'd like to make an appointment.",
+   "lines": [
+    "You can book through the online reservation form on our website. If you'd prefer to arrange it by phone, I can take a message for our staff to call you back. Which would you prefer?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "4",
+   "caller": "By phone, please.",
+   "lines": [
+    "Of course. I can pass your details to our staff so they can call you back. May I ask what your appointment is about?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "14v",
+   "caller": "It's Yamada.",
+   "lines": [
+    "Thank you, Yamada. Could you please provide your full name for the callback?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "14",
+   "caller": "Taro.",
+   "lines": [
+    "Great! So that's Taro Yamada. May I have a phone number where our staff can reach you?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "18",
+   "caller": "090 1234 567.",
+   "lines": [
+    "Excuse me, I'm not sure I caught all of that. Could you give me the phone number once more, please?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "17",
+   "caller": "090 1234 5678.",
+   "lines": [
+    "Thank you. Let me confirm. Your name is Taro Yamada, and your phone number is zero nine zero, one two three four, five six seven eight. Is that correct?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "20",
+   "caller": "The last part is 5679.",
+   "lines": [
+    "Thank you for the correction. Let me confirm again. Your name is Taro Yamada, and your phone number is zero nine zero, one two three four, five six seven nine. Is that correct?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "19",
+   "caller": "No, that's wrong.",
+   "lines": [
+    "I'm sorry, could you please provide the whole phone number again?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "17b",
+   "caller": "090 1234 5678.",
+   "lines": [
+    "Thank you. Let me confirm. Your name is Taro Yamada, and your phone number is zero nine zero, one two three four, five six seven eight. Is that correct?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "21",
+   "caller": "Yes, that's right.",
+   "lines": [
+    "Thank you, Taro. I'll pass your information to our staff, and they will contact you within one business day. Is there anything else I can help you with today?"
+   ],
+   "toolCalls": [
+    {
+     "name": "request_callback",
+     "args": "{\"callerName\":\"Taro Yamada\",\"callerPhone\":\"09012345678\",\"reason\":\"Appointment request\"}",
+     "result": "The callback request was saved. Staff will call the caller back."
+    }
+   ],
+   "requests": 2
+  },
+  {
+   "tag": "30",
+   "caller": "Thank you very much.",
+   "lines": [],
+   "toolCalls": [
+    {
+     "name": "log_call_topic",
+     "args": "{\"topic\": \"appointment-needed\", \"outcome\": \"resolved\"}",
+     "result": "Success."
+    },
+    {
+     "name": "endCall",
+     "args": "{}",
+     "result": "Call ended."
+    }
+   ],
+   "requests": 1
+  }
+ ],
+ "requests": 13,
+ "status": "done",
+ "endReason": "endCall"
+}

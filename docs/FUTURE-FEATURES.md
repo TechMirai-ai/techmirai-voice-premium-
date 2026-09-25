@@ -100,6 +100,33 @@ destination assistant should be able to resume from context even without this, b
 makes it explicit rather than relying on that.
 **Base must allow:** Nothing — this is prompt text only, no schema/type change.
 
+## F-10 — End-of-call classification as a real platform guarantee (structured outputs)
+**What:** Get every call's topic and outcome from Vapi itself after the call ends, instead of relying
+on the model calling `log_call_topic`. Link a structured output (`artifactPlan.structuredOutputIds`)
+to each assistant/squad leg; Vapi runs it after every call however it ended and delivers the result
+in the `end-of-call-report` server message (`call.artifact.structuredOutputs`). Add an
+authenticated `end-of-call-report` route that writes the `call_topics` row (`client_id`, topic,
+outcome), and keep `log_call_topic` only as an optional in-call hint or remove it.
+**Why later:** Decided 2026-09-25 (VP-7). The text-tester suite showed the model calls
+`log_call_topic` + `endCall` in only ~1 of 4 endings (the third instance of the same
+model-compliance pattern after the VP-6 goodbye and `confirmDetails` bugs). VP-7 added the cheap
+platform backstops that need no new endpoint — `endCallPhrases` and a silence-hangup hook (VAPI-FACTS.md
+VP-7 R8) — which make the call END reliably, but not the *classification*: a phrase-triggered hangup
+means `log_call_topic` may never run. This is the only mechanism that guarantees a topic exists for
+every call, but it needs a new webhook route, auth, a DB write and tests — a work order of its own.
+**Build when:** Topic/outcome data starts driving something a client relies on (reporting, the
+staff dashboard's call list), or a real call shows a missing classification that matters.
+**Base must allow:**
+- `call_topics` keeps `topic` and `outcome` as separate columns (already true — VP-7 R2), so a
+  platform-produced row is shaped exactly like a tool-produced one.
+- Voice webhooks stay behind the shared Custom Credential auth (VP-4 §3) — a new `end-of-call-report`
+  route must not be mountable unauthenticated.
+- The assistant payload has room for an assistant-level `server.url` (see `VapiAssistantPayload.server`,
+  currently unset) and `artifactPlan`; nothing in `render.ts` should hard-code either away.
+**Unverified:** structured-output run timing and whether it fires for calls ended by
+`assistant-said-end-call-phrase` / silence hangup (docs say "runs after each call" by default) —
+confirm with a real call before relying on it.
+
 ---
 
 ---
@@ -114,7 +141,7 @@ Prioritized. Evidence for each is in docs/VAPI-FACTS.md ("VP-3 latency investiga
 6. **Real bug found 2026-09-22: the assistant sometimes skips the spoken goodbye entirely and silently ends the call.** ~~This is VP-6 §G's "natural end-of-call" test item — it currently fails.~~ **Fixed and verified live (2026-09-23) — see `docs/VAPI-FACTS.md` VP-6 R2/R3.** Root cause was two-fold: (a) the model sometimes jumped straight to the silent `endCall`/`log_call_topic` tool calls without a `bot` goodbye message in between (confirmed on unmodified `main`, not a VP-6 A–E regression); (b) the fix — Vapi's `assistant.endCallMessage`, spoken automatically by the platform before hangup — doesn't carry over to an assistant reached via Squad handoff and had to be threaded through the handoff destination's `assistantOverrides`, same as `firstMessage`. Confirmed by real test calls: Japanese standalone goodbye and English goodbye-after-handoff both play correctly now.
 
 ## Suggested, not yet decided (do not build — raise with the owner)
-- **S-2 AI disclosure in the greeting.** Consider saying "AI receptionist" in the greeting so callers know they are talking to an AI.
+- **S-2 AI disclosure in the greeting.** ~~Consider saying "AI receptionist" in the greeting so callers know they are talking to an AI.~~ **Adopted (2026-09-25, VP-7) — both greetings now say it, per the source test suite (cases 1 / E1). Pending native-speaker review of the Japanese wording, see `docs/JAPANESE-REVIEW.md`.**
 
 ---
 

@@ -1,0 +1,114 @@
+{
+ "runId": "en-J-emergency-uncertain",
+ "member": "en",
+ "cases": "23b",
+ "renderedNow": "Friday, September 25, 2026, 15:28",
+ "startedAt": "2026-09-25T06:28:45.294Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "Hello, you've reached Sakura Say-koh-tsoo-in. This is the clinic's AI receptionist, speaking in English. How can I help you today?"
+  },
+  {
+   "role": "user",
+   "content": "I strained my lower back and the pain is intense. Can you see me today?"
+  },
+  {
+   "role": "assistant",
+   "content": "If this is an emergency, please hang up and call 119 for an ambulance right away. If it's not an emergency, I can provide information about our hours and how to book. Would you like that?"
+  },
+  {
+   "role": "user",
+   "content": "No, it's not bad enough for an ambulance."
+  },
+  {
+   "role": "assistant",
+   "content": "Thank you for clarifying. We are open today until seven in the evening. You can book an appointment through our online reservation form on our website, or I can have a staff member call you back to arrange it. What would you prefer?"
+  },
+  {
+   "role": "user",
+   "content": "Got it, thank you very much."
+  },
+  {
+   "role": "assistant",
+   "content": null,
+   "tool_calls": [
+    {
+     "id": "call_djzQGLGm0XswUWzSCAmhUy81",
+     "type": "function",
+     "function": {
+      "name": "log_call_topic",
+      "arguments": "{\"topic\": \"back-pain\", \"outcome\": \"resolved\"}"
+     }
+    },
+    {
+     "id": "call_GkzdyxeB7WmzcYaMXORlCwYL",
+     "type": "function",
+     "function": {
+      "name": "endCall",
+      "arguments": "{}"
+     }
+    }
+   ]
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_djzQGLGm0XswUWzSCAmhUy81",
+   "name": "log_call_topic",
+   "content": "Success."
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "call_GkzdyxeB7WmzcYaMXORlCwYL",
+   "name": "endCall",
+   "content": "Call ended."
+  }
+ ],
+ "nextStep": 3,
+ "ended": true,
+ "turns": [
+  {
+   "tag": "23b",
+   "caller": "I strained my lower back and the pain is intense. Can you see me today?",
+   "lines": [
+    "If this is an emergency, please hang up and call 119 for an ambulance right away. If it's not an emergency, I can provide information about our hours and how to book. Would you like that?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "23b",
+   "caller": "No, it's not bad enough for an ambulance.",
+   "lines": [
+    "Thank you for clarifying. We are open today until seven in the evening. You can book an appointment through our online reservation form on our website, or I can have a staff member call you back to arrange it. What would you prefer?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "30",
+   "caller": "Got it, thank you very much.",
+   "lines": [],
+   "toolCalls": [
+    {
+     "name": "log_call_topic",
+     "args": "{\"topic\": \"back-pain\", \"outcome\": \"resolved\"}",
+     "result": "Success."
+    },
+    {
+     "name": "endCall",
+     "args": "{}",
+     "result": "Call ended."
+    }
+   ],
+   "requests": 1
+  }
+ ],
+ "requests": 3,
+ "status": "done",
+ "endReason": "endCall"
+}

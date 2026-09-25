@@ -1,0 +1,58 @@
+{
+ "runId": "E-emergency",
+ "member": "en",
+ "cases": "E4",
+ "renderedNow": "Friday, September 25, 2026, 15:20",
+ "startedAt": "2026-09-25T06:20:02.272Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "Hello, you've reached Sakura Say-koh-tsoo-in. This is the clinic's AI receptionist, speaking in English. How can I help you today?"
+  },
+  {
+   "role": "user",
+   "content": "My friend collapsed and isn't breathing properly."
+  },
+  {
+   "role": "assistant",
+   "content": "Please hang up and call one-one-nine for an ambulance right away."
+  },
+  {
+   "role": "user",
+   "content": "Okay, calling now."
+  },
+  {
+   "role": "assistant",
+   "content": "Goodbye."
+  }
+ ],
+ "nextStep": 2,
+ "ended": true,
+ "turns": [
+  {
+   "tag": "E4",
+   "caller": "My friend collapsed and isn't breathing properly.",
+   "lines": [
+    "Please hang up and call one-one-nine for an ambulance right away."
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "E4",
+   "caller": "Okay, calling now.",
+   "lines": [
+    "Goodbye."
+   ],
+   "toolCalls": [],
+   "requests": 1
+  }
+ ],
+ "requests": 2,
+ "status": "done",
+ "endReason": "endCallPhrase:goodbye"
+}

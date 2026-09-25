@@ -1,0 +1,91 @@
+{
+ "runId": "en-C-staff-name",
+ "member": "en",
+ "cases": "13,15,16",
+ "renderedNow": "Friday, September 25, 2026, 15:36",
+ "startedAt": "2026-09-25T06:36:20.617Z",
+ "messages": [
+  {
+   "role": "system",
+   "content": "[system prompt omitted to save space — identical rendering rules as run2-t0.5, prompt revision before the Sunday-hours sentence]"
+  },
+  {
+   "role": "assistant",
+   "content": "Hello, you've reached Sakura Say-koh-tsoo-in. This is the clinic's AI receptionist, speaking in English. How can I help you today?"
+  },
+  {
+   "role": "user",
+   "content": "Could you put me through to a staff member?"
+  },
+  {
+   "role": "assistant",
+   "content": "Of course. I can pass your details to our staff so they can call you back. May I have your name, please?"
+  },
+  {
+   "role": "user",
+   "content": "Yes, please."
+  },
+  {
+   "role": "assistant",
+   "content": "I'm sorry, I didn't quite catch that. Could you say your name again, please?"
+  },
+  {
+   "role": "user",
+   "content": "It is Ya... da..."
+  },
+  {
+   "role": "assistant",
+   "content": "Thank you. Could you please provide your full name?"
+  },
+  {
+   "role": "user",
+   "content": "It's Shoji, spelled S-H-O-J-I."
+  },
+  {
+   "role": "assistant",
+   "content": "Thank you, Shoji. May I have a phone number where our staff can reach you?"
+  }
+ ],
+ "nextStep": 5,
+ "ended": false,
+ "turns": [
+  {
+   "tag": "13",
+   "caller": "Could you put me through to a staff member?",
+   "lines": [
+    "Of course. I can pass your details to our staff so they can call you back. May I have your name, please?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "13",
+   "caller": "Yes, please.",
+   "lines": [
+    "I'm sorry, I didn't quite catch that. Could you say your name again, please?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "15",
+   "caller": "It is Ya... da...",
+   "lines": [
+    "Thank you. Could you please provide your full name?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  },
+  {
+   "tag": "16",
+   "caller": "It's Shoji, spelled S-H-O-J-I.",
+   "lines": [
+    "Thank you, Shoji. May I have a phone number where our staff can reach you?"
+   ],
+   "toolCalls": [],
+   "requests": 1
+  }
+ ],
+ "requests": 4,
+ "status": "done"
+}
