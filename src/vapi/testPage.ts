@@ -65,7 +65,137 @@ export function renderTestCallPage(options: TestCallPageOptions): string {
 <html lang="en">
 <head>
 <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Vapi test call</title>
+<style>
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg-canvas: #f8f9fa;
+  --bg-surface: #ffffff;
+  --bg-subtle: #f1f5f9;
+  --border-light: #e2e8f0;
+  --border-medium: #cbd5e1;
+  --text-main: #1e293b;
+  --text-sub: #475569;
+  --text-muted: #94a3b8;
+  --brand-navy: #1e293b;
+  --brand-navy-hover: #0f172a;
+}
+
+html {
+  background-color: var(--bg-canvas);
+  min-height: 100%;
+}
+
+body {
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  max-width: 540px;
+  margin: 4.5rem auto;
+  padding: 2.25rem 2.5rem;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+h1 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--brand-navy);
+  margin-bottom: 0.75rem;
+}
+
+p:not(#call-status) {
+  color: var(--text-sub);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border-light);
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: 3px;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.825rem;
+  color: var(--brand-navy);
+}
+
+strong {
+  font-weight: 600;
+  color: var(--brand-navy);
+}
+
+#start-call-button,
+#end-call-button {
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  padding: 0.55rem 1.25rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+#start-call-button {
+  background: var(--brand-navy);
+  color: #ffffff;
+  border: 1px solid var(--brand-navy);
+}
+
+#start-call-button:hover {
+  background: var(--brand-navy-hover);
+  border-color: var(--brand-navy-hover);
+}
+
+#end-call-button {
+  background: transparent;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
+
+#end-call-button:hover {
+  background: #fef2f2;
+  border-color: #ef4444;
+}
+
+#call-status {
+  margin-top: 1.5rem;
+  margin-bottom: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-light);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.825rem;
+  color: var(--text-sub);
+}
+
+@media (max-width: 600px) {
+  body {
+    margin: 1.5rem 1rem;
+    padding: 1.75rem 1.25rem;
+  }
+}
+</style>
 </head>
 <body>
 <h1>Manual Vapi test call — internal QA only</h1>
