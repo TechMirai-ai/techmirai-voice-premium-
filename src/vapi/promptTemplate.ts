@@ -314,15 +314,28 @@ function reservationSection(
 ): string[] {
   if (services.length === 0) return [];
 
+  const closing = [
+    `After the ${BOOK_APPOINTMENT_FUNCTION_NAME} call: if it succeeded, say something in the ` +
+      `spirit of "${scriptLine(config, language, 'reservationSaved')}", substituting the actual ` +
+      'reservation number for [[reservationNumber]] — never speak the placeholder text itself. ' +
+      `Then ask: "${scriptLine(config, language, 'anythingElse')}" — same as after answering a ` +
+      `question. If it failed, say something in the spirit of "${scriptLine(config, language, 'reservationFailed')}" instead.`,
+  ].join(' ');
+
   return [
     [
       "Reservations (demo): the clinic's own booking system, separate from callback requests " +
         'above — use this when the caller wants to book an appointment, not just leave a message ' +
-        'for staff to call back. This flow never reads a phone number back for confirmation the ' +
-        'way the callback flow above does — collect each detail once and move on.',
+        'for staff to call back. None of the callback rules above apply here: this flow never ' +
+        'reads a phone number back for confirmation, never checks its digit count or group ' +
+        'pattern, and never rejects one as unclear or asks for it again — whatever the caller ' +
+        'says is captured exactly as heard and you move on. The two paths below also need ' +
+        'DIFFERENT information before booking — read the "Required before booking" line for ' +
+        'whichever path applies and collect exactly that, nothing from the other path.',
       `1. Ask: "${scriptLine(config, language, 'reservationAskType')}"`,
       '',
-      'First-time visitor:',
+      'FIRST-TIME VISITOR — required before booking: a service, a confirmed date/time, full name, ' +
+        'phone number, and email address. All five; do not call the booking tool with any missing.',
       `2. "${scriptLine(config, language, 'reservationAskService')}" — offer the services listed ` +
         'in Reservation services below, matching what the caller says to one of them.',
       `3. "${scriptLine(config, language, 'reservationAskDateTime')}"`,
@@ -331,36 +344,39 @@ function reservationSection(
         'available or unavailable, and never assume a date is too far off to check, without ' +
         'calling this tool first. If it comes back unavailable, offer the alternative time(s) it ' +
         'gives you and wait for the caller to pick one, or offer a different date instead.',
-      '5. Once a specific time is confirmed available (either the one first requested, or an ' +
-        'alternative the caller just picked), collect, one item per turn, skipping anything the ' +
-        'caller already gave you: full name, phone number, then email address. Every one of these ' +
-        'is captured as heard, with no read-back or confirmation loop. The moment you have all ' +
-        'three, move straight to step 6 — never ask again for a detail you already have.',
+      '5. Once a specific time is confirmed available, collect whichever of these the caller ' +
+        'has not already given you, one per turn: full name, phone number, email address — every ' +
+        'one taken exactly as heard, with no read-back, no digit-count check, and no confirmation ' +
+        'loop of any kind. The moment all three are in hand, you have every required field from ' +
+        'the list above — move straight to step 6.',
       `6. Call ${BOOK_APPOINTMENT_FUNCTION_NAME} with the chosen service id, the confirmed date/time, ` +
-        'and the details you collected (isReturningPatient: false).',
-      `7. After the tool call: if it succeeded, say something in the spirit of ` +
-        `"${scriptLine(config, language, 'reservationSaved')}", substituting the actual reservation ` +
-        'number for [[reservationNumber]] — never speak the placeholder text itself. Then ask: ' +
-        `"${scriptLine(config, language, 'anythingElse')}" — same as after answering a question. If ` +
-        `the tool call failed, say something in the spirit of "${scriptLine(config, language, 'reservationFailed')}" instead.`,
+        'and the name/phone/email you collected (isReturningPatient: false).',
+      `7. ${closing}`,
       '',
-      'Returning patient:',
+      'RETURNING PATIENT — required before booking: a confirmed date/time only. The lookup in ' +
+        'step 3 already gives you their name and phone number — never ask for either again. Do ' +
+        'NOT collect a service: a returning patient never chooses one. Do NOT collect an email ' +
+        'address: that field belongs only to the first-time-visitor path above and never applies ' +
+        'here.',
       `2. "${scriptLine(config, language, 'reservationReturningAsk')}"`,
       `3. Call ${LOOKUP_PATIENT_FUNCTION_NAME} with their phone number. If a record is found, confirm ` +
         'the name out loud before continuing (for example "is this [name]-san?") — the phone number ' +
         'is the actual match, the spoken name is only for the caller to confirm. If no record is ' +
-        `found, say "${scriptLine(config, language, 'reservationPatientNotFound')}" and continue ` +
-        'exactly as a first-time visitor from step 2 above (including choosing a service and asking ' +
-        'for an email address), using the name and phone number they already gave you.',
-      `4. If a record was found, skip service selection entirely. "${scriptLine(config, language, 'reservationAskDateTime')}"`,
+        `found, say "${scriptLine(config, language, 'reservationPatientNotFound')}" and switch to ` +
+        'the FIRST-TIME VISITOR path above from step 2 (its full five-field checklist now applies), ' +
+        'using the name and phone number they already gave you.',
+      `4. If a record was found, skip service selection entirely — do not ask about it. ` +
+        `"${scriptLine(config, language, 'reservationAskDateTime')}"`,
       `5. Call ${CHECK_AVAILABILITY_FUNCTION_NAME} the same way as step 4 of the first-time-visitor ` +
         'path above.',
-      `6. The instant a specific time is confirmed available, call ${BOOK_APPOINTMENT_FUNCTION_NAME} ` +
-        'immediately — no service id, the confirmed date/time, and the name/phone number you already ' +
-        'have from the lookup above (isReturningPatient: true). You already have everything you need; ' +
-        'never ask the caller for their name, phone number, or anything else again before booking.',
-      '7. Same closing as the first-time visitor: the reservation-number line, then "anything ' +
-        'else", or the failure line if the tool call failed.',
+      `6. The moment a specific time is confirmed available, you already have every required field ` +
+        `(name and phone from the lookup, the date/time just confirmed) — call ${BOOK_APPOINTMENT_FUNCTION_NAME} ` +
+        'right away, in this same turn, with no caller input needed first, exactly like you chain ' +
+        `${LOG_CALL_TOPIC_FUNCTION_NAME} and ${END_CALL_FUNCTION_NAME} at the end of a call. Pass no ` +
+        'service id, the confirmed date/time, the name/phone from the lookup, and isReturningPatient: ' +
+        'true. Do not ask the caller for a service, an email address, their name, or their phone ' +
+        'number — you already have everything this path needs.',
+      `7. ${closing}`,
     ].join('\n'),
   ];
 }
