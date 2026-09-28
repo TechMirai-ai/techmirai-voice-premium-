@@ -14,7 +14,10 @@
     "sakura-seikotsuin--ja--book-appointment": "989cdc67-005d-47bf-b719-441eff8b8bb1",
     "sakura-seikotsuin--en--check-availability": "4ca554fa-63cb-4ead-a2fd-f05bb6e5849c",
     "sakura-seikotsuin--en--lookup-patient": "a5d4af95-51fb-4b15-8de3-279e34675789",
-    "sakura-seikotsuin--en--book-appointment": "3451ca07-a52c-410d-be59-6cc503f19c1b"
+    "sakura-seikotsuin--en--book-appointment": "3451ca07-a52c-410d-be59-6cc503f19c1b",
+    "sakura-seikotsuin--ja-return--check-availability": "db745190-527e-4efc-805c-8b8c82d8133c",
+    "sakura-seikotsuin--ja-return--lookup-patient": "3b158cf0-0f33-4311-8075-1862593e1c57",
+    "sakura-seikotsuin--ja-return--book-appointment": "b435300e-3312-4f79-b128-57a9597d3e70"
   },
   "assistants": {
     "sakura-seikotsuin--ja": "5783f9a4-7051-4595-b391-997c080fc61b",
