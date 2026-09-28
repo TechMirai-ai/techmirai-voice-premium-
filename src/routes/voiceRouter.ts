@@ -1,10 +1,13 @@
-/** Mounts both voice webhooks behind the shared rate limit and Custom Credential auth. */
+/** Mounts every voice webhook behind the shared rate limit and Custom Credential auth. */
 import express, { Router } from 'express';
 
 import { voiceRateLimit, type RateLimitOptions } from '../middleware/rateLimit.js';
 import { webhookAuth } from '../middleware/webhookAuth.js';
+import { bookAppointmentRouter, type BookAppointmentRouteDeps } from './bookAppointment.js';
 import { callbackRequestRouter, type CallbackRequestRouteDeps } from './callbackRequest.js';
 import { callTopicRouter, type CallTopicRouteDeps } from './callTopic.js';
+import { checkAvailabilityRouter, type CheckAvailabilityRouteDeps } from './checkAvailability.js';
+import { lookupPatientRouter, type LookupPatientRouteDeps } from './lookupPatient.js';
 
 export const VOICE_API_PREFIX = '/api/voice';
 
@@ -16,7 +19,15 @@ export const VOICE_API_PREFIX = '/api/voice';
  */
 export const VOICE_BODY_LIMIT = '2mb';
 
-export interface VoiceRouterOptions extends CallbackRequestRouteDeps, CallTopicRouteDeps {
+export interface VoiceRouterOptions
+  extends
+    CallbackRequestRouteDeps,
+    CallTopicRouteDeps,
+    CheckAvailabilityRouteDeps,
+    // BookAppointmentRouteDeps repeats `resolver`/`appointments` from CheckAvailabilityRouteDeps —
+    // TypeScript merges identical-type members across intersected interfaces without conflict.
+    BookAppointmentRouteDeps,
+    LookupPatientRouteDeps {
   webhookSecret: string;
   rateLimit?: RateLimitOptions;
 }
@@ -30,6 +41,9 @@ export function voiceRouter(options: VoiceRouterOptions): Router {
   router.use(express.json({ limit: VOICE_BODY_LIMIT }));
   router.use(callbackRequestRouter(options));
   router.use(callTopicRouter(options));
+  router.use(checkAvailabilityRouter(options));
+  router.use(lookupPatientRouter(options));
+  router.use(bookAppointmentRouter(options));
 
   return router;
 }

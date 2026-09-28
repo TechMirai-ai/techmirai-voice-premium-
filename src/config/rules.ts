@@ -17,11 +17,11 @@ export const CLINIC_PLACEHOLDERS = [
   'emergencyNumber',
 ] as const;
 
-/** Only known while a call is in progress, so only valid in one script. */
-export const CALLER_PLACEHOLDERS = ['callerName', 'callerPhone'] as const;
+/** Only known while a call is in progress, so only valid in one of `CALLER_PLACEHOLDER_SCRIPTS`. */
+export const CALLER_PLACEHOLDERS = ['callerName', 'callerPhone', 'reservationNumber'] as const;
 
-/** The one script that may use the caller placeholders. */
-export const CALLER_PLACEHOLDER_SCRIPT = 'confirmDetails';
+/** The scripts that may use a caller placeholder — everywhere else, it's a typo. */
+export const CALLER_PLACEHOLDER_SCRIPTS = ['confirmDetails', 'reservationSaved'] as const;
 
 export const ALLOWED_PLACEHOLDERS = [...CLINIC_PLACEHOLDERS, ...CALLER_PLACEHOLDERS] as const;
 
@@ -186,9 +186,11 @@ function placeholderIssues(config: ClientConfig): ConfigIssue[] {
     { path: `faq[${index}].answer`, text: entry.answer },
   ]);
 
+  const allowedPaths = CALLER_PLACEHOLDER_SCRIPTS.map((key) => `scripts.${key}`);
+
   return [...scriptBlocks, ...faqBlocks].flatMap(({ path, text }) =>
     Object.entries(text).flatMap(([code, value]) =>
-      checkPlaceholders(`${path}.${code}`, value, path === `scripts.${CALLER_PLACEHOLDER_SCRIPT}`),
+      checkPlaceholders(`${path}.${code}`, value, allowedPaths.includes(path)),
     ),
   );
 }
@@ -210,9 +212,10 @@ function checkPlaceholders(path: string, value: string, allowCaller: boolean): C
     }
 
     if (isCaller && !allowCaller) {
+      const scriptNames = CALLER_PLACEHOLDER_SCRIPTS.map((key) => `scripts.${key}`).join(' or ');
       issues.push({
         path,
-        message: `"[[${name}]]" is only allowed in scripts.${CALLER_PLACEHOLDER_SCRIPT}`,
+        message: `"[[${name}]]" is only allowed in ${scriptNames}`,
       });
     }
   }

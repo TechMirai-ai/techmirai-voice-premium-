@@ -5,6 +5,7 @@ import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import type { ReservationServiceRepository } from '../../src/repositories/reservationServiceRepository.js';
 import type { VapiSyncClient } from '../../src/vapi/client.js';
 import {
   SquadPrerequisiteError,
@@ -73,12 +74,16 @@ function createMockClient(): MockClient {
   };
 }
 
+/** No services seeded in these tests — the reservation tools are exercised in render.test.ts. */
+const NO_SERVICES: ReservationServiceRepository = { listByClient: () => Promise.resolve([]) };
+
 function sync(client: VapiSyncClient, dryRun: boolean, language = 'ja') {
   return syncClient(CLIENT_ID, language, {
     dryRun,
     client,
     baseUrl: BASE_URL,
     credentialId: 'credential-uuid',
+    services: NO_SERVICES,
     clientsDir: fixture.clientsDir,
     repoRoot,
   });

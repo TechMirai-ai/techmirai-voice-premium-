@@ -86,7 +86,7 @@ describe('client config validation', () => {
     expect(issueAt(issues, 'scripts.goodbye.en')).toContain('[[foo]]');
   });
 
-  test('allows the caller placeholders only in scripts.confirmDetails', () => {
+  test('allows the caller placeholders only in scripts.confirmDetails or scripts.reservationSaved', () => {
     const document = withChanges(sakura, (draft) => {
       draft.scripts.greeting.en = 'Hello [[callerName]].';
     });
@@ -94,9 +94,20 @@ describe('client config validation', () => {
     const { issues } = captureIssues(() => parse(document));
 
     expect(issueAt(issues, 'scripts.greeting.en')).toContain('scripts.confirmDetails');
+    expect(issueAt(issues, 'scripts.greeting.en')).toContain('scripts.reservationSaved');
 
-    // …and the real config, which uses them inside confirmDetails, is fine.
+    // …and the real config, which uses them inside confirmDetails/reservationSaved, is fine.
     expect(() => parse(sakura)).not.toThrow();
+  });
+
+  test('rejects [[reservationNumber]] outside scripts.reservationSaved', () => {
+    const document = withChanges(sakura, (draft) => {
+      draft.scripts.goodbye.en = 'Your number was [[reservationNumber]].';
+    });
+
+    const { issues } = captureIssues(() => parse(document));
+
+    expect(issueAt(issues, 'scripts.goodbye.en')).toContain('scripts.reservationSaved');
   });
 
   test('rejects a default language that is not supported', () => {

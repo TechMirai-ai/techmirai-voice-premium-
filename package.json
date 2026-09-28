@@ -26,7 +26,8 @@
     "vapi:test-page:serve": "tsx src/vapi/serveTestPage.ts",
     "vapi:test-chat": "tsx src/vapi/textTester.ts",
     "vapi:test-web": "tsx src/vapi/webTester.ts",
-    "staff:create": "tsx src/cli/createStaffUser.ts"
+    "staff:create": "tsx src/cli/createStaffUser.ts",
+    "demo:seed": "tsx src/cli/seedReservationDemoData.ts"
   },
   "dependencies": {
     "@vapi-ai/server-sdk": "2.0.1",

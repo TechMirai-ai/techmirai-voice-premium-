@@ -22,6 +22,18 @@ import {
   PgCallbackRequestRepository,
   type CallbackRequestRepository,
 } from '../repositories/callbackRequestRepository.js';
+import {
+  PgAppointmentRepository,
+  type AppointmentRepository,
+} from '../repositories/appointmentRepository.js';
+import {
+  PgReservationPatientRepository,
+  type ReservationPatientRepository,
+} from '../repositories/reservationPatientRepository.js';
+import {
+  PgReservationServiceRepository,
+  type ReservationServiceRepository,
+} from '../repositories/reservationServiceRepository.js';
 import { contentLanguageOf, squadMemberIds } from './squad.js';
 import {
   buildToolDefs,
@@ -63,6 +75,9 @@ export interface WebTesterOptions {
   apiKey?: string | undefined;
   callModel?: CallModelFn | undefined;
   callbacks?: CallbackRequestRepository | undefined;
+  appointments?: AppointmentRepository | undefined;
+  patients?: ReservationPatientRepository | undefined;
+  services?: ReservationServiceRepository | undefined;
   databaseUrl?: string | undefined;
 }
 
@@ -84,6 +99,9 @@ export function createWebTesterApp(options: WebTesterOptions = {}): Express {
 
   const sessions = new Map<string, WebTesterSession>();
   let sharedDbCallbacks = options.callbacks;
+  let sharedDbAppointments = options.appointments;
+  let sharedDbPatients = options.patients;
+  let sharedDbServices = options.services;
 
   function getCallbacks(dbUrl?: string): CallbackRequestRepository | undefined {
     if (sharedDbCallbacks) return sharedDbCallbacks;
@@ -93,6 +111,30 @@ export function createWebTesterApp(options: WebTesterOptions = {}): Express {
       return sharedDbCallbacks;
     }
     return undefined;
+  }
+
+  /**
+   * VP-8: reservation reads (services list, availability, patient lookup)
+   * are always needed — for prompt grounding and the tool schema at session
+   * start, and for every reservation-tool call during a turn — regardless of
+   * the persist toggle, which only gates writes (see textTester.ts).
+   */
+  function getReservationRepos(dbUrl?: string): {
+    appointments: AppointmentRepository | undefined;
+    patients: ReservationPatientRepository | undefined;
+    services: ReservationServiceRepository | undefined;
+  } {
+    if (!sharedDbAppointments && dbUrl) {
+      const pool = createPool({ connectionString: dbUrl });
+      sharedDbAppointments = new PgAppointmentRepository(pool);
+      sharedDbPatients = new PgReservationPatientRepository(pool);
+      sharedDbServices = new PgReservationServiceRepository(pool);
+    }
+    return {
+      appointments: sharedDbAppointments,
+      patients: sharedDbPatients,
+      services: sharedDbServices,
+    };
   }
 
   // Configuration endpoint
@@ -111,48 +153,58 @@ export function createWebTesterApp(options: WebTesterOptions = {}): Express {
   });
 
   // Start / Reset Session
-  app.post('/api/session', async (req: Request<unknown, unknown, SessionRequestBody>, res: Response) => {
-    try {
-      const clientId = req.body.clientId ?? DEFAULT_CLIENT_ID;
-      const member = req.body.member ?? 'ja';
-      const persist = Boolean(req.body.persist);
+  app.post(
+    '/api/session',
+    async (req: Request<unknown, unknown, SessionRequestBody>, res: Response) => {
+      try {
+        const clientId = req.body.clientId ?? DEFAULT_CLIENT_ID;
+        const member = req.body.member ?? 'ja';
+        const persist = Boolean(req.body.persist);
 
-      const config = loadClient(clientId);
-      const language = contentLanguageOf(config, member);
-      const rendered = await loadRenderedMember(clientId, member);
-      const tools = buildToolDefs(rendered);
-      const messages = initialMessages(rendered);
+        const config = loadClient(clientId);
+        const language = contentLanguageOf(config, member);
+        const { services } = getReservationRepos(options.databaseUrl || process.env.DATABASE_URL);
+        if (!services) {
+          res.status(500).json({
+            error: 'DATABASE_URL is not configured (needed for the reservation feature).',
+          });
+          return;
+        }
+        const rendered = await loadRenderedMember(clientId, member, services);
+        const tools = buildToolDefs(rendered);
+        const messages = initialMessages(rendered);
 
-      const sessionId = randomUUID();
-      const callId = `web-tester-${Date.now()}`;
+        const sessionId = randomUUID();
+        const callId = `web-tester-${Date.now()}`;
 
-      const session: WebTesterSession = {
-        id: sessionId,
-        clientId,
-        member,
-        persist,
-        language,
-        callId,
-        tools,
-        messages,
-        createdAt: new Date(),
-      };
+        const session: WebTesterSession = {
+          id: sessionId,
+          clientId,
+          member,
+          persist,
+          language,
+          callId,
+          tools,
+          messages,
+          createdAt: new Date(),
+        };
 
-      sessions.set(sessionId, session);
+        sessions.set(sessionId, session);
 
-      res.json({
-        sessionId,
-        clientId,
-        member,
-        language,
-        persist,
-        model: OPENAI_MODEL,
-        greeting: rendered.assistant.firstMessage,
-      });
-    } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
-    }
-  });
+        res.json({
+          sessionId,
+          clientId,
+          member,
+          language,
+          persist,
+          model: OPENAI_MODEL,
+          greeting: rendered.assistant.firstMessage,
+        });
+      } catch (err) {
+        res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+      }
+    },
+  );
 
   // Send turn / message
   app.post('/api/turn', async (req: Request<unknown, unknown, TurnRequestBody>, res: Response) => {
@@ -197,6 +249,10 @@ export function createWebTesterApp(options: WebTesterOptions = {}): Express {
       const callbacks = session.persist
         ? getCallbacks(options.databaseUrl || process.env.DATABASE_URL)
         : undefined;
+      // VP-8: reservation reads always run, regardless of persist (see getReservationRepos above).
+      const { appointments, patients, services } = getReservationRepos(
+        options.databaseUrl || process.env.DATABASE_URL,
+      );
 
       const logs: string[] = [];
       const toolDeps: ToolCallHandlerDeps = {
@@ -205,6 +261,9 @@ export function createWebTesterApp(options: WebTesterOptions = {}): Express {
         language: session.language,
         callId: session.callId,
         ...(callbacks ? { callbacks } : {}),
+        ...(appointments ? { appointments } : {}),
+        ...(patients ? { patients } : {}),
+        ...(services ? { services } : {}),
         printLine: (line) => logs.push(line),
       };
 

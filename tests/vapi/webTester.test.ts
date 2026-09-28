@@ -4,6 +4,10 @@ import { describe, expect, test, vi } from 'vitest';
 import { createWebTesterApp, DEFAULT_CLIENT_ID } from '../../src/vapi/webTester.js';
 import type { CallModelFn } from '../../src/vapi/textTester.js';
 import type { CallbackRequestRepository } from '../../src/repositories/callbackRequestRepository.js';
+import type { ReservationServiceRepository } from '../../src/repositories/reservationServiceRepository.js';
+
+/** No services seeded — these tests aren't about the reservation flow, just that a session can start. */
+const NO_SERVICES: ReservationServiceRepository = { listByClient: () => Promise.resolve([]) };
 
 describe('webTester app', () => {
   test('serves the single-page HTML test interface on GET /', async () => {
@@ -31,10 +35,8 @@ describe('webTester app', () => {
   });
 
   test('initializes a new session on POST /api/session for default ja', async () => {
-    const app = createWebTesterApp();
-    const response = await request(app)
-      .post('/api/session')
-      .send({ member: 'ja', persist: false });
+    const app = createWebTesterApp({ services: NO_SERVICES });
+    const response = await request(app).post('/api/session').send({ member: 'ja', persist: false });
 
     expect(response.status).toBe(200);
     expect(response.body.sessionId).toBeDefined();
@@ -46,10 +48,8 @@ describe('webTester app', () => {
   });
 
   test('initializes a new session for en member with English greeting', async () => {
-    const app = createWebTesterApp();
-    const response = await request(app)
-      .post('/api/session')
-      .send({ member: 'en', persist: false });
+    const app = createWebTesterApp({ services: NO_SERVICES });
+    const response = await request(app).post('/api/session').send({ member: 'en', persist: false });
 
     expect(response.status).toBe(200);
     expect(response.body.member).toBe('en');
@@ -63,7 +63,7 @@ describe('webTester app', () => {
       content: 'はい、営業時間は朝9時から夜19時までとなっております。',
     });
 
-    const app = createWebTesterApp({ callModel: mockCaller });
+    const app = createWebTesterApp({ callModel: mockCaller, services: NO_SERVICES });
 
     const sessionRes = await request(app)
       .post('/api/session')
@@ -110,7 +110,7 @@ describe('webTester app', () => {
       });
     });
 
-    const app = createWebTesterApp({ callModel: mockCaller });
+    const app = createWebTesterApp({ callModel: mockCaller, services: NO_SERVICES });
 
     const sessionRes = await request(app)
       .post('/api/session')
@@ -165,7 +165,10 @@ describe('webTester app', () => {
               type: 'function',
               function: {
                 name: 'request_callback',
-                arguments: JSON.stringify({ callerName: '山田 太郎', callerPhone: '090-1234-5678' }),
+                arguments: JSON.stringify({
+                  callerName: '山田 太郎',
+                  callerPhone: '090-1234-5678',
+                }),
               },
             },
           ],
@@ -174,7 +177,11 @@ describe('webTester app', () => {
       return Promise.resolve({ role: 'assistant', content: '受付いたしました。' });
     });
 
-    const app = createWebTesterApp({ callModel: mockCaller, callbacks: mockCallbacks });
+    const app = createWebTesterApp({
+      callModel: mockCaller,
+      callbacks: mockCallbacks,
+      services: NO_SERVICES,
+    });
 
     // 1. Session with persist = false: mockCreate should NOT be called
     const session1 = (
@@ -185,9 +192,8 @@ describe('webTester app', () => {
     expect(mockCreate).not.toHaveBeenCalled();
 
     // 2. Session with persist = true: mockCreate SHOULD be called
-    const session2 = (
-      await request(app).post('/api/session').send({ member: 'ja', persist: true })
-    ).body.sessionId as string;
+    const session2 = (await request(app).post('/api/session').send({ member: 'ja', persist: true }))
+      .body.sessionId as string;
 
     await request(app).post('/api/turn').send({ sessionId: session2, message: '折り返し' });
     expect(mockCreate).toHaveBeenCalledTimes(1);
@@ -212,7 +218,7 @@ describe('webTester app', () => {
       ],
     });
 
-    const app = createWebTesterApp({ callModel: mockCaller });
+    const app = createWebTesterApp({ callModel: mockCaller, services: NO_SERVICES });
 
     const sessionRes = await request(app).post('/api/session').send({ member: 'ja' });
     const turnRes = await request(app)
@@ -221,8 +227,8 @@ describe('webTester app', () => {
 
     expect(turnRes.status).toBe(200);
     expect(turnRes.body.ended).toBe(true);
-    expect(
-      (turnRes.body.toolCalls as { name: string }[]).some((t) => t.name === 'endCall'),
-    ).toBe(true);
+    expect((turnRes.body.toolCalls as { name: string }[]).some((t) => t.name === 'endCall')).toBe(
+      true,
+    );
   });
 });

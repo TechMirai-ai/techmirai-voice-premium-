@@ -170,6 +170,21 @@ const scriptsSchema = z.strictObject({
    */
   emergencyGoodbye: localizedTextSchema,
   goodbye: localizedTextSchema,
+  // --- VP-8 demo reservation flow ---
+  /** Asks whether the caller is a first-time or returning patient. */
+  reservationAskType: localizedTextSchema,
+  /** Intro before offering the services listed in the prompt's "Reservation services" grounding. */
+  reservationAskService: localizedTextSchema,
+  /** Asks for a preferred date/time — used on both the first-visit and returning-patient paths. */
+  reservationAskDateTime: localizedTextSchema,
+  /** Asks a returning patient for name and phone number, for the lookup_patient tool. */
+  reservationReturningAsk: localizedTextSchema,
+  /** Said when lookup_patient finds no record — falls back to the first-time-visitor path. */
+  reservationPatientNotFound: localizedTextSchema,
+  /** May use [[reservationNumber]] — the only other script (besides confirmDetails) allowed a caller placeholder. */
+  reservationSaved: localizedTextSchema,
+  /** Said when book_appointment fails (e.g. the slot was taken in the meantime). */
+  reservationFailed: localizedTextSchema,
 });
 
 /** Every script key, in file order. Derived from the schema so it cannot drift. */

@@ -564,3 +564,35 @@ describe('buildSystemPrompt — language handling', () => {
     expect(prompt).toContain('Sample answer (fr).');
   });
 });
+
+describe('buildSystemPrompt — VP-8 reservation flow', () => {
+  const SERVICES = [
+    { id: 'general-consultation', name: { fr: 'Consultation générale' }, durationMinutes: 30 },
+  ];
+
+  test('no services given — no reservation section, no services list, defaults to []', () => {
+    const config = buildMinimalConfig({ language: 'fr' });
+
+    const prompt = buildSystemPrompt(config, 'fr', config.faq);
+
+    expect(prompt).not.toContain('Reservations (demo)');
+    expect(prompt).not.toContain('Reservation services');
+    expect(prompt).not.toContain('check_availability');
+  });
+
+  test('services given — the reservation flow and services list both appear, service-localized', () => {
+    const config = buildMinimalConfig({ language: 'fr' });
+
+    const prompt = buildSystemPrompt(config, 'fr', config.faq, SERVICES);
+
+    expect(prompt).toContain('Reservations (demo)');
+    expect(prompt).toContain('check_availability');
+    expect(prompt).toContain('lookup_patient');
+    expect(prompt).toContain('book_appointment');
+    expect(prompt).toContain('Reservation services');
+    expect(prompt).toContain('Consultation générale (id: general-consultation, about 30 min)');
+    // Wired to the real reservationSaved script text — buildMinimalConfig's generic
+    // fixture text for every SCRIPT_KEY, proving the section actually reads that key.
+    expect(prompt).toContain('reservationSaved text (fr)');
+  });
+});

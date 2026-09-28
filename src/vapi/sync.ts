@@ -5,8 +5,9 @@
  *
  * Two entry points, in dependency order:
  *   1. `syncClient`  — one language: its request_callback tool, one handoff
- *      tool per other language, then its assistant. Handoff destinations are
- *      by assistant *name*, so language order does not matter here.
+ *      tool per other language, the VP-8 reservation tools (if any services
+ *      are configured), then its assistant. Handoff destinations are by
+ *      assistant *name*, so language order does not matter here.
  *   2. `syncSquad`   — after every supported language has been synced: the
  *      Squad, which needs each assistant's real id.
  *
@@ -20,8 +21,9 @@
 import { loadClient, type LoadClientOptions } from '../config/loadClient.js';
 import type { ClientConfig } from '../config/schema.js';
 import { FileKnowledgeSource } from '../knowledge/KnowledgeSource.js';
+import type { ReservationServiceRepository } from '../repositories/reservationServiceRepository.js';
 import type { VapiSyncClient } from './client.js';
-import { renderAssistant } from './render.js';
+import { renderAssistant, type RenderedReservationTool } from './render.js';
 import {
   assistantResourceName,
   contentLanguageOf,
@@ -71,6 +73,8 @@ export interface SyncResult {
   topicTool: SyncResourceResult;
   /** One per other supported language. */
   handoffTools: SyncResourceResult[];
+  /** VP-8: check_availability, lookup_patient, book_appointment — empty when the client has no services. */
+  reservationTools: SyncResourceResult[];
   assistant: SyncResourceResult;
   /** Human-readable diff, ready to print — see cli.ts. */
   diffLines: string[];
@@ -84,6 +88,8 @@ export interface SyncClientOptions {
   baseUrl: string;
   /** Passed through to renderAssistant — the Custom Credential id (VAPI_SERVER_CREDENTIAL_ID). */
   credentialId: string;
+  /** VP-8: this client's demo bookable services — a real Postgres-backed repo outside tests. */
+  services: ReservationServiceRepository;
   /** Overrides for tests: a fixture clients/ directory and/or repo root. */
   clientsDir?: LoadClientOptions['clientsDir'];
   repoRoot?: StateStoreOptions['repoRoot'];
@@ -95,6 +101,14 @@ function toolStateName(clientId: string, language: string): string {
 
 function topicToolStateName(clientId: string, language: string): string {
   return `${clientId}--${language}--log-call-topic`;
+}
+
+function reservationToolStateName(
+  clientId: string,
+  language: string,
+  key: RenderedReservationTool['key'],
+): string {
+  return `${clientId}--${language}--${key}`;
 }
 
 function describeResource(resource: SyncResourceResult): string {
@@ -167,6 +181,7 @@ function buildDiffLines(
   tool: SyncResourceResult,
   topicTool: SyncResourceResult,
   handoffTools: SyncResourceResult[],
+  reservationTools: SyncResourceResult[],
   assistant: SyncResourceResult,
 ): string[] {
   return [
@@ -174,6 +189,7 @@ function buildDiffLines(
     `  tool:      ${describeResource(tool)}`,
     `  topic:     ${describeResource(topicTool)}`,
     ...handoffTools.map((handoff) => `  handoff:   ${describeResource(handoff)}`),
+    ...reservationTools.map((reservation) => `  reservation: ${describeResource(reservation)}`),
     `  assistant: ${describeResource(assistant)}`,
   ];
 }
@@ -189,9 +205,11 @@ export async function syncClient(
   const loadOptions = loadOptionsOf(options);
   const config = loadClient(clientId, loadOptions);
   const faq = await new FileKnowledgeSource(loadOptions).listFaq(clientId);
+  const services = await options.services.listByClient(clientId);
   const rendered = renderAssistant(config, memberId, faq, {
     baseUrl: options.baseUrl,
     credentialId: options.credentialId,
+    services,
   });
 
   const state = readState(clientId, stateOptions);
@@ -211,10 +229,15 @@ export async function syncClient(
     result: planResource(topicToolName, state.tools[topicToolName]),
     payload: rendered.topicTool,
   };
+  const reservationPlans: PlannedTool[] = rendered.reservationTools.map(({ key, payload }) => {
+    const name = reservationToolStateName(clientId, memberId, key);
+    return { result: planResource(name, state.tools[name]), payload };
+  });
   const assistantPlan = planResource(assistantName, state.assistants[assistantName]);
 
   if (options.dryRun) {
     const handoffResults = handoffPlans.map((plan) => plan.result);
+    const reservationResults = reservationPlans.map((plan) => plan.result);
     return {
       dryRun: true,
       clientId,
@@ -222,6 +245,7 @@ export async function syncClient(
       tool: toolPlan.result,
       topicTool: topicToolPlan.result,
       handoffTools: handoffResults,
+      reservationTools: reservationResults,
       assistant: assistantPlan,
       diffLines: buildDiffLines(
         clientId,
@@ -229,21 +253,24 @@ export async function syncClient(
         toolPlan.result,
         topicToolPlan.result,
         handoffResults,
+        reservationResults,
         assistantPlan,
       ),
     };
   }
 
   const { state: stateAfterTools, results } = await applyTools(
-    [toolPlan, topicToolPlan, ...handoffPlans],
+    [toolPlan, topicToolPlan, ...handoffPlans, ...reservationPlans],
     options.client,
     clientId,
     state,
     stateOptions,
   );
-  const [toolResult, topicToolResult, ...handoffResults] = results;
+  const [toolResult, topicToolResult, ...restResults] = results;
   if (!toolResult || !topicToolResult)
     throw new Error('unreachable: applyTools returned no results');
+  const handoffResults = restResults.slice(0, handoffPlans.length);
+  const reservationResults = restResults.slice(handoffPlans.length);
 
   const assistantToSend = {
     ...rendered.assistant,
@@ -274,6 +301,7 @@ export async function syncClient(
     tool: toolResult,
     topicTool: topicToolResult,
     handoffTools: handoffResults,
+    reservationTools: reservationResults,
     assistant: finalAssistant,
     diffLines: buildDiffLines(
       clientId,
@@ -281,6 +309,7 @@ export async function syncClient(
       toolResult,
       topicToolResult,
       handoffResults,
+      reservationResults,
       finalAssistant,
     ),
   };
@@ -309,9 +338,9 @@ export interface SyncSquadResult {
   diffLines: string[];
 }
 
-export type SyncSquadOptions = Omit<SyncClientOptions, 'baseUrl' | 'credentialId'>;
+export type SyncSquadOptions = Omit<SyncClientOptions, 'baseUrl' | 'credentialId' | 'services'>;
 
-/** Every state-file name that must exist before the squad can reference it. */
+/** Every state-file name that must exist before the squad can reference it (reservation tools are optional, not prerequisites). */
 function squadPrerequisites(config: ClientConfig): { assistants: string[]; tools: string[] } {
   const memberIds = squadMemberIds(config);
   return {

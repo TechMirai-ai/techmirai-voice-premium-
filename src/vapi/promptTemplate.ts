@@ -13,9 +13,13 @@ import { CLINIC_PLACEHOLDERS } from '../config/rules.js';
 import type { ClientConfig, ScriptKey } from '../config/schema.js';
 import { allowedTopics } from '../lib/callTopics.js';
 import type { FaqEntry } from '../knowledge/KnowledgeSource.js';
+import type { ReservationService } from '../repositories/reservationServiceRepository.js';
 import {
+  BOOK_APPOINTMENT_FUNCTION_NAME,
+  CHECK_AVAILABILITY_FUNCTION_NAME,
   END_CALL_FUNCTION_NAME,
   LOG_CALL_TOPIC_FUNCTION_NAME,
+  LOOKUP_PATIENT_FUNCTION_NAME,
   REQUEST_CALLBACK_FUNCTION_NAME,
 } from './toolNames.js';
 
@@ -296,6 +300,71 @@ function callbackSection(config: ClientConfig, language: string): string {
   ].join('\n');
 }
 
+/**
+ * VP-8: the demo reservation flow, following the client's own booking widget
+ * step order (work order §3). Entirely absent when the client has no
+ * reservation services configured (`services` empty) — same "nothing
+ * configured, nothing rendered" pattern as a single-language client's
+ * missing language-switching section, above.
+ */
+function reservationSection(
+  config: ClientConfig,
+  language: string,
+  services: ReservationService[],
+): string[] {
+  if (services.length === 0) return [];
+
+  return [
+    [
+      "Reservations (demo): the clinic's own booking system, separate from callback requests " +
+        'above — use this when the caller wants to book an appointment, not just leave a message ' +
+        'for staff to call back. This flow never reads a phone number back for confirmation the ' +
+        'way the callback flow above does — collect each detail once and move on.',
+      `1. Ask: "${scriptLine(config, language, 'reservationAskType')}"`,
+      '',
+      'First-time visitor:',
+      `2. "${scriptLine(config, language, 'reservationAskService')}" — offer the services listed ` +
+        'in Reservation services below, matching what the caller says to one of them.',
+      `3. "${scriptLine(config, language, 'reservationAskDateTime')}"`,
+      `4. Call ${CHECK_AVAILABILITY_FUNCTION_NAME} with the date as YYYY-MM-DD and the time as ` +
+        '24-hour HH:MM, worked out from what the caller said. Never tell the caller a time is ' +
+        'available or unavailable, and never assume a date is too far off to check, without ' +
+        'calling this tool first. If it comes back unavailable, offer the alternative time(s) it ' +
+        'gives you and wait for the caller to pick one, or offer a different date instead.',
+      '5. Once a specific time is confirmed available (either the one first requested, or an ' +
+        'alternative the caller just picked), collect, one item per turn, skipping anything the ' +
+        'caller already gave you: full name, phone number, then email address. Every one of these ' +
+        'is captured as heard, with no read-back or confirmation loop. The moment you have all ' +
+        'three, move straight to step 6 — never ask again for a detail you already have.',
+      `6. Call ${BOOK_APPOINTMENT_FUNCTION_NAME} with the chosen service id, the confirmed date/time, ` +
+        'and the details you collected (isReturningPatient: false).',
+      `7. After the tool call: if it succeeded, say something in the spirit of ` +
+        `"${scriptLine(config, language, 'reservationSaved')}", substituting the actual reservation ` +
+        'number for [[reservationNumber]] — never speak the placeholder text itself. Then ask: ' +
+        `"${scriptLine(config, language, 'anythingElse')}" — same as after answering a question. If ` +
+        `the tool call failed, say something in the spirit of "${scriptLine(config, language, 'reservationFailed')}" instead.`,
+      '',
+      'Returning patient:',
+      `2. "${scriptLine(config, language, 'reservationReturningAsk')}"`,
+      `3. Call ${LOOKUP_PATIENT_FUNCTION_NAME} with their phone number. If a record is found, confirm ` +
+        'the name out loud before continuing (for example "is this [name]-san?") — the phone number ' +
+        'is the actual match, the spoken name is only for the caller to confirm. If no record is ' +
+        `found, say "${scriptLine(config, language, 'reservationPatientNotFound')}" and continue ` +
+        'exactly as a first-time visitor from step 2 above (including choosing a service and asking ' +
+        'for an email address), using the name and phone number they already gave you.',
+      `4. If a record was found, skip service selection entirely. "${scriptLine(config, language, 'reservationAskDateTime')}"`,
+      `5. Call ${CHECK_AVAILABILITY_FUNCTION_NAME} the same way as step 4 of the first-time-visitor ` +
+        'path above.',
+      `6. The instant a specific time is confirmed available, call ${BOOK_APPOINTMENT_FUNCTION_NAME} ` +
+        'immediately — no service id, the confirmed date/time, and the name/phone number you already ' +
+        'have from the lookup above (isReturningPatient: true). You already have everything you need; ' +
+        'never ask the caller for their name, phone number, or anything else again before booking.',
+      '7. Same closing as the first-time visitor: the reservation-number line, then "anything ' +
+        'else", or the failure line if the tool call failed.',
+    ].join('\n'),
+  ];
+}
+
 // 6. Medical questions
 function medicalSection(config: ClientConfig, language: string): string[] {
   if (!config.safety.noMedicalAdvice) return [];
@@ -460,6 +529,22 @@ function clinicInformationSection(config: ClientConfig, language: string, faq: F
   ].join('\n');
 }
 
+/** VP-8: the demo bookable-services list, for grounding the reservation flow above. */
+function reservationServicesSection(language: string, services: ReservationService[]): string[] {
+  if (services.length === 0) return [];
+
+  return [
+    [
+      'Reservation services (for your own grounding — offer these when booking a first-time ' +
+        "visitor's appointment; a returning patient skips this):",
+      ...services.map(
+        (service) =>
+          `- ${pick(service.name, language)} (id: ${service.id}, about ${service.durationMinutes} min)`,
+      ),
+    ].join('\n'),
+  ];
+}
+
 // 10. Today
 function todaySection(config: ClientConfig): string {
   const timezone = config.business.hours.timezone;
@@ -478,13 +563,21 @@ function todaySection(config: ClientConfig): string {
 }
 
 /**
- * Section order (VP-7, source docs §B): identity → style → leading →
- * answering → callback → medical → emergency → language → ending → clinic
- * information → today. Static meta-instruction first, per-client data next,
- * per-call data (today's date) last — if the model provider caches repeated
- * prompt prefixes, everything above the per-call line stays cacheable.
+ * Section order (VP-7, source docs §B; VP-8 inserts reservations right after
+ * callbacks, and the reservation services list right after the FAQ, as the
+ * closest analogous "take an action" / "grounding data" pairs): identity →
+ * style → leading → answering → callback → reservations → medical →
+ * emergency → language → ending → clinic information → reservation services
+ * → today. Static meta-instruction first, per-client data next, per-call
+ * data (today's date) last — if the model provider caches repeated prompt
+ * prefixes, everything above the per-call line stays cacheable.
  */
-export function buildSystemPrompt(config: ClientConfig, language: string, faq: FaqEntry[]): string {
+export function buildSystemPrompt(
+  config: ClientConfig,
+  language: string,
+  faq: FaqEntry[],
+  services: ReservationService[] = [],
+): string {
   if (!config.languages.supported.includes(language)) {
     throw new UnsupportedLanguageError(config.clientId, language, config.languages.supported);
   }
@@ -495,11 +588,13 @@ export function buildSystemPrompt(config: ClientConfig, language: string, faq: F
     leadingSection(config, language),
     answeringSection(config, language),
     callbackSection(config, language),
+    ...reservationSection(config, language, services),
     ...medicalSection(config, language),
     emergencySection(config, language),
     ...languageSwitchSection(config, language),
     endingSection(config, language, faq),
     clinicInformationSection(config, language, faq),
+    ...reservationServicesSection(language, services),
     todaySection(config),
   ];
 

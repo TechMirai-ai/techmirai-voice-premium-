@@ -239,3 +239,68 @@ describe('renderAssistant — language handling', () => {
     expect(tool.server.url).toBe(`${BASE_URL}/api/voice/callback-request`);
   });
 });
+
+describe('renderAssistant — VP-8 reservation tools', () => {
+  const SERVICES = [
+    {
+      id: 'general-consultation',
+      name: { ja: '一般施術', en: 'General Consultation' },
+      durationMinutes: 30,
+    },
+    { id: 'follow-up', name: { ja: 'フォローアップ', en: 'Follow-up' }, durationMinutes: 20 },
+  ];
+
+  test('no services configured — no reservation tools', () => {
+    const config = buildMinimalConfig({ language: 'fr' });
+
+    const { reservationTools } = renderAssistant(config, 'fr', config.faq, OPTIONS);
+
+    expect(reservationTools).toEqual([]);
+  });
+
+  test('services configured — all three reservation tools are built, pointed at the right URLs', () => {
+    const config = buildMinimalConfig({ language: 'fr' });
+
+    const { reservationTools } = renderAssistant(config, 'fr', config.faq, {
+      ...OPTIONS,
+      services: SERVICES,
+    });
+
+    const byKey = Object.fromEntries(reservationTools.map((t) => [t.key, t.payload]));
+    expect(Object.keys(byKey).sort()).toEqual([
+      'book-appointment',
+      'check-availability',
+      'lookup-patient',
+    ]);
+    expect(byKey['check-availability']?.function.name).toBe('check_availability');
+    expect(byKey['check-availability']?.server.url).toBe(
+      `${BASE_URL}/api/voice/check-availability`,
+    );
+    expect(byKey['lookup-patient']?.function.name).toBe('lookup_patient');
+    expect(byKey['lookup-patient']?.server.url).toBe(`${BASE_URL}/api/voice/lookup-patient`);
+    expect(byKey['book-appointment']?.function.name).toBe('book_appointment');
+    expect(byKey['book-appointment']?.server.url).toBe(`${BASE_URL}/api/voice/book-appointment`);
+  });
+
+  test('book_appointment.serviceId is an enum of the configured service ids, and is not required', () => {
+    const config = buildMinimalConfig({ language: 'fr' });
+
+    const { reservationTools } = renderAssistant(config, 'fr', config.faq, {
+      ...OPTIONS,
+      services: SERVICES,
+    });
+
+    const bookAppointment = reservationTools.find((t) => t.key === 'book-appointment')?.payload;
+    expect(bookAppointment?.function.parameters.properties.serviceId?.enum).toEqual([
+      'general-consultation',
+      'follow-up',
+    ]);
+    expect(bookAppointment?.function.parameters.required).not.toContain('serviceId');
+    expect(bookAppointment?.function.parameters.required).toEqual([
+      'date',
+      'time',
+      'patientName',
+      'patientPhone',
+    ]);
+  });
+});

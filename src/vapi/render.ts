@@ -18,7 +18,14 @@ import {
   pick,
 } from './promptTemplate.js';
 import type { ClientConfig } from '../config/schema.js';
-import { LOG_CALL_TOPIC_FUNCTION_NAME, REQUEST_CALLBACK_FUNCTION_NAME } from './toolNames.js';
+import type { ReservationService } from '../repositories/reservationServiceRepository.js';
+import {
+  BOOK_APPOINTMENT_FUNCTION_NAME,
+  CHECK_AVAILABILITY_FUNCTION_NAME,
+  LOG_CALL_TOPIC_FUNCTION_NAME,
+  LOOKUP_PATIENT_FUNCTION_NAME,
+  REQUEST_CALLBACK_FUNCTION_NAME,
+} from './toolNames.js';
 import type { FaqEntry } from '../knowledge/KnowledgeSource.js';
 import {
   assistantResourceName,
@@ -56,12 +63,26 @@ export interface RenderOptions {
   baseUrl: string;
   /** Vapi Custom Credential authenticating our webhooks — from VAPI_SERVER_CREDENTIAL_ID (VP-4 R4). */
   credentialId: string;
+  /**
+   * This client's demo bookable services (VP-8), fetched by the caller —
+   * render.ts stays pure, same reasoning as `faq`. Empty (the default) turns
+   * the whole reservation feature off for this client/render: no reservation
+   * tools, no reservation prompt section — same "nothing configured, nothing
+   * rendered" pattern as a single-language client getting no handoff tools.
+   */
+  services?: ReservationService[];
 }
 
 export interface RenderedHandoffTool {
   /** The language this tool hands the call to. */
   toLanguage: string;
   payload: VapiHandoffToolPayload;
+}
+
+/** One of the three VP-8 reservation tools. `key` is the state-file bookkeeping suffix (sync.ts). */
+export interface RenderedReservationTool {
+  key: 'check-availability' | 'lookup-patient' | 'book-appointment';
+  payload: VapiFunctionToolPayload;
 }
 
 export interface RenderResult {
@@ -71,6 +92,8 @@ export interface RenderResult {
   topicTool: VapiFunctionToolPayload;
   /** One per other supported language; empty for a single-language client. */
   handoffTools: RenderedHandoffTool[];
+  /** VP-8 demo reservation tools; empty when the client has no services configured. */
+  reservationTools: RenderedReservationTool[];
 }
 
 /** Strips a trailing slash so `${baseUrl}/api/...` never ends up with `//`. */
@@ -161,6 +184,94 @@ function renderTopicTool(
   };
 }
 
+/** VP-8: `check_availability`, `lookup_patient` and `book_appointment` — a plain function tool each. */
+function renderReservationTools(
+  baseUrl: string,
+  credentialId: string,
+  services: ReservationService[],
+): RenderedReservationTool[] {
+  const serviceIds = services.map((service) => service.id);
+
+  const checkAvailability: VapiFunctionToolPayload = {
+    type: 'function',
+    function: {
+      name: CHECK_AVAILABILITY_FUNCTION_NAME,
+      description:
+        "Checks whether a specific date and time is open on the clinic's demo booking calendar. " +
+        'Always call this before offering or booking a time.',
+      parameters: {
+        type: 'object',
+        properties: {
+          date: { type: 'string', description: 'The requested date, as YYYY-MM-DD.' },
+          time: { type: 'string', description: 'The requested time, as 24-hour HH:MM.' },
+        },
+        required: ['date', 'time'],
+      },
+    },
+    server: { url: `${baseUrl}/api/voice/check-availability`, credentialId },
+  };
+
+  const lookupPatient: VapiFunctionToolPayload = {
+    type: 'function',
+    function: {
+      name: LOOKUP_PATIENT_FUNCTION_NAME,
+      description:
+        "Looks up a returning patient's record by phone number, for a caller who says they've " +
+        'visited before. The phone number is the actual match — a returned name is only for the ' +
+        'caller to confirm out loud.',
+      parameters: {
+        type: 'object',
+        properties: {
+          callerPhone: { type: 'string', description: "The caller's phone number." },
+        },
+        required: ['callerPhone'],
+      },
+    },
+    server: { url: `${baseUrl}/api/voice/lookup-patient`, credentialId },
+  };
+
+  const bookAppointment: VapiFunctionToolPayload = {
+    type: 'function',
+    function: {
+      name: BOOK_APPOINTMENT_FUNCTION_NAME,
+      description:
+        'Books a demo appointment after check_availability has confirmed the date/time is open.',
+      parameters: {
+        type: 'object',
+        properties: {
+          serviceId: {
+            type: 'string',
+            description:
+              'The chosen service id. Omit entirely for a returning patient, who skips service selection.',
+            ...(serviceIds.length > 0 ? { enum: serviceIds } : {}),
+          },
+          date: { type: 'string', description: 'The confirmed date, as YYYY-MM-DD.' },
+          time: { type: 'string', description: 'The confirmed time, as 24-hour HH:MM.' },
+          patientName: { type: 'string', description: "The patient's full name." },
+          patientPhone: { type: 'string', description: "The patient's phone number." },
+          patientEmail: {
+            type: 'string',
+            description:
+              "The patient's email address — first-visit only, omit for a returning patient.",
+          },
+          isReturningPatient: {
+            type: 'boolean',
+            description: 'True when the patient was already found via lookup_patient.',
+          },
+        },
+        required: ['date', 'time', 'patientName', 'patientPhone'],
+      },
+    },
+    server: { url: `${baseUrl}/api/voice/book-appointment`, credentialId },
+  };
+
+  return [
+    { key: 'check-availability', payload: checkAvailability },
+    { key: 'lookup-patient', payload: lookupPatient },
+    { key: 'book-appointment', payload: bookAppointment },
+  ];
+}
+
 /**
  * @param memberId A squad member id — a plain language code (e.g. "ja",
  *   "en") or the default language's "-return" variant (VP-7 R1). Every
@@ -195,7 +306,8 @@ export function renderAssistant(
   const baseUrl = stripTrailingSlash(options.baseUrl);
   const callbackUrl = `${baseUrl}/api/voice/callback-request`;
   const topicUrl = `${baseUrl}/api/voice/call-topic`;
-  const systemPrompt = buildSystemPrompt(config, language, faq);
+  const services = options.services ?? [];
+  const systemPrompt = buildSystemPrompt(config, language, faq, services);
   const failureMessage = fillClinicPlaceholders(
     config,
     language,
@@ -241,6 +353,9 @@ export function renderAssistant(
     allowedTopics(faq.map((entry) => entry.id)),
   );
 
+  const reservationTools =
+    services.length > 0 ? renderReservationTools(baseUrl, options.credentialId, services) : [];
+
   const endCallPhrases = endCallPhrasesFor(config, language);
 
   const assistant: VapiAssistantPayload = {
@@ -256,9 +371,10 @@ export function renderAssistant(
       provider: MODEL_PROVIDER,
       model: MODEL_ID,
       messages: [{ role: 'system', content: systemPrompt }],
-      // Populated by sync.ts once the tools (request_callback + one handoff
-      // tool per other language) have resolved UUIDs — create/update the tools
-      // first, then patch this in before the assistant create/update call.
+      // Populated by sync.ts once the tools (request_callback + log_call_topic
+      // + one handoff tool per other language + the VP-8 reservation tools,
+      // if any) have resolved UUIDs — create/update the tools first, then
+      // patch this in before the assistant create/update call.
       toolIds: [],
       // Built-in, no server round-trip — lets the model hang up itself
       // instead of leaving the call open (VAPI-FACTS.md VP-4 R5).
@@ -284,5 +400,5 @@ export function renderAssistant(
     payload: renderHandoffTool(config, language, toLanguage),
   }));
 
-  return { assistant, tool, topicTool, handoffTools };
+  return { assistant, tool, topicTool, handoffTools, reservationTools };
 }

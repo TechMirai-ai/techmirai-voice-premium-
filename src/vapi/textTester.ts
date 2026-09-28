@@ -12,6 +12,14 @@
  * browser: this is a CLI tool, so "the API key stays server-side" is
  * automatic.
  *
+ * VP-8: this tool now always needs a reachable Postgres — the reservation
+ * services list (for prompt grounding and the book_appointment tool schema)
+ * and every reservation-tool read (availability, patient lookup) go straight
+ * to the real local dev database, the same "own database" the demo feature
+ * is built around. `--persist` still gates WRITES only (request_callback and
+ * book_appointment) — reads were never optional even for callbacks before
+ * VP-8 and stay that way.
+ *
  * LIMITATION (flagged wherever this tool prints its banner and in the work
  * order): the real Squad handoff *mechanism* is Vapi-specific and cannot be
  * exercised here. When the model calls a handoff tool, this tool prints the
@@ -20,9 +28,10 @@
  * prompt/tool-call logic from the other side of the handoff.
  *
  * `npm run vapi:test-chat -- <clientId> --member ja|en|ja-return [--persist] [--script <file>]`
- *   --persist       request_callback tool calls actually write to the local
- *                   dev Postgres (src/repositories/callbackRequestRepository.ts),
- *                   so a full save can be verified end-to-end at zero Vapi cost.
+ *   --persist       request_callback and book_appointment tool calls actually
+ *                   write to the local dev Postgres (repositories under
+ *                   src/repositories/), so a full save can be verified
+ *                   end-to-end at zero Vapi cost.
  *   --script <file> non-interactive: reads one caller line per line from
  *                   `file` (blank lines and lines starting with # are
  *                   skipped) instead of prompting on stdin. Used to run the
@@ -37,13 +46,33 @@ import { loadClient } from '../config/loadClient.js';
 import { createPool } from '../db/pool.js';
 import { loadEnv } from '../env.js';
 import { FileKnowledgeSource } from '../knowledge/KnowledgeSource.js';
+import { normalizePhoneDigits } from '../lib/phone.js';
+import { checkAvailability } from '../reservation/availability.js';
 import {
   PgCallbackRequestRepository,
   type CallbackRequestRepository,
 } from '../repositories/callbackRequestRepository.js';
+import {
+  PgAppointmentRepository,
+  type AppointmentRepository,
+} from '../repositories/appointmentRepository.js';
+import {
+  PgReservationPatientRepository,
+  type ReservationPatientRepository,
+} from '../repositories/reservationPatientRepository.js';
+import {
+  PgReservationServiceRepository,
+  type ReservationServiceRepository,
+} from '../repositories/reservationServiceRepository.js';
 import { MODEL_ID, renderAssistant, type RenderResult } from './render.js';
 import { contentLanguageOf } from './squad.js';
-import { END_CALL_FUNCTION_NAME, LOG_CALL_TOPIC_FUNCTION_NAME } from './toolNames.js';
+import {
+  BOOK_APPOINTMENT_FUNCTION_NAME,
+  CHECK_AVAILABILITY_FUNCTION_NAME,
+  END_CALL_FUNCTION_NAME,
+  LOG_CALL_TOPIC_FUNCTION_NAME,
+  LOOKUP_PATIENT_FUNCTION_NAME,
+} from './toolNames.js';
 import type { VapiFunctionDefinition, VapiHandoffDestination } from './types.js';
 
 export const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
@@ -104,6 +133,7 @@ export function buildToolDefs(rendered: RenderResult): OpenAiFunctionToolDef[] {
   return [
     toOpenAiTool(rendered.tool.function),
     toOpenAiTool(rendered.topicTool.function),
+    ...rendered.reservationTools.map(({ payload }) => toOpenAiTool(payload.function)),
     END_CALL_TOOL,
     ...rendered.handoffTools.map(({ toLanguage, payload }) => {
       const destination = payload.destinations[0];
@@ -119,12 +149,15 @@ export function buildToolDefs(rendered: RenderResult): OpenAiFunctionToolDef[] {
 export async function loadRenderedMember(
   clientId: string,
   memberId: string,
+  services: ReservationServiceRepository,
 ): Promise<RenderResult> {
   const config = loadClient(clientId);
   const faq = await new FileKnowledgeSource().listFaq(clientId);
+  const serviceList = await services.listByClient(clientId);
   return renderAssistant(config, memberId, faq, {
     baseUrl: PLACEHOLDER_BASE_URL,
     credentialId: PLACEHOLDER_CREDENTIAL_ID,
+    services: serviceList,
   });
 }
 
@@ -226,6 +259,10 @@ export interface ToolCallHandlerDeps {
   language: string;
   callId: string;
   callbacks?: CallbackRequestRepository;
+  /** VP-8: reads (availability, patient lookup) always run when these are given, regardless of `persist`. */
+  appointments?: AppointmentRepository;
+  patients?: ReservationPatientRepository;
+  services?: ReservationServiceRepository;
   printLine: (text: string) => void;
 }
 
@@ -249,6 +286,108 @@ function parseArgs(call: ChatToolCall): Record<string, unknown> {
 /** Safe for `unknown` tool-call arguments — never invokes an object's own toString(). */
 function asString(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback;
+}
+
+function asBoolean(value: unknown): boolean {
+  return value === true;
+}
+
+async function handleCheckAvailability(
+  call: ChatToolCall,
+  deps: ToolCallHandlerDeps,
+): Promise<ToolCallOutcome> {
+  const args = parseArgs(call);
+  const date = asString(args.date);
+  const time = asString(args.time);
+
+  if (!deps.appointments) {
+    return {
+      resultMessage: toolResult(
+        call,
+        'Availability could not be checked (no database configured).',
+      ),
+      ended: false,
+    };
+  }
+
+  const config = loadClient(deps.clientId);
+  const takenTimes = await deps.appointments.listTakenTimes(deps.clientId, date);
+  const result = checkAvailability(config, date, time, takenTimes);
+
+  let text: string;
+  if (result.closed) {
+    text = `The clinic is closed on ${date}. Ask the caller for a different date.`;
+  } else if (result.requestedAvailable) {
+    text = `${time} on ${date} is available.`;
+  } else if (result.alternatives.length === 0) {
+    text = `${time} on ${date} is not available, and no other times are open that day. Ask the caller for a different date.`;
+  } else {
+    text = `${time} on ${date} is not available. Available instead: ${result.alternatives.join(', ')}.`;
+  }
+  return { resultMessage: toolResult(call, text), ended: false };
+}
+
+async function handleLookupPatient(
+  call: ChatToolCall,
+  deps: ToolCallHandlerDeps,
+): Promise<ToolCallOutcome> {
+  const args = parseArgs(call);
+  const phoneDigits = normalizePhoneDigits(asString(args.callerPhone));
+  const patient = deps.patients
+    ? await deps.patients.findByPhone(deps.clientId, phoneDigits)
+    : undefined;
+  return {
+    resultMessage: toolResult(
+      call,
+      patient ? `Found: ${patient.name}.` : 'No patient record was found for that phone number.',
+    ),
+    ended: false,
+  };
+}
+
+async function handleBookAppointment(
+  call: ChatToolCall,
+  deps: ToolCallHandlerDeps,
+): Promise<ToolCallOutcome> {
+  const args = parseArgs(call);
+  const serviceId = typeof args.serviceId === 'string' && args.serviceId ? args.serviceId : null;
+  let serviceName: string | null = null;
+  if (serviceId && deps.services) {
+    const services = await deps.services.listByClient(deps.clientId);
+    serviceName = services.find((service) => service.id === serviceId)?.name.en ?? null;
+  }
+
+  if (deps.persist && deps.appointments) {
+    const booked = await deps.appointments.create({
+      clientId: deps.clientId,
+      callId: deps.callId,
+      language: deps.language,
+      serviceId,
+      serviceName,
+      patientName: asString(args.patientName),
+      patientPhone: normalizePhoneDigits(asString(args.patientPhone)),
+      patientEmail:
+        typeof args.patientEmail === 'string' && args.patientEmail ? args.patientEmail : null,
+      isReturningPatient: asBoolean(args.isReturningPatient),
+      appointmentDate: asString(args.date),
+      appointmentTime: asString(args.time),
+    });
+    deps.printLine(
+      `Persisted appointments row: ${booked.id} (reservation ${booked.reservationNumber})`,
+    );
+    return {
+      resultMessage: toolResult(call, `Booked. Reservation number: ${booked.reservationNumber}.`),
+      ended: false,
+    };
+  }
+
+  return {
+    resultMessage: toolResult(
+      call,
+      'Booked. Reservation number: R000000 (not persisted — run with --persist).',
+    ),
+    ended: false,
+  };
 }
 
 export async function handleToolCall(
@@ -289,6 +428,18 @@ export async function handleToolCall(
 
   if (name === LOG_CALL_TOPIC_FUNCTION_NAME) {
     return { resultMessage: toolResult(call, 'Success.'), ended: false };
+  }
+
+  if (name === CHECK_AVAILABILITY_FUNCTION_NAME) {
+    return handleCheckAvailability(call, deps);
+  }
+
+  if (name === LOOKUP_PATIENT_FUNCTION_NAME) {
+    return handleLookupPatient(call, deps);
+  }
+
+  if (name === BOOK_APPOINTMENT_FUNCTION_NAME) {
+    return handleBookAppointment(call, deps);
   }
 
   return { resultMessage: toolResult(call, 'Success.'), ended: false };
@@ -410,11 +561,21 @@ export async function runTextTester(argv: string[]): Promise<number> {
     return 1;
   }
 
+  // VP-8: always connected — the reservation services list, availability
+  // checks and patient lookups are real database reads regardless of
+  // --persist (which only gates request_callback/book_appointment writes).
+  const pool = createPool({ connectionString: env.DATABASE_URL });
+  const callbacks = new PgCallbackRequestRepository(pool);
+  const appointments = new PgAppointmentRepository(pool);
+  const patients = new PgReservationPatientRepository(pool);
+  const services = new PgReservationServiceRepository(pool);
+
   let rendered: RenderResult;
   try {
-    rendered = await loadRenderedMember(args.clientId, args.member);
+    rendered = await loadRenderedMember(args.clientId, args.member, services);
   } catch (error) {
     printError(error instanceof Error ? error.message : String(error));
+    await pool.end();
     return 1;
   }
 
@@ -436,14 +597,15 @@ export async function runTextTester(argv: string[]): Promise<number> {
   const callModel = makeOpenAiCaller(env.OPENAI_API_KEY);
   const callId = `text-tester-${Date.now()}`;
 
-  const pool = args.persist ? createPool({ connectionString: env.DATABASE_URL }) : undefined;
-  const callbacks = pool ? new PgCallbackRequestRepository(pool) : undefined;
   const toolDeps: ToolCallHandlerDeps = {
     persist: args.persist,
     clientId: args.clientId,
     language,
     callId,
-    ...(callbacks ? { callbacks } : {}),
+    callbacks,
+    appointments,
+    patients,
+    services,
     printLine,
   };
 
@@ -481,7 +643,7 @@ export async function runTextTester(argv: string[]): Promise<number> {
       }
     }
   } finally {
-    if (pool) await pool.end();
+    await pool.end();
   }
 
   return 0;

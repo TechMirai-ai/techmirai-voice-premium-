@@ -4,6 +4,11 @@ import type { Queryable } from '../../src/db/pool.js';
 import { FileKnowledgeSource } from '../../src/knowledge/KnowledgeSource.js';
 import type { CallbackNotifier, CallbackNotification } from '../../src/lib/callbackNotifier.js';
 import type {
+  AppointmentRepository,
+  BookedAppointment,
+  NewAppointment,
+} from '../../src/repositories/appointmentRepository.js';
+import type {
   CallbackRequestRepository,
   NewCallbackRequest,
 } from '../../src/repositories/callbackRequestRepository.js';
@@ -11,6 +16,14 @@ import type {
   CallTopicRepository,
   NewCallTopic,
 } from '../../src/repositories/callTopicRepository.js';
+import type {
+  ReservationPatient,
+  ReservationPatientRepository,
+} from '../../src/repositories/reservationPatientRepository.js';
+import type {
+  ReservationService,
+  ReservationServiceRepository,
+} from '../../src/repositories/reservationServiceRepository.js';
 import type { AssistantResolver } from '../../src/vapi/assistantResolver.js';
 import type { VoiceRouterOptions } from '../../src/routes/voiceRouter.js';
 import type { RateLimitOptions } from '../../src/middleware/rateLimit.js';
@@ -60,6 +73,51 @@ export class MemoryNotifier implements CallbackNotifier {
   }
 }
 
+/** A single fixed demo service: "general-consultation" (30 min). */
+export class MemoryReservationServices implements ReservationServiceRepository {
+  services: ReservationService[] = [
+    {
+      id: 'general-consultation',
+      name: { ja: '一般施術', en: 'General Consultation' },
+      durationMinutes: 30,
+    },
+  ];
+
+  listByClient(): Promise<ReservationService[]> {
+    return Promise.resolve(this.services);
+  }
+}
+
+/** Knows one fake returning patient, phone digits "09011112222". */
+export class MemoryReservationPatients implements ReservationPatientRepository {
+  patients: ReservationPatient[] = [{ name: 'ヤマダ タロウ', phone: '09011112222' }];
+
+  findByPhone(_clientId: string, phoneDigits: string): Promise<ReservationPatient | undefined> {
+    return Promise.resolve(this.patients.find((patient) => patient.phone === phoneDigits));
+  }
+}
+
+export class MemoryAppointments implements AppointmentRepository {
+  readonly booked: NewAppointment[] = [];
+  taken: Record<string, string[]> = {};
+  failWith: Error | undefined;
+
+  listTakenTimes(_clientId: string, date: string): Promise<Set<string>> {
+    return Promise.resolve(new Set(this.taken[date] ?? []));
+  }
+
+  create(appointment: NewAppointment): Promise<BookedAppointment> {
+    if (this.failWith) return Promise.reject(this.failWith);
+    this.booked.push(appointment);
+    return Promise.resolve({
+      ...appointment,
+      id: 'appt-1',
+      reservationNumber: 'R000001',
+      createdAt: new Date(0),
+    });
+  }
+}
+
 /** Knows one assistant: `sakura-seikotsuin--ja`, id `assistant-ja`. */
 export const resolver: AssistantResolver = {
   resolve: (ref) =>
@@ -72,6 +130,9 @@ export function buildVoiceApp(options: { rateLimit?: RateLimitOptions } = {}) {
   const callbacks = new MemoryCallbacks();
   const topics = new MemoryTopics();
   const notifier = new MemoryNotifier();
+  const services = new MemoryReservationServices();
+  const patients = new MemoryReservationPatients();
+  const appointments = new MemoryAppointments();
   const voiceOptions: VoiceRouterOptions = {
     webhookSecret: WEBHOOK_SECRET,
     resolver,
@@ -79,6 +140,9 @@ export function buildVoiceApp(options: { rateLimit?: RateLimitOptions } = {}) {
     callbacks,
     topics,
     notifier,
+    services,
+    patients,
+    appointments,
     ...(options.rateLimit ? { rateLimit: options.rateLimit } : {}),
   };
   const app = createApp({
@@ -87,7 +151,7 @@ export function buildVoiceApp(options: { rateLimit?: RateLimitOptions } = {}) {
     voice: voiceOptions,
     staff: buildStaffOptions(),
   });
-  return { app, callbacks, topics, notifier, voiceOptions };
+  return { app, callbacks, topics, notifier, services, patients, appointments, voiceOptions };
 }
 
 type ToolCallShape = 'sdk' | 'docs';

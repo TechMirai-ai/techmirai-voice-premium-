@@ -9,7 +9,9 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { createPool } from '../db/pool.js';
 import { loadEnv } from '../env.js';
+import { PgReservationServiceRepository } from '../repositories/reservationServiceRepository.js';
 import { createVapiClient } from './client.js';
 import { syncClient, syncSquad } from './sync.js';
 
@@ -74,8 +76,12 @@ export async function runSync(argv: string[]): Promise<number> {
     return 1;
   }
 
+  // Only --language needs a database connection (VP-8: the reservation
+  // services list is fetched per-language render, not for the squad sync).
+  const env = loadEnv();
+  const pool = squad ? undefined : createPool({ connectionString: env.DATABASE_URL });
+
   try {
-    const env = loadEnv();
     const client = createVapiClient(env.VAPI_API_KEY);
 
     const result = squad
@@ -85,6 +91,7 @@ export async function runSync(argv: string[]): Promise<number> {
           client,
           baseUrl: env.PUBLIC_BASE_URL,
           credentialId: env.VAPI_SERVER_CREDENTIAL_ID,
+          services: new PgReservationServiceRepository(pool!),
         });
 
     for (const line of result.diffLines) {
@@ -110,6 +117,8 @@ export async function runSync(argv: string[]): Promise<number> {
   } catch (error) {
     printError(error instanceof Error ? error.message : String(error));
     return 1;
+  } finally {
+    if (pool) await pool.end();
   }
 }
 

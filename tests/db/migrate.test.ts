@@ -66,7 +66,10 @@ describe.skipIf(!TEST_DATABASE_URL)('migration runner', () => {
     await pool.query(`DROP TABLE IF EXISTS ${MIGRATIONS_TABLE}`);
     await pool.query('DROP TABLE IF EXISTS widgets');
     // Tables created by the repo's own migrations, so the next test can re-apply them.
-    await pool.query('DROP TABLE IF EXISTS callback_requests, call_topics, staff_users, session');
+    await pool.query(
+      'DROP TABLE IF EXISTS callback_requests, call_topics, staff_users, session, ' +
+        'appointments, reservation_services, reservation_demo_patients, reservation_booked_slots',
+    );
   });
 
   test('applies the repo migrations, then applies nothing on a second run', async () => {

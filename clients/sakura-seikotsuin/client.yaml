@@ -202,6 +202,48 @@ scripts:
   goodbye:
     en: Thank you for calling [[clinicName]]. Have a great day. Goodbye.
     ja: "[[clinicName]]にお電話いただき、ありがとうございました。失礼いたします。"
+  # VP-8: demo reservation flow. NEEDS NATIVE-SPEAKER REVIEW, like the rest of the Japanese content.
+  reservationAskType:
+    en: Is this your first visit, or are you a returning patient?
+    # Gloss: "Is this your first time visiting, or have you visited before?"
+    ja: 今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？
+  reservationAskService:
+    en: Which service would you like to book?
+    # Gloss: "Which treatment would you like to reserve?"
+    ja: どちらの施術をご希望でしょうか？
+  reservationAskDateTime:
+    en: What date and time would you prefer?
+    # Gloss: "What date and time would be convenient for you?"
+    ja: ご希望の日時はございますか？
+  reservationReturningAsk:
+    en: Could I have your name and phone number, so I can look up your information?
+    # Gloss: "May I have your name and phone number to look up your information?"
+    ja: お名前とお電話番号を教えていただけますでしょうか。お客様の情報を確認いたします。
+  reservationPatientNotFound:
+    en: >-
+      I'm sorry, I couldn't find that phone number in our records.
+      Let's set you up as a new patient instead.
+    # Gloss: "I'm sorry, I couldn't find that phone number in our records. Let me set you up as a new patient instead."
+    ja: >-
+      申し訳ございません。そのお電話番号は当院の記録に見つかりませんでした。
+      恐れ入りますが、初めてご来院の方として承ります。
+  # Uses [[reservationNumber]] — the tool call supplies the actual number, substituted in by the model.
+  reservationSaved:
+    en: >-
+      Thank you. Your reservation number is [[reservationNumber]].
+      We'll send the details to your email.
+    # Gloss: "Thank you. Your reservation number is [[reservationNumber]]. We will send the details to your email."
+    ja: >-
+      ありがとうございます。ご予約番号は[[reservationNumber]]でございます。
+      詳細はメールにてお送りいたします。
+  reservationFailed:
+    en: >-
+      I'm sorry, I wasn't able to complete that booking because of a system problem.
+      Could you please try again, or choose a different time?
+    # Gloss: "I'm sorry, I wasn't able to complete that booking due to a system problem. Could you please try again, or choose a different time?"
+    ja: >-
+      申し訳ございません。システムの不具合により、ご予約を完了できませんでした。
+      恐れ入りますが、もう一度お試しいただくか、別の時間をお選びいただけますでしょうか。
 
 faq:
   - id: hours

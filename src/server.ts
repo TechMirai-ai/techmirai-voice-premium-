@@ -8,8 +8,11 @@ import { isProduction, loadEnv } from './env.js';
 import { LoggingNotifier } from './lib/callbackNotifier.js';
 import { logger } from './lib/logger.js';
 import { FileKnowledgeSource } from './knowledge/KnowledgeSource.js';
+import { PgAppointmentRepository } from './repositories/appointmentRepository.js';
 import { PgCallbackRequestRepository } from './repositories/callbackRequestRepository.js';
 import { PgCallTopicRepository } from './repositories/callTopicRepository.js';
+import { PgReservationPatientRepository } from './repositories/reservationPatientRepository.js';
+import { PgReservationServiceRepository } from './repositories/reservationServiceRepository.js';
 import { PgStaffUserRepository } from './repositories/staffUserRepository.js';
 import { StateFileAssistantResolver } from './vapi/assistantResolver.js';
 
@@ -29,6 +32,10 @@ const app = createApp({
     topics: new PgCallTopicRepository(pool),
     // F-2: email/LINE are new classes implementing CallbackNotifier, swapped in here.
     notifier: new LoggingNotifier(),
+    // VP-8 demo reservation feature.
+    appointments: new PgAppointmentRepository(pool),
+    patients: new PgReservationPatientRepository(pool),
+    services: new PgReservationServiceRepository(pool),
   },
   staff: {
     sessionStore: new PgSession({
