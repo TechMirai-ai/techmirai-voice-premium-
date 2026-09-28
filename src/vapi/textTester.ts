@@ -177,6 +177,42 @@ export interface ChatMessage {
   name?: string;
 }
 
+/**
+ * Resolves `promptTemplate.ts`'s `todaySection()` Liquid placeholder
+ * (`{{"now" | date: "%A, %B %d, %Y, %H:%M", "<tz>"}}`) the same way Vapi's
+ * own LiquidJS templating does server-side on a real call (VAPI-FACTS.md
+ * VP-7 R5) — this tester talks to OpenAI directly, which has no template
+ * engine of its own and no idea what "now" means, so an unresolved
+ * placeholder is sent to the model as literal text. Without this, the model
+ * has nothing real to compute a relative date ("tomorrow") from and guesses
+ * — observed guessing a date roughly 3 years off. Format matches this
+ * project's one fixed Liquid call exactly (`%A, %B %d, %Y, %H:%M`); ported
+ * from `docs/vp7-test-runs/run-suite.ts.txt`'s equivalent fix for the same
+ * gap in that separate, now-superseded ad-hoc script, so every tester that
+ * reuses this prompt resolves "now" the same way instead of drifting.
+ */
+const NOW_PLACEHOLDER_PATTERN = /\{\{"now" \| date: "[^"]+", "([^"]+)"\}\}/g;
+
+export function resolveNowPlaceholders(prompt: string, now: Date = new Date()): string {
+  return prompt.replace(NOW_PLACEHOLDER_PATTERN, (_match, timeZone: string) => {
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        weekday: 'long',
+        month: 'long',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+      })
+        .formatToParts(now)
+        .map((part) => [part.type, part.value]),
+    );
+    return `${parts.weekday}, ${parts.month} ${parts.day}, ${parts.year}, ${parts.hour}:${parts.minute}`;
+  });
+}
+
 /** System prompt + the member's own firstMessage, seeded as its first spoken turn. */
 export function initialMessages(rendered: RenderResult): ChatMessage[] {
   const systemContent = rendered.assistant.model.messages[0]?.content;
@@ -184,7 +220,7 @@ export function initialMessages(rendered: RenderResult): ChatMessage[] {
     throw new Error('renderAssistant produced no system message');
   }
   return [
-    { role: 'system', content: systemContent },
+    { role: 'system', content: resolveNowPlaceholders(systemContent) },
     { role: 'assistant', content: rendered.assistant.firstMessage },
   ];
 }

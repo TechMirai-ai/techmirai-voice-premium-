@@ -10,6 +10,7 @@ import {
   handleToolCall,
   initialMessages,
   parseTextTesterArgs,
+  resolveNowPlaceholders,
   runTurn,
   type CallModelFn,
   type ChatMessage,
@@ -76,7 +77,7 @@ describe('buildToolDefs', () => {
 });
 
 describe('initialMessages', () => {
-  test('seeds the system prompt and the firstMessage as the opening assistant turn', async () => {
+  test('seeds the system prompt (with "now" resolved) and the firstMessage as the opening assistant turn', async () => {
     const rendered = await renderedFor('ja');
 
     const messages = initialMessages(rendered);
@@ -84,9 +85,42 @@ describe('initialMessages', () => {
     expect(messages).toHaveLength(2);
     expect(messages[0]).toEqual({
       role: 'system',
-      content: rendered.assistant.model.messages[0]?.content,
+      content: resolveNowPlaceholders(rendered.assistant.model.messages[0]?.content ?? ''),
     });
+    // The raw, unresolved Liquid syntax must never reach OpenAI — it has no template engine of
+    // its own and would otherwise be sent the literal placeholder text (VP-8 real bug: the model
+    // guessed a date ~3 years off when this leaked through).
+    expect(messages[0]?.content).not.toContain('{{"now"');
     expect(messages[1]).toEqual({ role: 'assistant', content: rendered.assistant.firstMessage });
+  });
+});
+
+describe('resolveNowPlaceholders', () => {
+  test('replaces the Liquid "now" placeholder with the real date/time in the given timezone', () => {
+    const prompt = 'Today:\n{{"now" | date: "%A, %B %d, %Y, %H:%M", "Asia/Tokyo"}}\nEnd.';
+    const now = new Date('2026-11-15T01:30:00Z'); // 10:30 JST on 2026-11-15 (a Sunday)
+
+    expect(resolveNowPlaceholders(prompt, now)).toBe(
+      'Today:\nSunday, November 15, 2026, 10:30\nEnd.',
+    );
+  });
+
+  test('resolves a different timezone independently', () => {
+    const prompt = '{{"now" | date: "%A, %B %d, %Y, %H:%M", "America/New_York"}}';
+    const now = new Date('2026-11-15T01:30:00Z'); // 20:30 EST on 2026-11-14
+
+    expect(resolveNowPlaceholders(prompt, now)).toBe('Saturday, November 14, 2026, 20:30');
+  });
+
+  test('leaves a prompt with no placeholder unchanged', () => {
+    expect(resolveNowPlaceholders('No date here.')).toBe('No date here.');
+  });
+
+  test('defaults to the real current date when none is given', () => {
+    const prompt = '{{"now" | date: "%A, %B %d, %Y, %H:%M", "UTC"}}';
+    const currentYear = new Date().getUTCFullYear().toString();
+
+    expect(resolveNowPlaceholders(prompt)).toContain(currentYear);
   });
 });
 
