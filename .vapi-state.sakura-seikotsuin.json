@@ -8,7 +8,10 @@
     "sakura-seikotsuin--en--log-call-topic": "ad4329de-1c0e-49d1-97e9-ccc0051decbe",
     "sakura-seikotsuin--ja-return--request-callback": "5693c68f-bae8-4794-9e06-ee4210216f5f",
     "sakura-seikotsuin--ja-return--log-call-topic": "4c7d0255-0eac-4374-9d9f-fee1cdb4476f",
-    "sakura-seikotsuin--ja-return--handoff-to-en": "b37c11ef-adb5-43cd-b87b-59b44fb2b08d"
+    "sakura-seikotsuin--ja-return--handoff-to-en": "b37c11ef-adb5-43cd-b87b-59b44fb2b08d",
+    "sakura-seikotsuin--ja--check-availability": "cbea8340-7b6f-43c1-851d-bface570e743",
+    "sakura-seikotsuin--ja--lookup-patient": "304cc71c-88a1-409f-a297-de7619d98dc0",
+    "sakura-seikotsuin--ja--book-appointment": "989cdc67-005d-47bf-b719-441eff8b8bb1"
   },
   "assistants": {
     "sakura-seikotsuin--ja": "5783f9a4-7051-4595-b391-997c080fc61b",
