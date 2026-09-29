@@ -400,10 +400,7 @@ async function handleBookAppointment(
       language: deps.language,
       serviceId,
       serviceName,
-      patientName: asString(args.patientName),
       patientPhone: normalizePhoneDigits(asString(args.patientPhone)),
-      patientEmail:
-        typeof args.patientEmail === 'string' && args.patientEmail ? args.patientEmail : null,
       isReturningPatient: asBoolean(args.isReturningPatient),
       appointmentDate: asString(args.date),
       appointmentTime: asString(args.time),

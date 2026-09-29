@@ -242,6 +242,47 @@ function phoneReadbackGuide(config: ClientConfig, language: string): string {
   return ` Digit words: ${words}. Example — 09012345678 is read back as "${readback.example}".`;
 }
 
+/**
+ * The digit-by-digit read-back-and-confirm sequence proven in the callback flow
+ * (request_callback) — reused everywhere else a phone number is collected, currently also the
+ * reservation flow below. `confirmScriptKey` picks the actual line spoken: `confirmDetails`
+ * (name + phone, callback flow) or `confirmPhone` (phone only, reservation flow, which never
+ * collects a name).
+ */
+function phoneReadbackInstructions(
+  config: ClientConfig,
+  language: string,
+  confirmScriptKey: ScriptKey,
+): string {
+  return (
+    'Read the number back, as its own turn, then stop and wait: ' +
+    `"${scriptLine(config, language, confirmScriptKey)}"\n` +
+    '   - Speak every digit the caller gave, one at a time and in order, as a word — never a ' +
+    'combined number (never "ninety"), and never skip, merge or change a digit — Japanese in ' +
+    'katakana, English as words — grouped the way the caller said it. The caller checks the ' +
+    `number against your read-back, so a wrong digit here means a wrong number is saved.${phoneReadbackGuide(config, language)}\n` +
+    '   - Check the digits BEFORE reading anything back. A Japanese mobile number (090, 080, 070…) ' +
+    'is exactly 11 digits in groups of 3-4-4; a landline is 10. If any group is short or long ' +
+    '— for example the caller says "090 1234 567", where the last group has only 3 digits — do ' +
+    'NOT read it back. Say instead: ' +
+    `"${scriptLine(config, language, 'phoneRetry')}" and wait. Asking for the number again is ` +
+    'not one of the "didn\'t catch it" attempts above.\n' +
+    '   - If the caller says no to a read-back, say that same phone-number line and ask for the ' +
+    'whole number again.'
+  );
+}
+
+/**
+ * Distinguishes a mid-sentence listening noise from a real "yes" — paired with
+ * `phoneReadbackInstructions` wherever a phone number must be explicitly confirmed before use.
+ */
+const PHONE_CONFIRMATION_ACK_INSTRUCTIONS =
+  'Short acknowledgement sounds the caller makes WHILE you are still speaking (a quick ' +
+  '"mm-hm" or "yeah", or the Japanese equivalent such as 「はい」/「うん」 said mid-sentence) ' +
+  "are not a yes — they're just the caller listening. Only an explicit affirmative answer " +
+  'given AFTER you finish asking counts as confirmation. A "no," a correction, silence, or ' +
+  'anything unclear is not a yes either — fix the detail, read it back again, and ask again.';
+
 // 5. Callback requests
 function callbackSection(config: ClientConfig, language: string): string {
   return [
@@ -265,25 +306,8 @@ function callbackSection(config: ClientConfig, language: string): string {
       "in kanji — staff only need the reading. In English, ask them to spell it if it's unusual or " +
       'unclear, and read the spelling back.',
     `3. Phone number, if not already asked: "${scriptLine(config, language, 'askPhone')}"`,
-    '4. Read the number back, as its own turn, then stop and wait: ' +
-      `"${scriptLine(config, language, 'confirmDetails')}"\n` +
-      '   - Speak every digit the caller gave, one at a time and in order, as a word — never a ' +
-      'combined number (never "ninety"), and never skip, merge or change a digit — Japanese in ' +
-      'katakana, English as words — grouped the way the caller said it. The caller checks the ' +
-      `number against your read-back, so a wrong digit here means a wrong number is saved.${phoneReadbackGuide(config, language)}\n` +
-      '   - Check the digits BEFORE reading anything back. A Japanese mobile number (090, 080, 070…) ' +
-      'is exactly 11 digits in groups of 3-4-4; a landline is 10. If any group is short or long ' +
-      '— for example the caller says "090 1234 567", where the last group has only 3 digits — do ' +
-      'NOT read it back. Say instead: ' +
-      `"${scriptLine(config, language, 'phoneRetry')}" and wait. Asking for the number again is ` +
-      'not one of the "didn\'t catch it" attempts above.\n' +
-      '   - If the caller says no to a read-back, say that same phone-number line and ask for the ' +
-      'whole number again.',
-    '5. Short acknowledgement sounds the caller makes WHILE you are still speaking (a quick ' +
-      '"mm-hm" or "yeah", or the Japanese equivalent such as 「はい」/「うん」 said mid-sentence) ' +
-      "are not a yes — they're just the caller listening. Only an explicit affirmative answer " +
-      'given AFTER you finish asking counts as confirmation. A "no," a correction, silence, or ' +
-      'anything unclear is not a yes either — fix the detail, read it back again, and ask again.',
+    `4. ${phoneReadbackInstructions(config, language, 'confirmDetails')}`,
+    `5. ${PHONE_CONFIRMATION_ACK_INSTRUCTIONS}`,
     `6. Call ${REQUEST_CALLBACK_FUNCTION_NAME} only after that clear yes. Pass the caller's phone ` +
       'number as plain digits (for example 09012345678) — never as spoken-word or katakana ' +
       "digits. Pass the caller's name in the form that best preserves how it's actually " +
@@ -326,16 +350,17 @@ function reservationSection(
     [
       "Reservations (demo): the clinic's own booking system, separate from callback requests " +
         'above — use this when the caller wants to book an appointment, not just leave a message ' +
-        'for staff to call back. None of the callback rules above apply here: this flow never ' +
-        'reads a phone number back for confirmation, never checks its digit count or group ' +
-        'pattern, and never rejects one as unclear or asks for it again — whatever the caller ' +
-        'says is captured exactly as heard and you move on. The two paths below also need ' +
-        'DIFFERENT information before booking — read the "Required before booking" line for ' +
-        'whichever path applies and collect exactly that, nothing from the other path.',
+        "for staff to call back. This flow never collects a caller's full name or email address " +
+        '— a phone number is the only identifying detail it ever asks for, and it is confirmed ' +
+        'the same careful way the callback flow above confirms one: read back digit-by-digit, ' +
+        'then wait for an explicit yes. The two paths below need DIFFERENT information before ' +
+        'booking — read the "Required before booking" line for whichever path applies and ' +
+        'collect exactly that, nothing from the other path.',
       `1. Ask: "${scriptLine(config, language, 'reservationAskType')}"`,
       '',
-      'FIRST-TIME VISITOR — required before booking: a service, a confirmed date/time, full name, ' +
-        'phone number, and email address. All five; do not call the booking tool with any missing.',
+      'FIRST-TIME VISITOR — required before booking: a service, a confirmed date/time, and a ' +
+        'phone number. All three; do not call the booking tool with any missing. Never ask for ' +
+        'a name or an email address anywhere in this path.',
       `2. "${scriptLine(config, language, 'reservationAskService')}" — offer the services listed ` +
         'in Reservation services below, matching what the caller says to one of them.',
       `3. "${scriptLine(config, language, 'reservationAskDateTime')}"`,
@@ -344,39 +369,53 @@ function reservationSection(
         'available or unavailable, and never assume a date is too far off to check, without ' +
         'calling this tool first. If it comes back unavailable, offer the alternative time(s) it ' +
         'gives you and wait for the caller to pick one, or offer a different date instead.',
-      '5. Once a specific time is confirmed available, collect whichever of these the caller ' +
-        'has not already given you, one per turn: full name, phone number, email address — every ' +
-        'one taken exactly as heard, with no read-back, no digit-count check, and no confirmation ' +
-        'loop of any kind. The moment all three are in hand, you have every required field from ' +
-        'the list above — move straight to step 6.',
-      `6. Call ${BOOK_APPOINTMENT_FUNCTION_NAME} with the chosen service id, the confirmed date/time, ` +
-        'and the name/phone/email you collected (isReturningPatient: false).',
-      `7. ${closing}`,
+      `5. Once a specific time is confirmed available, ask for a phone number: ` +
+        `"${scriptLine(config, language, 'askPhone')}"`,
+      `6. ${phoneReadbackInstructions(config, language, 'confirmPhone')}`,
+      `7. ${PHONE_CONFIRMATION_ACK_INSTRUCTIONS}`,
+      `8. Call ${BOOK_APPOINTMENT_FUNCTION_NAME} only after that clear yes, with the chosen ` +
+        "service id, the confirmed date/time, and the caller's phone number as plain digits " +
+        '(for example 09012345678) — never as spoken-word or katakana digits (isReturningPatient: false).',
+      `9. ${closing}`,
       '',
-      'RETURNING PATIENT — required before booking: a confirmed date/time only. The lookup in ' +
-        'step 3 already gives you their name and phone number — never ask for either again. Do ' +
-        'NOT collect a service: a returning patient never chooses one. Do NOT collect an email ' +
-        'address: that field belongs only to the first-time-visitor path above and never applies ' +
-        'here.',
-      `2. "${scriptLine(config, language, 'reservationReturningAsk')}"`,
-      `3. Call ${LOOKUP_PATIENT_FUNCTION_NAME} with their phone number. If a record is found, confirm ` +
-        'the name out loud before continuing (for example "is this [name]-san?") — the phone number ' +
-        'is the actual match, the spoken name is only for the caller to confirm. If no record is ' +
-        `found, say "${scriptLine(config, language, 'reservationPatientNotFound')}" and switch to ` +
-        'the FIRST-TIME VISITOR path above from step 2 (its full five-field checklist now applies), ' +
-        'using the name and phone number they already gave you.',
-      `4. If a record was found, skip service selection entirely — do not ask about it. ` +
+      'RETURNING PATIENT — required before booking: a confirmed phone number and a confirmed ' +
+        'date/time. Do NOT collect a service: a returning patient never chooses one. Never ask ' +
+        "for the caller's name at all in this path, not even as a spoken confirmation — the " +
+        'confirmed phone number alone identifies them.',
+      `2. Ask for a phone number: "${scriptLine(config, language, 'reservationReturningAsk')}"`,
+      `3. ${phoneReadbackInstructions(config, language, 'confirmPhone')}`,
+      `4. ${PHONE_CONFIRMATION_ACK_INSTRUCTIONS}`,
+      `5. As soon as you have that clear yes, call ${LOOKUP_PATIENT_FUNCTION_NAME} with the ` +
+        'confirmed phone number, as plain digits — do this immediately, in the same turn, with ' +
+        'no further caller input first.',
+      '6. Whether or not a record is found, never say a name back or ask the caller to confirm ' +
+        'one — the phone number you already confirmed is the only match this path ever uses. If ' +
+        `no record is found, say "${scriptLine(config, language, 'reservationPatientNotFound')}". ` +
+        'IMPORTANT: you already collected and confirmed a phone number in steps 2-4 above — even ' +
+        'though the FIRST-TIME VISITOR path above normally asks for a phone number partway ' +
+        'through, do NOT ask for one again here under any circumstance; treat it as already done. ' +
+        `Ask only "${scriptLine(config, language, 'reservationAskService')}" and, once chosen, ` +
+        `"${scriptLine(config, language, 'reservationAskDateTime')}", then call ` +
+        `${CHECK_AVAILABILITY_FUNCTION_NAME} the same way as step 4 of the first-time-visitor path ` +
+        'above. The moment a specific time is confirmed available — with the service chosen and ' +
+        'the phone number already confirmed, nothing else is needed from the caller — call ' +
+        `${BOOK_APPOINTMENT_FUNCTION_NAME} right away, in this same turn, exactly like you chain ` +
+        `${LOG_CALL_TOPIC_FUNCTION_NAME} and ${END_CALL_FUNCTION_NAME} at the end of a call. Use ` +
+        'the chosen service id, the confirmed date/time, and the phone number you already ' +
+        'confirmed above (isReturningPatient: false). Do not ask for a phone number at this or ' +
+        'any other point in this fallback.',
+      `7. If a record was found, skip service selection entirely — do not ask about it. ` +
         `"${scriptLine(config, language, 'reservationAskDateTime')}"`,
-      `5. Call ${CHECK_AVAILABILITY_FUNCTION_NAME} the same way as step 4 of the first-time-visitor ` +
+      `8. Call ${CHECK_AVAILABILITY_FUNCTION_NAME} the same way as step 4 of the first-time-visitor ` +
         'path above.',
-      `6. The moment a specific time is confirmed available, you already have every required field ` +
-        `(name and phone from the lookup, the date/time just confirmed) — call ${BOOK_APPOINTMENT_FUNCTION_NAME} ` +
+      `9. The moment a specific time is confirmed available, you already have every required ` +
+        `field (the confirmed phone number, the date/time just confirmed) — call ${BOOK_APPOINTMENT_FUNCTION_NAME} ` +
         'right away, in this same turn, with no caller input needed first, exactly like you chain ' +
         `${LOG_CALL_TOPIC_FUNCTION_NAME} and ${END_CALL_FUNCTION_NAME} at the end of a call. Pass no ` +
-        'service id, the confirmed date/time, the name/phone from the lookup, and isReturningPatient: ' +
-        'true. Do not ask the caller for a service, an email address, their name, or their phone ' +
-        'number — you already have everything this path needs.',
-      `7. ${closing}`,
+        'service id, the confirmed date/time, and the confirmed phone number, with ' +
+        'isReturningPatient: true. Do not ask the caller for a service, a name, or an email ' +
+        'address — you already have everything this path needs.',
+      `10. ${closing}`,
     ].join('\n'),
   ];
 }

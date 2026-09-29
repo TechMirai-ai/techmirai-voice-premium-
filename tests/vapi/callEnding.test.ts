@@ -19,8 +19,16 @@ const config = loadClient(SAKURA_ID);
 
 describe('endCallPhrasesFor', () => {
   test("returns each language's own phrases from client.yaml", () => {
-    expect(endCallPhrasesFor(config, 'ja')).toEqual(['失礼いたします', '失礼します']);
-    expect(endCallPhrasesFor(config, 'en')).toEqual(['goodbye', 'have a great day']);
+    expect(endCallPhrasesFor(config, 'ja')).toEqual([
+      '失礼いたします',
+      '失礼します',
+      'お大事になさってください',
+    ]);
+    expect(endCallPhrasesFor(config, 'en')).toEqual([
+      'goodbye',
+      'have a great day',
+      'please take care',
+    ]);
   });
 
   test('returns undefined for a client that configures none', () => {

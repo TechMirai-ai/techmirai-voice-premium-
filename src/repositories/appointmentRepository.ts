@@ -14,10 +14,8 @@ export interface NewAppointment {
   /** Null for a returning-patient booking, which skips service selection (work order §3). */
   serviceId: string | null;
   serviceName: string | null;
-  patientName: string;
   /** Digits only — see src/lib/phone.ts. */
   patientPhone: string;
-  patientEmail: string | null;
   isReturningPatient: boolean;
   appointmentDate: string; // YYYY-MM-DD
   appointmentTime: string; // HH:MM, 24-hour
@@ -89,9 +87,8 @@ export class PgAppointmentRepository implements AppointmentRepository {
         const { rows } = await this.db.query(
           `INSERT INTO appointments
              (client_id, call_id, language, reservation_number, service_id, service_name,
-              patient_name, patient_phone, patient_email, is_returning_patient,
-              appointment_date, appointment_time)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+              patient_phone, is_returning_patient, appointment_date, appointment_time)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
            RETURNING id, created_at`,
           [
             appointment.clientId,
@@ -100,9 +97,7 @@ export class PgAppointmentRepository implements AppointmentRepository {
             reservationNumber,
             appointment.serviceId,
             appointment.serviceName,
-            appointment.patientName,
             appointment.patientPhone,
-            appointment.patientEmail,
             appointment.isReturningPatient,
             appointment.appointmentDate,
             appointment.appointmentTime,

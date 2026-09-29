@@ -61,7 +61,7 @@ describe('renderHandoffTool — Sakura', () => {
     expect(toEn?.assistantOverrides.firstMessage).toContain('Sakura Say-koh-tsoo-in');
     expect(toEn?.assistantOverrides.firstMessage).not.toContain('[[');
     expect(toJa?.assistantOverrides.firstMessage).toBe(
-      '日本語の受付にお繋ぎしました。ご用件をお聞かせください。',
+      '日本語で承ります。ご用件をお伺いいたします。',
     );
   });
 
@@ -70,10 +70,8 @@ describe('renderHandoffTool — Sakura', () => {
     const toJa = renderHandoffTool(config, 'en', 'ja').destinations[0];
 
     // Spoken text uses the VP-6 D phonetic override (namePronunciation.en), not the written name.
-    expect(toEn?.assistantOverrides.endCallMessage).toBe(
-      'Thank you for calling Sakura Say-koh-tsoo-in. Have a great day. Goodbye.',
-    );
-    expect(toJa?.assistantOverrides.endCallMessage).toContain('さくら整骨院');
+    expect(toEn?.assistantOverrides.endCallMessage).toBe('Please take care.');
+    expect(toJa?.assistantOverrides.endCallMessage).toBe('お大事になさってください。');
     expect(toJa?.assistantOverrides.endCallMessage).not.toContain('[[');
   });
 
@@ -93,11 +91,9 @@ describe('renderHandoffTool — Sakura', () => {
 
 describe('renderArrivalMessage', () => {
   test('is englishGreeting for en and handoffToJapanese for ja — never the call-opening greeting', () => {
-    expect(renderArrivalMessage(config, 'en')).toContain('AI receptionist, speaking in English');
+    expect(renderArrivalMessage(config, 'en')).toContain('Thank you for calling');
     expect(renderArrivalMessage(config, 'en')).not.toContain('English receptionist');
-    expect(renderArrivalMessage(config, 'ja')).toBe(
-      '日本語の受付にお繋ぎしました。ご用件をお聞かせください。',
-    );
+    expect(renderArrivalMessage(config, 'ja')).toBe('日本語で承ります。ご用件をお伺いいたします。');
     expect(renderArrivalMessage(config, 'ja')).not.toContain('For English');
   });
 

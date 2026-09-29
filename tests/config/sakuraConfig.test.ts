@@ -43,7 +43,7 @@ describe('the Sakura Seikotsuin demo config', () => {
     const { config } = loadClientWithWarnings(SAKURA_ID);
 
     expect(config.scripts.handoffToJapanese['ja']).toBe(
-      '日本語の受付にお繋ぎしました。ご用件をお聞かせください。',
+      '日本語で承ります。ご用件をお伺いいたします。',
     );
     expect(config.scripts.handoffToJapanese['en']).toMatch(/^\(Gloss for Jamal, not spoken:/);
   });

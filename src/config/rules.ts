@@ -21,7 +21,11 @@ export const CLINIC_PLACEHOLDERS = [
 export const CALLER_PLACEHOLDERS = ['callerName', 'callerPhone', 'reservationNumber'] as const;
 
 /** The scripts that may use a caller placeholder — everywhere else, it's a typo. */
-export const CALLER_PLACEHOLDER_SCRIPTS = ['confirmDetails', 'reservationSaved'] as const;
+export const CALLER_PLACEHOLDER_SCRIPTS = [
+  'confirmDetails',
+  'confirmPhone',
+  'reservationSaved',
+] as const;
 
 export const ALLOWED_PLACEHOLDERS = [...CLINIC_PLACEHOLDERS, ...CALLER_PLACEHOLDERS] as const;
 

@@ -46,7 +46,9 @@ languages:
       # VP-7 R8: if the assistant SAYS one of these, Vapi hangs up after it finishes speaking —
       # a backstop for when the model speaks a farewell instead of calling endCall.
       # 失礼いたします = "goodbye" (lit. "I'm being rude by leaving"); 失礼します = its plainer form.
-      endCallPhrases: ["失礼いたします", "失礼します"]
+      # お大事になさってください = "please take care (of yourself)" — added 2026-09-29 for the new
+      # goodbye/emergencyGoodbye wording (content update).
+      endCallPhrases: ["失礼いたします", "失礼します", "お大事になさってください"]
       # Words that signal possibly-serious pain (激痛 = "intense/sharp pain", ひどい痛み = "terrible pain",
       # 耐えられない = "unbearable", 突然 = "suddenly", 動けない = "can't move", 我慢できない = "can't bear").
       severePainWords: ["激痛", "ひどい痛み", "耐えられない", "我慢できない", "突然", "動けない"]
@@ -65,7 +67,8 @@ languages:
       # transcriber is likely to actually write the spoken word (source docs A7).
       switchKeywords: ["English", "英語", "イングリッシュ"]
       # VP-7 R8: same backstop as `ja` — the assistant saying one of these hangs up the call.
-      endCallPhrases: ["goodbye", "have a great day"]
+      # "please take care" added 2026-09-29 for the new goodbye/emergencyGoodbye wording.
+      endCallPhrases: ["goodbye", "have a great day", "please take care"]
       severePainWords: ["severe", "intense", "excruciating", "unbearable", "sudden", "sharp", "can't move"]
       callerDoneExamples: ["Thank you very much", "That's all", "No, that's all, thank you", "Got it, thank you", "OK, thanks"]
       phoneReadback:
@@ -87,22 +90,27 @@ safety:
 scripts:
   # Japanese assistant's first message. Includes the English option.
   greeting:
-    # VP-7: wording from the source test suite (04-test-suite.md case 1) — identifies as AI, and no
-    # longer promises "お取り次ぎ" (putting the call through), which this assistant cannot do.
-    # Gloss for the project owner (never spoken): "Thank you for calling. This is [clinic], AI
-    # reception. For English, please say 'English'. How may I help you?" NEEDS NATIVE-SPEAKER REVIEW.
+    # `.ja` CHANGED (content update, 2026-09-29): the project owner reversed the S-2 AI-disclosure
+    # decision (see docs/FUTURE-FEATURES.md) — the Japanese greeting no longer identifies the
+    # assistant as AI. `.en` is unused (never spoken — see docs/JAPANESE-REVIEW.md item 1) and is
+    # left as-is. NEEDS NATIVE-SPEAKER REVIEW.
+    # `.ja` CHANGED again (content update, 2026-09-29): the English-option cue is now the full
+    # English sentence, spoken literally as English text in the same ja-JP (Nanami) voice — no
+    # voice switch. Previously only the single word "English" was left untranslated inside an
+    # otherwise-Japanese instruction. A voice/accent switch for this cue ("option 2") was raised
+    # separately and is explicitly deferred — do not start it without being told to.
     en: >-
       Thank you for calling [[clinicName]]. This is the AI reception.
       For English, please say "English". How may I help you?
     ja: >-
-      お電話ありがとうございます。[[clinicName]]、AI受付でございます。
-      For English, please say "English". どのようなご用件でしょうか。
+      お電話ありがとうございます。[[clinicName]]でございます。ご用件をお伺いいたします。
+      If you would like assistance in English, please say "English."
   # English assistant's first message after the handoff.
   englishGreeting:
-    # VP-7: wording from the source test suite (E1) — no "English receptionist"/handoff wording.
-    en: >-
-      Hello, you've reached [[clinicName]]. This is the clinic's AI receptionist, speaking in English.
-      How can I help you today?
+    # `.en` CHANGED (content update, 2026-09-29): the project owner reversed the S-2 AI-disclosure
+    # decision (see docs/FUTURE-FEATURES.md) — no longer identifies the assistant as AI. `.ja` is
+    # unused (never spoken — see docs/JAPANESE-REVIEW.md item 1) and is left as-is.
+    en: Thank you for calling [[clinicName]]. How may I assist you today?
     ja: >-
       こんにちは。[[clinicName]]です。こちらは英語でご案内するAI受付でございます。ご用件をお聞かせください。
   # Japanese assistant's first message when a caller is handed BACK to it from
@@ -110,8 +118,9 @@ scripts:
   # (.ja); .en is a gloss for the project owner's review, never spoken.
   # NEEDS NATIVE-SPEAKER REVIEW, like the rest of the Japanese content.
   handoffToJapanese:
-    ja: 日本語の受付にお繋ぎしました。ご用件をお聞かせください。
-    en: "(Gloss for Jamal, not spoken: 'Connected back to Japanese reception. Please tell me what you need.')"
+    # CHANGED (content update, 2026-09-29).
+    ja: 日本語で承ります。ご用件をお伺いいたします。
+    en: "(Gloss for Jamal, not spoken: 'I will assist you in Japanese. Please tell me what you need.')"
   anythingElse:
     en: Is there anything else I can help you with today?
     ja: ほかに何かお手伝いできることはございますか？
@@ -137,16 +146,22 @@ scripts:
   confirmDetails:
     en: Let me confirm. Your name is [[callerName]], and your phone number is [[callerPhone]]. Is that correct?
     ja: 確認いたします。お名前は[[callerName]]様、お電話番号は[[callerPhone]]でよろしいでしょうか？
+  # Phone-only read-back, used by the reservation flow, which never collects a name.
+  confirmPhone:
+    en: Let me confirm. Your phone number is [[callerPhone]]. Is that correct?
+    # Gloss: "Let me confirm. Your phone number is [[callerPhone]]. Is that correct?"
+    ja: 確認いたします。お電話番号は[[callerPhone]]でよろしいでしょうか？
+  # CHANGED (content update, 2026-09-29).
   callbackSaved:
-    en: Thank you. I'll pass your information to our staff, and they will contact you within one business day.
-    ja: ありがとうございます。スタッフにお伝えいたしますので、翌営業日までにご連絡いたします。
+    en: Thank you. Our staff will contact you by the next business day.
+    ja: ありがとうございます。スタッフより、翌営業日までにご連絡いたします。
   callbackFailed:
     en: >-
-      I'm sorry, I wasn't able to save your details because of a system problem.
-      Could you please call again a little later?
+      I'm sorry. We weren't able to save your information.
+      Could you please call us again a little later?
     ja: >-
-      申し訳ございません。システムの不具合により、お客様の情報を保存できませんでした。
-      お手数ですが、少し時間をおいて改めてお電話いただけますでしょうか。
+      申し訳ございません。情報を保存できませんでした。
+      恐れ入りますが、時間をおいて、もう一度お電話いただけますでしょうか。
   didNotCatch:
     en: I'm sorry, I didn't quite catch that. Could you say it again, please?
     ja: 申し訳ございません。うまく聞き取れませんでした。もう一度おっしゃっていただけますか？
@@ -196,12 +211,15 @@ scripts:
   # VP-7 R3: the model speaks this itself right after the emergency path, before
   # calling endCall — the normal `goodbye`/endCallMessage still plays right
   # after (accepted tradeoff, see docs/VAPI-FACTS.md). NEEDS NATIVE-SPEAKER REVIEW.
+  # CHANGED (content update, 2026-09-29) — same text as `goodbye` below, kept as its own key
+  # because the mechanism differs: this one is spoken by the model itself (see emergencySection
+  # in promptTemplate.ts), `goodbye` is spoken by the platform via endCallMessage.
   emergencyGoodbye:
-    en: Goodbye.
-    ja: 失礼いたします。
+    en: Please take care.
+    ja: お大事になさってください。
   goodbye:
-    en: Thank you for calling [[clinicName]]. Have a great day. Goodbye.
-    ja: "[[clinicName]]にお電話いただき、ありがとうございました。失礼いたします。"
+    en: Please take care.
+    ja: お大事になさってください。
   # VP-8: demo reservation flow. NEEDS NATIVE-SPEAKER REVIEW, like the rest of the Japanese content.
   reservationAskType:
     en: Is this your first visit, or are you a returning patient?
@@ -216,9 +234,9 @@ scripts:
     # Gloss: "What date and time would be convenient for you?"
     ja: ご希望の日時はございますか？
   reservationReturningAsk:
-    en: Could I have your name and phone number, so I can look up your information?
-    # Gloss: "May I have your name and phone number to look up your information?"
-    ja: お名前とお電話番号を教えていただけますでしょうか。お客様の情報を確認いたします。
+    en: Could I have your phone number, so I can look up your information?
+    # Gloss: "May I have your phone number to look up your information?"
+    ja: お電話番号を教えていただけますでしょうか。お客様の情報を確認いたします。
   reservationPatientNotFound:
     en: >-
       I'm sorry, I couldn't find that phone number in our records.
@@ -228,22 +246,18 @@ scripts:
       申し訳ございません。そのお電話番号は当院の記録に見つかりませんでした。
       恐れ入りますが、初めてご来院の方として承ります。
   # Uses [[reservationNumber]] — the tool call supplies the actual number, substituted in by the model.
+  # CHANGED (content update, 2026-09-29) — shortened, ends right after the reservation number.
   reservationSaved:
-    en: >-
-      Thank you. Your reservation number is [[reservationNumber]].
-      We'll send the details to your email.
-    # Gloss: "Thank you. Your reservation number is [[reservationNumber]]. We will send the details to your email."
-    ja: >-
-      ありがとうございます。ご予約番号は[[reservationNumber]]でございます。
-      詳細はメールにてお送りいたします。
+    en: Thank you. Your reservation number is [[reservationNumber]].
+    ja: ありがとうございます。ご予約番号は[[reservationNumber]]でございます。
   reservationFailed:
     en: >-
-      I'm sorry, I wasn't able to complete that booking because of a system problem.
-      Could you please try again, or choose a different time?
-    # Gloss: "I'm sorry, I wasn't able to complete that booking due to a system problem. Could you please try again, or choose a different time?"
+      I'm sorry. We weren't able to complete your reservation.
+      Please try again or choose a different time.
+    # Gloss: "I'm sorry. We weren't able to complete your reservation. Please try again or choose a different time."
     ja: >-
-      申し訳ございません。システムの不具合により、ご予約を完了できませんでした。
-      恐れ入りますが、もう一度お試しいただくか、別の時間をお選びいただけますでしょうか。
+      申し訳ございません。ご予約を完了できませんでした。
+      恐れ入りますが、もう一度お試しいただくか、別のお時間をお選びください。
 
 faq:
   - id: hours

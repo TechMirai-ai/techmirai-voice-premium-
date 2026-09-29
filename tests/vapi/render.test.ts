@@ -72,7 +72,7 @@ describe('renderAssistant — Sakura fixture (ja)', () => {
 
     const { assistant } = renderAssistant(config, 'ja', faq, OPTIONS);
 
-    expect(assistant.endCallMessage).toContain('さくら整骨院');
+    expect(assistant.endCallMessage).toBe('お大事になさってください。');
     expect(assistant.endCallMessage).not.toContain('[[');
     expect(assistant.model.tools).toEqual([{ type: 'endCall' }]);
   });
@@ -124,7 +124,9 @@ describe('renderAssistant — handoff (Sakura)', () => {
 
     const { assistant, handoffTools } = renderAssistant(config, 'ja', faq, OPTIONS);
 
-    expect(assistant.firstMessage).toContain('For English, please say "English"');
+    expect(assistant.firstMessage).toContain(
+      'If you would like assistance in English, please say "English."',
+    );
     expect(handoffTools.map((tool) => tool.toLanguage)).toEqual(['en']);
     expect(handoffTools[0]?.payload.destinations[0]?.assistantName).toBe('sakura-seikotsuin--en');
   });
@@ -137,8 +139,8 @@ describe('renderAssistant — handoff (Sakura)', () => {
 
     expect(assistant.name).toBe('sakura-seikotsuin--en');
     // Spoken text uses the VP-6 D phonetic override (namePronunciation.en), not the written name.
-    expect(assistant.firstMessage).toContain("you've reached Sakura Say-koh-tsoo-in");
-    expect(assistant.firstMessage).toContain("clinic's AI receptionist, speaking in English");
+    expect(assistant.firstMessage).toContain('Thank you for calling Sakura Say-koh-tsoo-in');
+    expect(assistant.firstMessage).toContain('How may I assist you today?');
     // Suite E1: no handoff/"English receptionist" wording.
     expect(assistant.firstMessage).not.toContain('English receptionist');
     expect(assistant.firstMessage).not.toContain('For English');
@@ -175,9 +177,7 @@ describe('renderAssistant — ja-return member (Sakura, VP-7 R1)', () => {
     // Never the full opening greeting (that would replay "For English, please say English" mid-call).
     expect(jaReturn.assistant.firstMessage).not.toEqual(ja.assistant.firstMessage);
     expect(jaReturn.assistant.firstMessage).not.toContain('For English');
-    expect(jaReturn.assistant.firstMessage).toBe(
-      '日本語の受付にお繋ぎしました。ご用件をお聞かせください。',
-    );
+    expect(jaReturn.assistant.firstMessage).toBe('日本語で承ります。ご用件をお伺いいたします。');
   });
 
   test("gets its own outbound handoff tool to English, byte-identical to ja's own", async () => {
@@ -296,11 +296,8 @@ describe('renderAssistant — VP-8 reservation tools', () => {
       'follow-up',
     ]);
     expect(bookAppointment?.function.parameters.required).not.toContain('serviceId');
-    expect(bookAppointment?.function.parameters.required).toEqual([
-      'date',
-      'time',
-      'patientName',
-      'patientPhone',
-    ]);
+    expect(bookAppointment?.function.parameters.required).toEqual(['date', 'time', 'patientPhone']);
+    expect(bookAppointment?.function.parameters.properties.patientName).toBeUndefined();
+    expect(bookAppointment?.function.parameters.properties.patientEmail).toBeUndefined();
   });
 });

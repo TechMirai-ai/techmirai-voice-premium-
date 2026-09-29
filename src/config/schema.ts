@@ -147,6 +147,12 @@ const scriptsSchema = z.strictObject({
   staffContactOffer: localizedTextSchema,
   askPhone: localizedTextSchema,
   confirmDetails: localizedTextSchema,
+  /**
+   * Phone-only read-back confirmation, used where no name is collected
+   * (the reservation flow) — same digit-by-digit pattern as `confirmDetails`,
+   * minus the name.
+   */
+  confirmPhone: localizedTextSchema,
   callbackSaved: localizedTextSchema,
   callbackFailed: localizedTextSchema,
   didNotCatch: localizedTextSchema,

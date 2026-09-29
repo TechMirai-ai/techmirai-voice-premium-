@@ -19,36 +19,73 @@ given it a native-speaker pass yet, it is not "already checked."
 
 ## Open items
 
-### 1. Greeting and re-entry — `greeting`, `handoffToJapanese` (ja-return's firstMessage)
+### 1. Greeting and re-entry — `greeting`, `englishGreeting`, `handoffToJapanese` (ja-return's firstMessage)
 
-**`greeting.ja`** (`clients/sakura-seikotsuin/client.yaml`) — CHANGED (VP-7 follow-up, 2026-09-25;
-wording taken from the source test suite, case 1). Now says it is an AI, and no longer promises
-お取り次ぎ (putting the call through to staff), which the assistant cannot do:
-> お電話ありがとうございます。[[clinicName]]、AI受付でございます。For English, please say "English". どのようなご用件でしょうか。
+**`greeting.ja`** (`clients/sakura-seikotsuin/client.yaml`) — CHANGED (content update,
+2026-09-29). The project owner dictated this wording directly, reversing the S-2 AI-disclosure
+decision recorded in `docs/FUTURE-FEATURES.md` — it no longer says "AI受付" (AI reception):
+> お電話ありがとうございます。[[clinicName]]でございます。ご用件をお伺いいたします。英語をご希望の方は「English」とお申し付けください。
 
-Gloss: "Thank you for calling. This is [[clinicName]], AI reception. For English, please say
-'English'. How may I help you?" (lit. "What kind of business is it?")
+Gloss: "Thank you for calling. This is [[clinicName]]. I will ask what you need. If you'd like
+English, please say 'English'."
 
-*(Before, for comparison: 「…の受付です。当院に関するご案内や、スタッフへのお取り次ぎを承ります。…ご用件をお聞かせください。」
-— "This is …'s reception. I handle information about the clinic and putting you through to staff…")*
+*(Before this change: 「お電話ありがとうございます。[[clinicName]]、AI受付でございます。For English,
+please say "English". どのようなご用件でしょうか。」— "Thank you for calling. This is [[clinicName]],
+AI reception. For English, please say 'English'. How may I help you?")*
+
+**`greeting.ja` — CHANGED again (content update, 2026-09-29):** the English-option cue is no
+longer a Japanese instruction with only the word "English" left untranslated — it is now the full
+English sentence, spoken literally as English text in the same ja-JP (Nanami) voice, no voice
+switch:
+> お電話ありがとうございます。[[clinicName]]でございます。ご用件をお伺いいたします。If you would like assistance in English, please say "English."
+
+Gloss: the Japanese portion is unchanged ("Thank you for calling. This is [[clinicName]]. I will
+ask what you need."); the rest is already English, spoken as-is: "If you would like assistance in
+English, please say 'English.'"
+
+*(Immediately before this change, same day: 「…英語をご希望の方は「English」とお申し付けください。」—
+"…if you'd like English, please say 'English'." — a Japanese sentence with only the single word
+"English" left untranslated.)*
+
+**Note — deferred work, not done here:** switching the TTS voice/accent for the English portion of
+this line (raised separately as "option 2" — a voice switch or audio splice mid-utterance) is
+explicitly deferred. This change only swaps the text; Nanami (ja-JP) still reads the English
+sentence in her own accent.
+
+**`englishGreeting.en`** — CHANGED (content update, 2026-09-29). Also dictated directly by the
+project owner, also drops the AI-disclosure wording:
+> Thank you for calling [[clinicName]]. How may I assist you today?
+
+*(Before this change: "Hello, you've reached [[clinicName]]. This is the clinic's AI
+receptionist, speaking in English. How can I help you today?")*
 
 **`handoffToJapanese.ja`** (also `ja-return`'s spoken firstMessage as of VP-7 — see
-`docs/VAPI-FACTS.md` VP-7 R1) — carried over, not yet reviewed:
-> 日本語の受付にお繋ぎしました。ご用件をお聞かせください。
+`docs/VAPI-FACTS.md` VP-7 R1) — CHANGED (content update, 2026-09-29):
+> 日本語で承ります。ご用件をお伺いいたします。
 
-Gloss: "I've connected you back to Japanese reception. Please tell me what you need."
+Gloss: "I will assist you in Japanese. Please tell me what you need."
 
-**Note, not a review item:** `englishGreeting.ja` also exists in `client.yaml` but is never
-actually spoken to any caller — the English assistant always uses `englishGreeting.en` for its own
-firstMessage (`render.ts`/`squad.ts`'s `renderArrivalMessage` always picks the *destination*
-language's own text). The `.ja` half exists only because the schema requires text in every
-supported language. No review needed.
+*(Before this change: 「日本語の受付にお繋ぎしました。ご用件をお聞かせください。」— "I've connected you
+back to Japanese reception. Please tell me what you need.")*
+
+**Note, not a review item:** `englishGreeting.ja` and `greeting.en` both still exist in
+`client.yaml` but are never actually spoken to any caller — the English assistant always uses
+`englishGreeting.en` for its own firstMessage, and the Japanese call-starting assistant always
+uses `greeting.ja` (`render.ts`/`squad.ts`'s `renderArrivalMessage` always picks the *destination*
+language's own text). Both unused halves were left as their old text. No review needed.
 
 **Question for a native speaker:** does the greeting sound like a natural, unhurried clinic
-receptionist, and does the re-entry line ("日本語の受付にお繋ぎしました") read naturally as
-"you're back in Japanese" rather than sounding like a system message?
+receptionist, and does the re-entry line ("日本語で承ります") read naturally as "you're back in
+Japanese" rather than sounding like a system message?
 
-**Status:** open, not yet reviewed.
+**Question for a real-call listen (new, greeting.ja's English cue):** how does the ja-JP (Nanami)
+voice actually sound reading a full English sentence mid-utterance, with no voice switch? This is
+a text change only — whether the resulting audio is intelligible/acceptable to an English-speaking
+caller, or sounds jarring enough to need the deferred "option 2" (voice switch/audio splice), can
+only be judged by listening to a real or test call, not by reading the text.
+
+**Status:** open, not yet reviewed (content changed since the last review flag — re-review from
+scratch, don't assume the old answer still applies).
 
 ---
 
@@ -116,31 +153,30 @@ of politeness for asking a caller's name over the phone?
 Raised during VP-6 while checking whether Vapi's Azure voice integration could make these lines
 *sound* warmer via a speaking-style setting (confirmed it can't — see `docs/VAPI-FACTS.md` VP-6
 R6, no such setting exists for Azure in Vapi). Since tone can't be adjusted at the voice layer, the
-wording itself is the only lever. **Both lines changed content in VP-7** (decision 4: a
-"within one business day" promise; decision 1: the failure line no longer names the clinic's own
-phone number — see `docs/VAPI-FACTS.md` VP-7 research spike) — the wording below is new, not the
-same text flagged in the pre-VP-7 version of this file.
+wording itself is the only lever. **Both lines changed content again in the 2026-09-29 content
+update** (shorter, project-owner-dictated wording) — the wording below is new, not the VP-7 text
+flagged in the previous version of this file.
 
-**`callbackSaved.ja`** (CHANGED (VP-7) — added the one-business-day promise):
-> ありがとうございます。スタッフにお伝えいたしますので、翌営業日までにご連絡いたします。
+**`callbackSaved.ja`** (CHANGED (content update, 2026-09-29) — shortened):
+> ありがとうございます。スタッフより、翌営業日までにご連絡いたします。
 
-Gloss: "Thank you. I'll pass this along to staff, so we will contact you by the next business
-day."
+Gloss: "Thank you. Our staff will contact you by the next business day."
 
-**`callbackFailed.ja`** (CHANGED (VP-7) — no longer names `[[clinicPhone]]`; asks the caller to try
-again later instead):
-> 申し訳ございません。システムの不具合により、お客様の情報を保存できませんでした。お手数ですが、少し時間をおいて改めてお電話いただけますでしょうか。
+*(Before this change: 「ありがとうございます。スタッフにお伝えいたしますので、翌営業日までにご連絡いたします。」
+— "Thank you. I'll pass this along to staff, so we will contact you by the next business day.")*
 
-Gloss: "We're sorry. Due to a system problem, we weren't able to save your information. Sorry for
-the trouble, but could you please call again after a little while?"
+**`callbackFailed.ja`** (CHANGED (content update, 2026-09-29) — shortened, drops
+「システムの不具合により」 as its own clause):
+> 申し訳ございません。情報を保存できませんでした。恐れ入りますが、時間をおいて、もう一度お電話いただけますでしょうか。
+
+Gloss: "We're sorry. We weren't able to save your information. Sorry for the trouble, but could
+you please call again after a little while?"
 
 **Question for a native speaker:** as written, do these read as appropriately warm/apologetic for
-a phone receptionist, or does the formal/technical register ("システムの不具合" — "system
-malfunction") land as flatter or more bureaucratic than intended, especially right after telling a
-caller their information wasn't saved? Also: does 「翌営業日までに」 read as a confident, concrete
-promise, or too stiff for a spoken line?
+a phone receptionist? Also: does 「翌営業日までに」 read as a confident, concrete promise, or too
+stiff for a spoken line?
 
-**Status:** open, not yet reviewed (content changed since the original flag — re-review from
+**Status:** open, not yet reviewed (content changed since the last review flag — re-review from
 scratch, don't assume the old answer still applies).
 
 ---
@@ -187,15 +223,25 @@ Gloss: "Please hang up right away, call 119 and ask for an ambulance. Goodbye." 
 Gloss: "If this is an emergency, please hang up this call and immediately call 119 for an
 ambulance."
 
-**`emergencyGoodbye.ja`** (NEW (VP-7) — spoken by the model itself right before `endCall`, only on
-the emergency path):
-> 失礼いたします。
+**`emergencyGoodbye.ja`** — CHANGED (content update, 2026-09-29). Now shares its exact wording
+with `goodbye` below (project-owner-dictated), but stays a separate script key because the
+mechanism differs: this one is spoken by the model itself right before it calls `endCall` (the
+normal `goodbye` line, via `endCallMessage`, still plays immediately after):
+> お大事になさってください。
 
-Gloss: "Goodbye" (literally closer to "please excuse me" / "I'll take my leave").
+Gloss: "Please take care (of yourself)."
+
+*(Before this change: 「失礼いたします。」 — "Goodbye" (literally closer to "please excuse me" /
+"I'll take my leave").)*
+
+**Note on the hang-up backstop:** the new text no longer contains 「失礼いたします」, so
+`languages.settings.ja.endCallPhrases` gained a matching entry
+(「お大事になさってください」) so the emergency path still hangs up on the platform side even if
+the model doesn't reliably call `endCall` (see `tests/vapi/callEnding.test.ts`).
 
 **Question for a native speaker:** do the two emergency lines read as urgent without sounding
 panicked, and is the distinction between them (immediate red flag vs. "if this is an emergency...")
-clear enough in Japanese that a caller wouldn't confuse the two? Also: is a bare 「失礼いたします」
+clear enough in Japanese that a caller wouldn't confuse the two? Also: is 「お大事になさってください」
 an appropriate short goodbye specifically right after telling someone to call an ambulance, or does
 it read as jarringly casual/formal for that moment (this is source doc Open Decision 7's own
 concern — see `docs/prompt-v2-source/01-...md`)?
@@ -208,12 +254,27 @@ matters as much as the wording.
 
 ### 7. Ending the call — `goodbye`
 
-**`goodbye.ja`** — carried over, not yet reviewed:
-> [[clinicName]]にお電話いただき、ありがとうございました。失礼いたします。
+**`goodbye.ja`** — CHANGED (content update, 2026-09-29). Project-owner-dictated, much shorter, no
+longer names the clinic:
+> お大事になさってください。
 
-Gloss: "Thank you for calling [[clinicName]]. Goodbye."
+Gloss: "Please take care (of yourself)."
 
-**Status:** open, not yet reviewed.
+*(Before this change: 「[[clinicName]]にお電話いただき、ありがとうございました。失礼いたします。」—
+"Thank you for calling [[clinicName]]. Goodbye.")*
+
+**Note on the hang-up backstop:** unlike `emergencyGoodbye` (item 6 above), `goodbye` is spoken via
+Vapi's own `endCallMessage` mechanism, not by the model deciding to say a farewell — it plays
+automatically right before the platform ends the call, so it was never one of the
+`endCallPhrases` the model's own speech is matched against. No functional dependency here; the
+`endCallPhrases` addition was only needed for `emergencyGoodbye`.
+
+**Question for a native speaker:** is 「お大事になさってください」 a natural, appropriately warm way
+for a clinic receptionist to end an ordinary call, or does dropping the clinic name and "thank you
+for calling" feel too abrupt?
+
+**Status:** open, not yet reviewed (content changed since the last review flag — re-review from
+scratch, don't assume the old answer still applies).
 
 ---
 
@@ -295,13 +356,17 @@ a genuine offer to help rather than a brush-off?
 
 ### 9. Call-ending phrases and phone-number digit words — NEW (VP-7 follow-up, 2026-09-25)
 
-**`languages.settings.ja.endCallPhrases`** — if the assistant *says* either phrase, Vapi hangs up the
-call after it finishes speaking (a backstop for when the model speaks a farewell instead of calling
-`endCall` — `docs/VAPI-FACTS.md` VP-7 R8):
+**`languages.settings.ja.endCallPhrases`** — if the assistant *says* any of these phrases, Vapi
+hangs up the call after it finishes speaking (a backstop for when the model speaks a farewell
+instead of calling `endCall` — `docs/VAPI-FACTS.md` VP-7 R8). CHANGED (content update,
+2026-09-29) — a third phrase was added so the new `emergencyGoodbye`/`goodbye` wording (item 6/7
+above) still triggers this backstop:
 > 失礼いたします
 > 失礼します
+> お大事になさってください
 
-Gloss: "Goodbye" (lit. "I am being rude [by leaving / hanging up]") — the polite and the plainer form.
+Gloss: "Goodbye" (lit. "I am being rude [by leaving / hanging up]") — the polite and the plainer
+form — plus "Please take care (of yourself)", added to match the new goodbye wording.
 **Question for a native speaker:** are these the words a Japanese receptionist actually uses to close
 a call, and are there other closing phrases the model is likely to say (e.g. 「ありがとうございました」
 "thank you" — deliberately NOT included, because it is also said mid-call and would hang up on the
@@ -345,6 +410,37 @@ examples of a caller who has finished, so it ends the call silently instead of c
 Gloss: "Thank you very much" / "That's all" / "No, I'm fine, thank you" / "Understood, thank you very
 much" / "Yes, that's enough". **Question for a native speaker:** are these the things a caller
 really says at the end of a clinic call? Missing ones the model should also treat as "finished"?
+
+**Status:** open, not yet reviewed.
+
+---
+
+### 10. Reservation flow outcomes — `reservationSaved`, `reservationFailed` — NEW to this file (content update, 2026-09-29)
+
+These two scripts existed before (VP-8's demo reservation flow) but were never added to this
+review file — this is their first entry here, not a re-review.
+
+**`reservationSaved.ja`** — CHANGED (content update, 2026-09-29) — shortened; no longer promises
+to email the details (the reservation flow no longer collects an email address at all):
+> ありがとうございます。ご予約番号は[[reservationNumber]]でございます。
+
+Gloss: "Thank you. Your reservation number is [[reservationNumber]]."
+
+*(Before this change: 「ありがとうございます。ご予約番号は[[reservationNumber]]でございます。ご来院を
+心よりお待ちしております。」— "Thank you. Your reservation number is [[reservationNumber]]. We
+look forward to seeing you.")*
+
+**`reservationFailed.ja`** — CHANGED (content update, 2026-09-29) — shortened, drops
+「システムの不具合により」 as its own clause:
+> 申し訳ございません。ご予約を完了できませんでした。恐れ入りますが、もう一度お試しいただくか、別のお時間をお選びください。
+
+Gloss: "I'm sorry. We weren't able to complete your reservation. Please try again or choose a
+different time."
+
+**Question for a native speaker:** does ending `reservationSaved` right after the reservation
+number feel abrupt without a closing pleasantry, and does `reservationFailed`'s more direct
+phrasing (「お選びください」 instead of the more hedged 「お選びいただけますでしょうか」) still read
+as polite enough for a clinic receptionist?
 
 **Status:** open, not yet reviewed.
 

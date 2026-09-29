@@ -217,8 +217,8 @@ function renderReservationTools(
       name: LOOKUP_PATIENT_FUNCTION_NAME,
       description:
         "Looks up a returning patient's record by phone number, for a caller who says they've " +
-        'visited before. The phone number is the actual match — a returned name is only for the ' +
-        'caller to confirm out loud.',
+        'visited before. The phone number is the only match this uses — never speak a name back ' +
+        'to the caller from this result.',
       parameters: {
         type: 'object',
         properties: {
@@ -247,19 +247,13 @@ function renderReservationTools(
           },
           date: { type: 'string', description: 'The confirmed date, as YYYY-MM-DD.' },
           time: { type: 'string', description: 'The confirmed time, as 24-hour HH:MM.' },
-          patientName: { type: 'string', description: "The patient's full name." },
           patientPhone: { type: 'string', description: "The patient's phone number." },
-          patientEmail: {
-            type: 'string',
-            description:
-              "The patient's email address — first-visit only, omit for a returning patient.",
-          },
           isReturningPatient: {
             type: 'boolean',
             description: 'True when the patient was already found via lookup_patient.',
           },
         },
-        required: ['date', 'time', 'patientName', 'patientPhone'],
+        required: ['date', 'time', 'patientPhone'],
       },
     },
     server: { url: `${baseUrl}/api/voice/book-appointment`, credentialId },

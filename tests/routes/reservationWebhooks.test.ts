@@ -134,9 +134,7 @@ describe('POST /api/voice/book-appointment', () => {
     serviceId: 'general-consultation',
     date: MONDAY,
     time: '10:00',
-    patientName: 'Hanako Yamada',
     patientPhone: '090-1234-5678',
-    patientEmail: 'hanako@example.com',
     isReturningPatient: false,
   };
 
@@ -156,9 +154,7 @@ describe('POST /api/voice/book-appointment', () => {
         callId: CALL_ID,
         serviceId: 'general-consultation',
         serviceName: 'General Consultation',
-        patientName: 'Hanako Yamada',
         patientPhone: '09012345678',
-        patientEmail: 'hanako@example.com',
         appointmentDate: MONDAY,
         appointmentTime: '10:00',
       }),
@@ -175,7 +171,6 @@ describe('POST /api/voice/book-appointment', () => {
         toolCallsBody('book_appointment', {
           date: MONDAY,
           time: '11:00',
-          patientName: 'ヤマダ タロウ',
           patientPhone: '090-1111-2222',
           isReturningPatient: true,
         }),
@@ -211,9 +206,8 @@ describe('POST /api/voice/book-appointment', () => {
   });
 
   test.each([
-    ['a missing name', { ...firstVisitArgs, patientName: undefined }, 'patientName'],
-    ['a blank name', { ...firstVisitArgs, patientName: '   ' }, 'patientName'],
     ['a too-short phone', { ...firstVisitArgs, patientPhone: '123' }, 'patientPhone'],
+    ['a missing phone', { ...firstVisitArgs, patientPhone: undefined }, 'patientPhone'],
   ])('answers %s with an error result and saves nothing', async (_n, args, field) => {
     const { app, appointments } = buildVoiceApp();
 

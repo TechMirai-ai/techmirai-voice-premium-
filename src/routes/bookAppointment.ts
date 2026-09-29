@@ -21,16 +21,9 @@ import { toolWebhook } from './voiceWebhook.js';
 
 export const BOOK_APPOINTMENT_PATH = '/book-appointment';
 
-const MAX_NAME_LENGTH = 100;
-const MAX_EMAIL_LENGTH = 200;
-
-const normalizeName = (value: string): string => value.normalize('NFKC').trim();
-
 const argumentsSchema = z.object({
   serviceId: z.string().min(1).optional(),
-  patientName: z.string().transform(normalizeName).pipe(z.string().min(1).max(MAX_NAME_LENGTH)),
   patientPhone: z.string().min(1),
-  patientEmail: z.string().max(MAX_EMAIL_LENGTH).optional(),
   isReturningPatient: z.boolean().optional().default(false),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be YYYY-MM-DD'),
   time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'must be HH:MM, 24-hour'),
@@ -104,9 +97,7 @@ export function bookAppointmentRouter(deps: BookAppointmentRouteDeps): Router {
           language: context.language,
           serviceId: parsed.data.serviceId ?? null,
           serviceName,
-          patientName: parsed.data.patientName,
           patientPhone: phoneDigits,
-          patientEmail: parsed.data.patientEmail?.trim() || null,
           isReturningPatient: parsed.data.isReturningPatient,
           appointmentDate: date,
           appointmentTime: time,

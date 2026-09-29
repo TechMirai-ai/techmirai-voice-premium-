@@ -118,9 +118,7 @@ describe.skipIf(!TEST_DATABASE_URL)('VP-8 reservation tables (real Postgres)', (
         language: 'ja',
         serviceId: null,
         serviceName: null,
-        patientName: 'A',
         patientPhone: '09000000000',
-        patientEmail: null,
         isReturningPatient: false,
         appointmentDate: '2026-10-05',
         appointmentTime: '11:00',
@@ -140,9 +138,7 @@ describe.skipIf(!TEST_DATABASE_URL)('VP-8 reservation tables (real Postgres)', (
         language: 'en',
         serviceId: null,
         serviceName: null,
-        patientName: 'Hanako Yamada',
         patientPhone: '09012345678',
-        patientEmail: 'hanako@example.com',
         isReturningPatient: false,
         appointmentDate: '2026-10-05',
         appointmentTime: '14:00',
@@ -152,9 +148,7 @@ describe.skipIf(!TEST_DATABASE_URL)('VP-8 reservation tables (real Postgres)', (
       const { rows } = await pool.query('SELECT * FROM appointments WHERE id = $1', [booked.id]);
       expect(rows[0]).toMatchObject({
         client_id: 'c',
-        patient_name: 'Hanako Yamada',
         patient_phone: '09012345678',
-        patient_email: 'hanako@example.com',
         appointment_date: '2026-10-05',
         appointment_time: '14:00',
       });
@@ -173,9 +167,7 @@ describe.skipIf(!TEST_DATABASE_URL)('VP-8 reservation tables (real Postgres)', (
         language: 'ja',
         serviceId: 'general-consultation',
         serviceName: 'General Consultation',
-        patientName: 'A',
         patientPhone: '09000000000',
-        patientEmail: null,
         isReturningPatient: true,
         appointmentDate: '2026-10-05',
         appointmentTime: '09:00',
@@ -196,9 +188,7 @@ describe.skipIf(!TEST_DATABASE_URL)('VP-8 reservation tables (real Postgres)', (
         language: 'ja',
         serviceId: null,
         serviceName: null,
-        patientName: 'A',
         patientPhone: '09000000000',
-        patientEmail: null,
         isReturningPatient: false,
         appointmentDate: '2026-10-05',
         appointmentTime: '09:00',
@@ -207,9 +197,9 @@ describe.skipIf(!TEST_DATABASE_URL)('VP-8 reservation tables (real Postgres)', (
       await expect(
         pool.query(
           `INSERT INTO appointments
-             (client_id, call_id, language, reservation_number, patient_name, patient_phone,
+             (client_id, call_id, language, reservation_number, patient_phone,
               is_returning_patient, appointment_date, appointment_time)
-           VALUES ('c', 'call-5', 'ja', $1, 'B', '09011111111', false, '2026-10-06', '10:00')`,
+           VALUES ('c', 'call-5', 'ja', $1, '09011111111', false, '2026-10-06', '10:00')`,
           [booked.reservationNumber],
         ),
       ).rejects.toThrow(/duplicate key/);
