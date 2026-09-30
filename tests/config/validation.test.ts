@@ -168,12 +168,13 @@ describe('client config validation', () => {
     expect(config.languages.settings.ja?.transcriber).toBeNull();
   });
 
-  test('accepts the transcriber shape VP-2 actually configures (provider + language)', () => {
+  test('accepts the transcriber shape the client actually configures (provider + model + language)', () => {
     const { config } = parse(sakura);
 
     expect(config.languages.settings.ja?.transcriber).toEqual({
-      provider: 'azure',
-      language: 'ja-JP',
+      provider: 'cartesia',
+      model: 'ink-whisper',
+      language: 'ja',
     });
   });
 

@@ -9,21 +9,21 @@
  */
 
 export interface VapiVoiceConfig {
-  /** Always "azure" for now (client.yaml's only configured provider). */
+  /** "cartesia" as of the vendor swap (VAPI-FACTS.md Vendor-swap R2) — client.yaml's configured provider. */
   provider: string;
   /**
-   * UNVERIFIED — see VAPI-FACTS.md (R2). Neither Vapi's docs nor the SDK's
-   * shipped AzureVoiceId enum confirm "ja-JP-NanamiNeural"/"en-US-JennyNeural"
-   * specifically (the SDK type accepts any string, so this is a runtime
-   * question, not a type error). R7's real test call is the actual check.
+   * Cartesia voiceIds are opaque UUIDs read from the project owner's own
+   * Cartesia dashboard, not guessed — VAPI-FACTS.md Vendor-swap R3.
    */
   voiceId: string;
 }
 
 export interface VapiTranscriberConfig {
-  /** Always "azure" for now. */
+  /** "cartesia" as of the vendor swap (VAPI-FACTS.md Vendor-swap R2). */
   provider: string;
-  /** e.g. "ja-JP" — confirmed in Azure's supported-language list, VAPI-FACTS.md R1. */
+  /** Cartesia's Ink Whisper model requires this alongside `provider`/`language` — VAPI-FACTS.md Vendor-swap R2. */
+  model?: string;
+  /** e.g. "ja" (Cartesia; plain ISO code, not "ja-JP") — VAPI-FACTS.md Vendor-swap R2. */
   language: string;
 }
 
@@ -35,8 +35,14 @@ export interface VapiModelMessage {
 export interface VapiModelConfig {
   /** "openai" (primary) or "anthropic" (fallback) — VAPI-FACTS.md R3. */
   provider: string;
-  /** e.g. "gpt-4o-mini" — confirmed as a valid model literal, VAPI-FACTS.md R3. */
+  /** e.g. "gpt-5.6-terra" — confirmed as a valid model literal, VAPI-FACTS.md Vendor-swap R1. */
   model: string;
+  /**
+   * Required for reasoning-tier OpenAI models (e.g. gpt-5.6-terra) to use function tools at all —
+   * "none" is the only value that doesn't 400 with tools attached (VAPI-FACTS.md Vendor-swap R4).
+   * Omit for non-reasoning models.
+   */
+  reasoningEffort?: string;
   messages: VapiModelMessage[];
   /** UUIDs of tools this assistant may call, resolved by sync.ts before render output is sent. */
   toolIds: string[];

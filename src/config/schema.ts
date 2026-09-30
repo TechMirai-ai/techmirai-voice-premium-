@@ -83,11 +83,14 @@ const businessSchema = z.strictObject({
 const languageSettingsSchema = z.strictObject({
   voice: z.strictObject({ provider: nonEmpty, voiceId: nonEmpty }),
   /**
-   * VP-2 (VAPI-FACTS.md R1): chose Azure for every configured language, so
-   * `language` (e.g. "ja-JP") is required alongside `provider`. `null` means
-   * "not chosen yet" — see docs/VAPI-FACTS.md for what's still open.
+   * `language` (e.g. "ja") is required alongside `provider`. `model` is optional —
+   * Cartesia's Ink Whisper needs `model: "ink-whisper"` alongside provider/language
+   * (VAPI-FACTS.md Vendor-swap R2); a future provider without a model concept can omit it.
+   * `null` means "not chosen yet" — see docs/VAPI-FACTS.md for what's still open.
    */
-  transcriber: z.strictObject({ provider: nonEmpty, language: nonEmpty }).nullable(),
+  transcriber: z
+    .strictObject({ provider: nonEmpty, model: nonEmpty.optional(), language: nonEmpty })
+    .nullable(),
   switchKeywords: z.array(nonEmpty).min(1, 'needs at least one keyword'),
   /**
    * Phrases that make Vapi hang up when the ASSISTANT says one (VAPI-FACTS.md VP-7 R8) — a

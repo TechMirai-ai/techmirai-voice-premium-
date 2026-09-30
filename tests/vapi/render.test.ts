@@ -26,10 +26,17 @@ describe('renderAssistant — Sakura fixture (ja)', () => {
     expect(assistant.name).toBe('sakura-seikotsuin--ja');
     expect(assistant.firstMessage).toContain('さくら整骨院');
     expect(assistant.firstMessage).not.toContain('[[clinicName]]');
-    expect(assistant.voice).toEqual({ provider: 'azure', voiceId: 'ja-JP-NanamiNeural' });
-    expect(assistant.transcriber).toEqual({ provider: 'azure', language: 'ja-JP' });
+    expect(assistant.voice).toEqual({
+      provider: 'cartesia',
+      voiceId: 'e63d7d05-76b0-4ff5-b8fb-503a82688bfe',
+    });
+    expect(assistant.transcriber).toEqual({
+      provider: 'cartesia',
+      model: 'ink-whisper',
+      language: 'ja',
+    });
     expect(assistant.model.provider).toBe('openai');
-    expect(assistant.model.model).toBe('gpt-4o-mini');
+    expect(assistant.model.model).toBe('gpt-5.6-terra');
     expect(assistant.model.messages).toEqual([{ role: 'system', content: expect.any(String) }]);
     expect(assistant.model.messages[0]?.content).toContain('さくら整骨院');
     expect(assistant.model.toolIds).toEqual([]);
@@ -144,8 +151,15 @@ describe('renderAssistant — handoff (Sakura)', () => {
     // Suite E1: no handoff/"English receptionist" wording.
     expect(assistant.firstMessage).not.toContain('English receptionist');
     expect(assistant.firstMessage).not.toContain('For English');
-    expect(assistant.voice).toEqual({ provider: 'azure', voiceId: 'en-US-JennyNeural' });
-    expect(assistant.transcriber).toEqual({ provider: 'azure', language: 'en-US' });
+    expect(assistant.voice).toEqual({
+      provider: 'cartesia',
+      voiceId: 'e4d5f4c4-6601-4779-bee1-b3c14d629dc6',
+    });
+    expect(assistant.transcriber).toEqual({
+      provider: 'cartesia',
+      model: 'ink-whisper',
+      language: 'en',
+    });
     expect(handoffTools.map((tool) => tool.toLanguage)).toEqual(['ja']);
     // Redirected to ja-return (VP-7 R1), not the call-starting ja assistant —
     // its firstMessage is the full opening greeting, which must never replay.

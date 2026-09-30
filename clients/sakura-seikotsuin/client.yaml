@@ -39,9 +39,10 @@ languages:
   supported: [ja, en]
   settings:
     ja:
-      voice: { provider: azure, voiceId: ja-JP-NanamiNeural }
-      # VP-2 (VAPI-FACTS.md R1): Azure's own supported-language table lists ja-JP directly.
-      transcriber: { provider: azure, language: ja-JP }
+      # Vendor-swap (VAPI-FACTS.md Vendor-swap R3): Cartesia voice "Miki" (Customer Concierge), replacing Azure ja-JP-NanamiNeural.
+      voice: { provider: cartesia, voiceId: e63d7d05-76b0-4ff5-b8fb-503a82688bfe }
+      # Vendor-swap (VAPI-FACTS.md Vendor-swap R2): Cartesia Ink Whisper, plain "ja" (not "ja-JP").
+      transcriber: { provider: cartesia, model: ink-whisper, language: ja }
       switchKeywords: ["日本語", "Japanese"]   # 日本語 = "Japanese"
       # VP-7 R8: if the assistant SAYS one of these, Vapi hangs up after it finishes speaking —
       # a backstop for when the model speaks a farewell instead of calling endCall.
@@ -61,8 +62,10 @@ languages:
         digitWords: ["ゼロ", "イチ", "ニー", "サン", "ヨン", "ゴー", "ロク", "ナナ", "ハチ", "キュウ"]
         example: "ゼロキュウゼロ、イチニーサンヨン、ゴーロクナナハチ"
     en:
-      voice: { provider: azure, voiceId: en-US-JennyNeural }
-      transcriber: { provider: azure, language: en-US }
+      # Vendor-swap (VAPI-FACTS.md Vendor-swap R3): Cartesia voice "Jillian" (Happy Spirit), replacing Azure en-US-JennyNeural.
+      voice: { provider: cartesia, voiceId: e4d5f4c4-6601-4779-bee1-b3c14d629dc6 }
+      # Vendor-swap (VAPI-FACTS.md Vendor-swap R2): Cartesia Ink Whisper.
+      transcriber: { provider: cartesia, model: ink-whisper, language: en }
       # 英語 = "English"; イングリッシュ = "English" in katakana — how a Japanese
       # transcriber is likely to actually write the spoken word (source docs A7).
       switchKeywords: ["English", "英語", "イングリッシュ"]

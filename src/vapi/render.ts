@@ -53,10 +53,16 @@ export class UnconfiguredTranscriberError extends Error {
 
 export { LOG_CALL_TOPIC_FUNCTION_NAME, REQUEST_CALLBACK_FUNCTION_NAME };
 
-/** VAPI-FACTS.md R3: primary model choice for VP-2's assistants (fallback: anthropic/claude-sonnet-5). */
+/** VAPI-FACTS.md Vendor-swap R1: openai/gpt-5.6-terra, replacing gpt-4o-mini (fallback: anthropic/claude-sonnet-5). */
 const MODEL_PROVIDER = 'openai';
 /** Exported so textTester.ts (VP-7) calls the exact same model, not a substitute — zero drift. */
-export const MODEL_ID = 'gpt-4o-mini';
+export const MODEL_ID = 'gpt-5.6-terra';
+/**
+ * Required for gpt-5.6-terra (and the whole GPT-5.6 family) to use function tools at all —
+ * OpenAI's Chat Completions API rejects tool calls on a reasoning-tier model unless this is
+ * exactly "none" (VAPI-FACTS.md Vendor-swap R4). Exported for the same zero-drift reason as MODEL_ID.
+ */
+export const MODEL_REASONING_EFFORT = 'none';
 
 export interface RenderOptions {
   /** Public HTTPS base URL Vapi will call — from PUBLIC_BASE_URL, never hard-coded (CLAUDE.md / work order §3). */
@@ -358,12 +364,14 @@ export function renderAssistant(
     voice: { provider: settings.voice.provider, voiceId: settings.voice.voiceId },
     transcriber: {
       provider: settings.transcriber.provider,
+      ...(settings.transcriber.model ? { model: settings.transcriber.model } : {}),
       language: settings.transcriber.language,
     },
     startSpeakingPlan: buildStartSpeakingPlan(config, language),
     model: {
       provider: MODEL_PROVIDER,
       model: MODEL_ID,
+      reasoningEffort: MODEL_REASONING_EFFORT,
       messages: [{ role: 'system', content: systemPrompt }],
       // Populated by sync.ts once the tools (request_callback + log_call_topic
       // + one handoff tool per other language + the VP-8 reservation tools,

@@ -64,7 +64,7 @@ import {
   PgReservationServiceRepository,
   type ReservationServiceRepository,
 } from '../repositories/reservationServiceRepository.js';
-import { MODEL_ID, renderAssistant, type RenderResult } from './render.js';
+import { MODEL_ID, MODEL_REASONING_EFFORT, renderAssistant, type RenderResult } from './render.js';
 import { contentLanguageOf } from './squad.js';
 import {
   BOOK_APPOINTMENT_FUNCTION_NAME,
@@ -78,6 +78,7 @@ import type { VapiFunctionDefinition, VapiHandoffDestination } from './types.js'
 export const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 /** Same model production uses — imported from render.ts, never duplicated, so this can't drift. */
 export const OPENAI_MODEL = MODEL_ID;
+export const OPENAI_MODEL_REASONING_EFFORT = MODEL_REASONING_EFFORT;
 
 const PLACEHOLDER_BASE_URL = 'https://text-tester.invalid';
 const PLACEHOLDER_CREDENTIAL_ID = 'text-tester';
@@ -268,7 +269,12 @@ export function makeOpenAiCaller(apiKey: string): CallModelFn {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({ model: OPENAI_MODEL, messages, tools }),
+      body: JSON.stringify({
+        model: OPENAI_MODEL,
+        messages,
+        tools,
+        reasoning_effort: OPENAI_MODEL_REASONING_EFFORT,
+      }),
     });
 
     const data = (await response.json()) as ChatCompletionResponse;
