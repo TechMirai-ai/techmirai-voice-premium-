@@ -281,7 +281,13 @@ const PHONE_CONFIRMATION_ACK_INSTRUCTIONS =
   '"mm-hm" or "yeah", or the Japanese equivalent such as 「はい」/「うん」 said mid-sentence) ' +
   "are not a yes — they're just the caller listening. Only an explicit affirmative answer " +
   'given AFTER you finish asking counts as confirmation. A "no," a correction, silence, or ' +
-  'anything unclear is not a yes either — fix the detail, read it back again, and ask again.';
+  'anything unclear is not a yes either — fix the detail, read it back again, and ask again. ' +
+  'The read-back question and the tool call that depends on it are always two separate turns: ' +
+  'when you ask "is that correct?", that turn contains ONLY the question — no tool call. Stop ' +
+  "and wait. Call the tool in a later turn, only once the caller's own reply to that exact " +
+  'question has appeared in the conversation. Never produce the tool call in the same turn as ' +
+  'the question itself, even when you expect the answer to be yes — the caller has not actually ' +
+  'answered yet at that point.';
 
 // 5. Callback requests
 function callbackSection(config: ClientConfig, language: string): string {
