@@ -5,10 +5,17 @@
     "sakura-seikotsuin--ja--handoff-to-en": "e8682b0c-a464-49f8-ac5c-a071080d9697",
     "sakura-seikotsuin--ja--check-availability": "7d5b27cc-0ba6-4117-8b75-03865ff2cac3",
     "sakura-seikotsuin--ja--lookup-patient": "173c81ca-5924-496d-a75e-faa312068aa0",
-    "sakura-seikotsuin--ja--book-appointment": "171198ae-fd35-4a28-8f40-c94a6286be0d"
+    "sakura-seikotsuin--ja--book-appointment": "171198ae-fd35-4a28-8f40-c94a6286be0d",
+    "sakura-seikotsuin--en--request-callback": "e0232969-ed04-416c-a5f7-b26f3355fb12",
+    "sakura-seikotsuin--en--log-call-topic": "faca0d97-eaa2-444b-8978-20abbc3701f6",
+    "sakura-seikotsuin--en--handoff-to-ja": "e82028bf-6bab-4243-9b41-b6a7c152507a",
+    "sakura-seikotsuin--en--check-availability": "02a02f0d-051a-43e1-8d9a-b38db6b3703f",
+    "sakura-seikotsuin--en--lookup-patient": "34ec6ea5-4626-473a-ae97-e2b69f1c6843",
+    "sakura-seikotsuin--en--book-appointment": "8693c9e9-4d47-4a23-ae69-e908b7f97fa6"
   },
   "assistants": {
-    "sakura-seikotsuin--ja": "c9c5ed85-94c9-451b-87db-7dd0df4e0021"
+    "sakura-seikotsuin--ja": "c9c5ed85-94c9-451b-87db-7dd0df4e0021",
+    "sakura-seikotsuin--en": "fef62bd5-de09-431a-820f-b9774e943f79"
   },
   "squads": {}
 }
