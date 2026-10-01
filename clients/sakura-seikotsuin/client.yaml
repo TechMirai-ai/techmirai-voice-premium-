@@ -183,7 +183,7 @@ scripts:
     # line hangs up the call on the platform side even if the model forgets the endCall tool
     # (case 29 showed it speaking the line and then leaving the call open). NEEDS NATIVE-SPEAKER REVIEW.
     en: >-
-      I'm sorry, the line seems unclear. Could you please call again a little later? Goodbye.
+      I'm sorry, the line seems unclear. Could you please call again a little later? Please take care.
     ja: >-
       申し訳ございません。お電話が遠いようですので、お手数ですが、
       少し時間をおいておかけ直しいただけますでしょうか。失礼いたします。
@@ -201,7 +201,7 @@ scripts:
     # repeating an emergency line forever when the platform dropped its own replies from the
     # history (2026-09-25). NEEDS NATIVE-SPEAKER REVIEW.
     en: >-
-      Please hang up and call [[emergencyNumber]] for an ambulance right away. Goodbye.
+      Please hang up and call [[emergencyNumber]] for an ambulance right away. Please take care.
     ja: >-
       すぐにお電話を切って、[[emergencyNumber]]番に連絡し、救急車を呼んでください。失礼いたします。
   # VP-7: uncertain/possibly-serious pain — two-tier emergency handling (source
