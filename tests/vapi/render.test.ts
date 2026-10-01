@@ -89,7 +89,9 @@ describe('renderAssistant — Sakura fixture (ja)', () => {
 
     const { assistant } = renderAssistant(config, 'ja', faq, OPTIONS);
 
-    expect(assistant.endCallMessage).toBe('お大事になさってください。');
+    expect(assistant.endCallMessage).toBe(
+      'お電話いただき、誠にありがとうございました。どうぞお大事になさってください。',
+    );
     expect(assistant.endCallMessage).not.toContain('[[');
     expect(assistant.model.tools).toEqual([{ type: 'endCall' }]);
   });
@@ -141,9 +143,10 @@ describe('renderAssistant — handoff (Sakura)', () => {
 
     const { assistant, handoffTools } = renderAssistant(config, 'ja', faq, OPTIONS);
 
-    expect(assistant.firstMessage).toContain(
-      'If you would like assistance in English, please say "English."',
-    );
+    // 2026-10-01 content update: the English-option cue was intentionally removed from the
+    // greeting (Jamal's call) — this also guards against it silently coming back.
+    expect(assistant.firstMessage).toContain('本日はどのようなご用件でしょうか');
+    expect(assistant.firstMessage).not.toContain('English');
     expect(handoffTools.map((tool) => tool.toLanguage)).toEqual(['en']);
     expect(handoffTools[0]?.payload.destinations[0]?.assistantName).toBe('sakura-seikotsuin--en');
   });

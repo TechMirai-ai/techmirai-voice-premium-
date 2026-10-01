@@ -70,8 +70,12 @@ describe('renderHandoffTool — Sakura', () => {
     const toJa = renderHandoffTool(config, 'en', 'ja').destinations[0];
 
     // Spoken text uses the VP-6 D phonetic override (namePronunciation.en), not the written name.
-    expect(toEn?.assistantOverrides.endCallMessage).toBe('Please take care.');
-    expect(toJa?.assistantOverrides.endCallMessage).toBe('お大事になさってください。');
+    expect(toEn?.assistantOverrides.endCallMessage).toBe(
+      'Thank you for your call. Please take care.',
+    );
+    expect(toJa?.assistantOverrides.endCallMessage).toBe(
+      'お電話いただき、誠にありがとうございました。どうぞお大事になさってください。',
+    );
     expect(toJa?.assistantOverrides.endCallMessage).not.toContain('[[');
   });
 

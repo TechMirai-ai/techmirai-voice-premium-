@@ -91,23 +91,15 @@ safety:
   noMedicalAdvice: true
 
 scripts:
-  # Japanese assistant's first message. Includes the English option.
+  # Japanese assistant's first message.
   greeting:
-    # `.ja` CHANGED (content update, 2026-09-29): the project owner reversed the S-2 AI-disclosure
-    # decision (see docs/FUTURE-FEATURES.md) — the Japanese greeting no longer identifies the
-    # assistant as AI. `.en` is unused (never spoken — see docs/JAPANESE-REVIEW.md item 1) and is
-    # left as-is. NEEDS NATIVE-SPEAKER REVIEW.
-    # `.ja` CHANGED again (content update, 2026-09-29): the English-option cue is now the full
-    # English sentence, spoken literally as English text in the same ja-JP (Nanami) voice — no
-    # voice switch. Previously only the single word "English" was left untranslated inside an
-    # otherwise-Japanese instruction. A voice/accent switch for this cue ("option 2") was raised
-    # separately and is explicitly deferred — do not start it without being told to.
-    en: >-
-      Thank you for calling [[clinicName]]. This is the AI reception.
-      For English, please say "English". How may I help you?
-    ja: >-
-      お電話ありがとうございます。[[clinicName]]でございます。ご用件をお伺いいたします。
-      If you would like assistance in English, please say "English."
+    # `.en` is unused (never spoken — see docs/JAPANESE-REVIEW.md item 1); kept as the gloss for
+    # Jamal's reference, per the existing pattern in this file.
+    # `.ja` CHANGED (content update, 2026-10-01): shortened, and the English-option cue removed
+    # entirely — previously ended with 'If you would like assistance in English, please say
+    # "English."' (Jamal's call, confirmed). NEEDS NATIVE-SPEAKER REVIEW.
+    en: Thank you for calling [[clinicName]]. How may I assist you today?
+    ja: お電話ありがとうございます。[[clinicName]]でございます。本日はどのようなご用件でしょうか。
   # English assistant's first message after the handoff.
   englishGreeting:
     # `.en` CHANGED (content update, 2026-09-29): the project owner reversed the S-2 AI-disclosure
@@ -220,15 +212,16 @@ scripts:
   # VP-7 R3: the model speaks this itself right after the emergency path, before
   # calling endCall — the normal `goodbye`/endCallMessage still plays right
   # after (accepted tradeoff, see docs/VAPI-FACTS.md). NEEDS NATIVE-SPEAKER REVIEW.
-  # CHANGED (content update, 2026-09-29) — same text as `goodbye` below, kept as its own key
-  # because the mechanism differs: this one is spoken by the model itself (see emergencySection
-  # in promptTemplate.ts), `goodbye` is spoken by the platform via endCallMessage.
+  # Deliberately NOT updated to match `goodbye`'s 2026-10-01 "thank you for calling" wording below —
+  # thanking the caller for calling right after an emergency instruction would be the wrong tone here.
   emergencyGoodbye:
     en: Please take care.
     ja: お大事になさってください。
+  # CHANGED (content update, 2026-10-01): now explicitly thanks the caller for calling, on top of
+  # the "please take care" wording introduced 2026-09-29. NEEDS NATIVE-SPEAKER REVIEW.
   goodbye:
-    en: Please take care.
-    ja: お大事になさってください。
+    en: Thank you for your call. Please take care.
+    ja: お電話いただき、誠にありがとうございました。どうぞお大事になさってください。
   # VP-8: demo reservation flow. NEEDS NATIVE-SPEAKER REVIEW, like the rest of the Japanese content.
   reservationAskType:
     en: Is this your first visit, or are you a returning patient?
