@@ -57,8 +57,9 @@ describe('silenceHangupHook', () => {
     expect(hook.options.triggerMaxCount).toBe(1);
   });
 
-  test('is long enough not to cut off a caller who is looking for a phone number', () => {
-    expect(SILENCE_HANGUP_SECONDS).toBeGreaterThanOrEqual(30);
+  test('is long enough for a short lookup pause but short enough to beat real caller patience (VP-7 R10)', () => {
+    expect(SILENCE_HANGUP_SECONDS).toBeGreaterThanOrEqual(15);
+    expect(SILENCE_HANGUP_SECONDS).toBeLessThanOrEqual(30);
   });
 });
 

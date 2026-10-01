@@ -21,9 +21,13 @@ import type { VapiSilenceHangupHook } from './types.js';
 
 /**
  * How long the caller may stay silent, after the assistant stops speaking, before Vapi ends the
- * call. Deliberately long: a caller looking for a phone number or a card must not be cut off.
+ * call. Originally 40s (VP-7 R8) to avoid cutting off a caller looking for a phone number or a
+ * card. Lowered to 20s (VP-7 R10, 2026-10-01, project owner's call) after a real call showed the
+ * model drop the log_call_topic/endCall chain and the caller hang up himself after ~25s of dead
+ * air — shorter than the original 40s threshold ever got a chance to fire. Still long enough for
+ * a short lookup pause, but short enough to beat observed real caller patience.
  */
-export const SILENCE_HANGUP_SECONDS = 40;
+export const SILENCE_HANGUP_SECONDS = 20;
 
 /** `language`'s configured hang-up phrases, or `undefined` when the client sets none. */
 export function endCallPhrasesFor(config: ClientConfig, language: string): string[] | undefined {
