@@ -32,7 +32,7 @@ describe('renderAssistant — Sakura fixture (ja)', () => {
     });
     expect(assistant.transcriber).toEqual({
       provider: 'cartesia',
-      model: 'ink-whisper',
+      model: 'ink-2',
       language: 'ja',
     });
     expect(assistant.model.provider).toBe('openai');
@@ -170,7 +170,7 @@ describe('renderAssistant — handoff (Sakura)', () => {
     });
     expect(assistant.transcriber).toEqual({
       provider: 'cartesia',
-      model: 'ink-whisper',
+      model: 'ink-2',
       language: 'en',
     });
     expect(handoffTools.map((tool) => tool.toLanguage)).toEqual(['ja']);

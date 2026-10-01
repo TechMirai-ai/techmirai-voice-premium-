@@ -173,7 +173,7 @@ describe('client config validation', () => {
 
     expect(config.languages.settings.ja?.transcriber).toEqual({
       provider: 'cartesia',
-      model: 'ink-whisper',
+      model: 'ink-2',
       language: 'ja',
     });
   });

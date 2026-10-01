@@ -41,8 +41,13 @@ languages:
     ja:
       # Vendor-swap (VAPI-FACTS.md Vendor-swap R3): Cartesia voice "Miki" (Customer Concierge), replacing Azure ja-JP-NanamiNeural.
       voice: { provider: cartesia, voiceId: e63d7d05-76b0-4ff5-b8fb-503a82688bfe }
-      # Vendor-swap (VAPI-FACTS.md Vendor-swap R2): Cartesia Ink Whisper, plain "ja" (not "ja-JP").
-      transcriber: { provider: cartesia, model: ink-whisper, language: ja }
+      # Vendor-swap R2 superseded (2026-10-01): switched ink-whisper -> ink-2 after real test
+      # calls showed repeated phone-number mis-transcription (garbled digits, hallucinated
+      # words) on ink-whisper. Cartesia's own docs position ink-2 as the current, more accurate
+      # model and specifically claim it "transcribes structured data like phone numbers, dates,
+      # and emails right the first time" — ink-whisper is the legacy/budget tier with no such
+      # claim. Plain "ja" (not "ja-JP"), same as before.
+      transcriber: { provider: cartesia, model: ink-2, language: ja }
       switchKeywords: ["日本語", "Japanese"]   # 日本語 = "Japanese"
       # VP-7 R8: if the assistant SAYS one of these, Vapi hangs up after it finishes speaking —
       # a backstop for when the model speaks a farewell instead of calling endCall.
@@ -64,8 +69,8 @@ languages:
     en:
       # Vendor-swap (VAPI-FACTS.md Vendor-swap R3): Cartesia voice "Jillian" (Happy Spirit), replacing Azure en-US-JennyNeural.
       voice: { provider: cartesia, voiceId: e4d5f4c4-6601-4779-bee1-b3c14d629dc6 }
-      # Vendor-swap (VAPI-FACTS.md Vendor-swap R2): Cartesia Ink Whisper.
-      transcriber: { provider: cartesia, model: ink-whisper, language: en }
+      # Vendor-swap R2 superseded (2026-10-01): switched ink-whisper -> ink-2, same reason as ja above.
+      transcriber: { provider: cartesia, model: ink-2, language: en }
       # 英語 = "English"; イングリッシュ = "English" in katakana — how a Japanese
       # transcriber is likely to actually write the spoken word (source docs A7).
       switchKeywords: ["English", "英語", "イングリッシュ"]
