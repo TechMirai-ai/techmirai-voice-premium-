@@ -190,13 +190,20 @@ function renderTopicTool(
   };
 }
 
-/** VP-8: `check_availability`, `lookup_patient` and `book_appointment` — a plain function tool each. */
+/**
+ * VP-8: `check_availability`, `lookup_patient` and `book_appointment` — a plain function tool each.
+ * `pleaseWaitMessage` (already language-filled — see `renderAssistant`) is their `request-start`
+ * message: each is synchronous with real latency, so Vapi speaks its own default filler unless
+ * overridden — the real cause of the "chotto matte" bug (VAPI-FACTS.md, 2026-09-23 entry).
+ */
 function renderReservationTools(
   baseUrl: string,
   credentialId: string,
   services: ReservationService[],
+  pleaseWaitMessage: string,
 ): RenderedReservationTool[] {
   const serviceIds = services.map((service) => service.id);
+  const requestStartMessages = [{ type: 'request-start' as const, content: pleaseWaitMessage }];
 
   const checkAvailability: VapiFunctionToolPayload = {
     type: 'function',
@@ -215,6 +222,7 @@ function renderReservationTools(
       },
     },
     server: { url: `${baseUrl}/api/voice/check-availability`, credentialId },
+    messages: requestStartMessages,
   };
 
   const lookupPatient: VapiFunctionToolPayload = {
@@ -234,6 +242,7 @@ function renderReservationTools(
       },
     },
     server: { url: `${baseUrl}/api/voice/lookup-patient`, credentialId },
+    messages: requestStartMessages,
   };
 
   const bookAppointment: VapiFunctionToolPayload = {
@@ -263,6 +272,7 @@ function renderReservationTools(
       },
     },
     server: { url: `${baseUrl}/api/voice/book-appointment`, credentialId },
+    messages: requestStartMessages,
   };
 
   return [
@@ -313,6 +323,11 @@ export function renderAssistant(
     language,
     pick(config.scripts.callbackFailed, language),
   );
+  const pleaseWaitMessage = fillClinicPlaceholders(
+    config,
+    language,
+    pick(config.scripts.pleaseWait, language),
+  );
   // The member that starts every call (its id equals the default language)
   // opens with the greeting. Every other member — including the "-return"
   // variant of the default language — is only ever reached by a handoff, so
@@ -342,9 +357,15 @@ export function renderAssistant(
       },
     },
     server: { url: callbackUrl, credentialId: options.credentialId },
-    // Safety net per work order §4.4: spoken if the model doesn't produce a
-    // timely response of its own after the tool call fails.
-    messages: [{ type: 'request-failed', content: failureMessage }],
+    messages: [
+      // request_callback is synchronous with real latency (a DB write), so
+      // without this Vapi speaks its own default filler — the "chotto matte"
+      // bug (VAPI-FACTS.md, 2026-09-23 entry).
+      { type: 'request-start', content: pleaseWaitMessage },
+      // Safety net per work order §4.4: spoken if the model doesn't produce a
+      // timely response of its own after the tool call fails.
+      { type: 'request-failed', content: failureMessage },
+    ],
   };
 
   const topicTool = renderTopicTool(
@@ -354,7 +375,9 @@ export function renderAssistant(
   );
 
   const reservationTools =
-    services.length > 0 ? renderReservationTools(baseUrl, options.credentialId, services) : [];
+    services.length > 0
+      ? renderReservationTools(baseUrl, options.credentialId, services, pleaseWaitMessage)
+      : [];
 
   const endCallPhrases = endCallPhrasesFor(config, language);
 

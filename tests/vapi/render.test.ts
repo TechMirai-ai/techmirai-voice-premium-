@@ -73,6 +73,16 @@ describe('renderAssistant — Sakura fixture (ja)', () => {
     expect(failedMessage?.content).toContain('お電話');
   });
 
+  test("the tool's request-start message uses scripts.pleaseWait, not Vapi's default filler", async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const { tool } = renderAssistant(config, 'ja', faq, OPTIONS);
+
+    const startMessage = tool.messages?.find((message) => message.type === 'request-start');
+    expect(startMessage?.content).toBe('少々お待ちくださいませ。');
+  });
+
   test('assistant.endCallMessage speaks scripts.goodbye with clinic placeholders substituted', async () => {
     const config = loadClient(SAKURA_ID);
     const faq = await knowledge.listFaq(SAKURA_ID);
@@ -294,6 +304,21 @@ describe('renderAssistant — VP-8 reservation tools', () => {
     expect(byKey['lookup-patient']?.server.url).toBe(`${BASE_URL}/api/voice/lookup-patient`);
     expect(byKey['book-appointment']?.function.name).toBe('book_appointment');
     expect(byKey['book-appointment']?.server.url).toBe(`${BASE_URL}/api/voice/book-appointment`);
+  });
+
+  test("each reservation tool's request-start message uses scripts.pleaseWait, not Vapi's default filler", () => {
+    const config = buildMinimalConfig({ language: 'fr' });
+
+    const { reservationTools } = renderAssistant(config, 'fr', config.faq, {
+      ...OPTIONS,
+      services: SERVICES,
+    });
+
+    for (const { payload } of reservationTools) {
+      expect(payload.messages).toEqual([
+        { type: 'request-start', content: 'pleaseWait text (fr)' },
+      ]);
+    }
   });
 
   test('book_appointment.serviceId is an enum of the configured service ids, and is not required', () => {

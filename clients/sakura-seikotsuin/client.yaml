@@ -165,6 +165,12 @@ scripts:
     ja: >-
       申し訳ございません。情報を保存できませんでした。
       恐れ入りますが、時間をおいて、もう一度お電話いただけますでしょうか。
+  # Platform-spoken request-start filler for request_callback/check_availability/lookup_patient/
+  # book_appointment (render.ts) — formal wording, matches promptTemplate.ts's styleSection anchor.
+  pleaseWait:
+    en: One moment, please.
+    # 少々お待ちくださいませ = "please wait a moment" (polite/formal register).
+    ja: 少々お待ちくださいませ。
   didNotCatch:
     en: I'm sorry, I didn't quite catch that. Could you say it again, please?
     ja: 申し訳ございません。うまく聞き取れませんでした。もう一度おっしゃっていただけますか？

@@ -158,6 +158,17 @@ const scriptsSchema = z.strictObject({
   confirmPhone: localizedTextSchema,
   callbackSaved: localizedTextSchema,
   callbackFailed: localizedTextSchema,
+  /**
+   * Formal wait-filler, spoken by the platform (not the model) as the
+   * `request-start` message on a synchronous tool call that has real
+   * latency — `request_callback`, `check_availability`, `lookup_patient`,
+   * `book_appointment` (`render.ts`). Wording must match the formal phrase
+   * locked into `promptTemplate.ts`'s `styleSection` ("One moment, please." /
+   * 「少々お待ちくださいませ。」) — the two are the same anti-"chotto matte" fix,
+   * one for the model's own improvised wait lines, one for the platform's
+   * default tool filler.
+   */
+  pleaseWait: localizedTextSchema,
   didNotCatch: localizedTextSchema,
   /**
    * Asks for a phone number again — after a wrong digit count or a "no" to the read-back (VP-7).
