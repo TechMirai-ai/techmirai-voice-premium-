@@ -34,6 +34,7 @@ describe('renderAssistant — Sakura fixture (ja)', () => {
       provider: 'deepgram',
       model: 'nova-3',
       language: 'ja',
+      confidenceThreshold: 0.2,
     });
     expect(assistant.model.provider).toBe('openai');
     expect(assistant.model.model).toBe('gpt-5.6-terra');
@@ -174,6 +175,7 @@ describe('renderAssistant — Deepgram Flux transcriber and endpointing (VAPI-FA
       model: 'flux-general-multi',
       eotThreshold: 0.7,
       eotTimeoutMs: 5000,
+      confidenceThreshold: 0.2,
     });
     expect(assistant.startSpeakingPlan?.smartEndpointingPlan).toBeUndefined();
   });
@@ -192,6 +194,7 @@ describe('renderAssistant — Deepgram Flux transcriber and endpointing (VAPI-FA
       eotThreshold: 0.7,
       eotTimeoutMs: 5000,
       languages: ['fr'],
+      confidenceThreshold: 0.2,
     });
   });
 });
@@ -232,6 +235,7 @@ describe('renderAssistant — handoff (Sakura)', () => {
       provider: 'deepgram',
       model: 'nova-3',
       language: 'en',
+      confidenceThreshold: 0.2,
     });
     expect(handoffTools.map((tool) => tool.toLanguage)).toEqual(['ja']);
     // Redirected to ja-return (VP-7 R1), not the call-starting ja assistant —

@@ -47,6 +47,13 @@ export interface VapiTranscriberConfig {
    * plausible-looking confidence scores each time — VAPI-FACTS.md Vendor-swap R8.
    */
   languages?: string[];
+  /**
+   * Deepgram only (`DeepgramTranscriber.confidenceThreshold`, default 0.4, range 0-1):
+   * transcripts below this are silently discarded before anything downstream sees them. Lowered
+   * from the default after a real call showed it dropping a quietly-spoken leading phone digit —
+   * VAPI-FACTS.md Vendor-swap R20.
+   */
+  confidenceThreshold?: number;
 }
 
 export interface VapiModelMessage {

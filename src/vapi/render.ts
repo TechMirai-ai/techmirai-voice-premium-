@@ -113,20 +113,28 @@ function escapeRegex(text: string): string {
 }
 
 /**
- * Returns the last sentence of a multi-sentence script line (split on ./!/?/。/！/？), or the
- * whole string if it's only one sentence. A real call (VAPI-FACTS.md Vendor-swap R18) showed
- * Vapi's `customEndpointingRules` regex — built from the FULL `askPhone` line — never matched,
- * because the model doesn't reliably recite a multi-sentence filler line verbatim: it dropped one
- * word from the opening clause when actually speaking it, breaking an exact-substring match on the
- * whole sentence. Anchoring on just the final sentence (the actual question, not the leading
- * acknowledgment) is far less likely to be paraphrased away, since `RegExp.test` only needs this
- * substring to appear somewhere in the assistant's last message (Vapi's own docs confirm substring,
- * not full-string, matching) — not a complete fix for every possible paraphrase, but a real
- * improvement over requiring the whole sentence.
+ * Returns a trailing fragment of a script line, meant to be used as a `customEndpointingRules`
+ * regex anchor that survives the model paraphrasing the line when it actually speaks it.
+ *
+ * History: the first attempt at this (anchoring on the last *sentence* of `askPhone`) still broke
+ * on two separate real calls (VAPI-FACTS.md Vendor-swap R18, R20) — the model dropped "スタッフ",
+ * the first word of that last sentence, both times, so an anchor starting exactly at that word was
+ * never going to survive. Anchoring on the whole line has the same problem one level up. Instead
+ * of guessing which specific word is unstable (that's the same brittleness in a new spot — a future
+ * deviation could just as easily hit some other word), this drops the first HALF of the line by
+ * character count — far more than the single word actually observed dropping — then snaps forward
+ * to the next word boundary where one exists (space-delimited languages), so the anchor doesn't
+ * start mid-word. Also strips trailing punctuation before measuring, since the model's generated
+ * text didn't reliably end in the configured "？" either (it used "。"/"?" interchangeably in both
+ * observed deviations) — `RegExp.test` is substring matching, so the anchor doesn't need to extend
+ * to the end of what's spoken, only to appear somewhere within it.
  */
-function lastSentence(text: string): string {
-  const sentences = text.split(/(?<=[.!?。！？])\s*/).filter((s) => s.length > 0);
-  return sentences[sentences.length - 1] ?? text;
+function stableQuestionAnchor(text: string): string {
+  const core = text.replace(/[.!?。！？]+$/, '');
+  const midpoint = Math.floor(core.length / 2);
+  const nextSpace = core.indexOf(' ', midpoint);
+  const cut = nextSpace === -1 ? midpoint : nextSpace + 1;
+  return core.slice(cut);
 }
 
 /**
@@ -152,6 +160,28 @@ const NO_PUNCTUATION_WAIT_SECONDS = 0.7;
  */
 const FLUX_EOT_THRESHOLD = 0.7;
 const FLUX_EOT_TIMEOUT_MS = 5000;
+
+/**
+ * Deepgram's own documented default is 0.4 (Vapi's live OpenAPI spec, `DeepgramTranscriber.
+ * confidenceThreshold`, range 0-1: "Transcripts below this confidence threshold will be
+ * discarded"). A real call (VAPI-FACTS.md Vendor-swap R20) showed this silently dropping the
+ * quietly-spoken leading digit(s) of a phone number (two separate fragments at 0.31-0.33
+ * confidence, both discarded, both immediately preceding a now-incomplete phone-number attempt)
+ * — before the model, or anything else downstream, ever saw that text. No prompt-level fix can
+ * reach this; it only has a transcriber-level lever.
+ *
+ * Lowered rather than left at default based on this project's own existing architecture, not a
+ * documented Vapi recommendation (none was found — a plausible-sounding "raise for background
+ * chatter, lower for quiet callers" guideline surfaced in search results but could not be traced
+ * to an actual Vapi doc after two attempts, so it is NOT relied on here): every place this
+ * project uses transcribed digits already requires an explicit digit-by-digit read-back and a
+ * clear "yes" before acting on them (`phoneReadbackInstructions`) — so a wrongly-*included*
+ * low-confidence fragment gets caught at that confirmation step, while a wrongly-*discarded* one
+ * (today's bug) has no such safety net at all. That asymmetry favors erring toward inclusion.
+ * 0.2 comfortably admits both observed drops (0.31, 0.33) while still filtering near-zero-
+ * confidence noise. This is a judgment call pending real-call verification, not a confirmed fix.
+ */
+const DEEPGRAM_CONFIDENCE_THRESHOLD = 0.2;
 
 /** Deepgram's Flux models are named `flux-general-en` / `flux-general-multi`. */
 function isFluxModel(model: string | undefined): boolean {
@@ -182,7 +212,7 @@ function buildStartSpeakingPlan(
     customEndpointingRules: [
       {
         type: 'assistant',
-        regex: escapeRegex(lastSentence(askPhoneText)),
+        regex: escapeRegex(stableQuestionAnchor(askPhoneText)),
         timeoutSeconds: 2.5,
       },
     ],
@@ -438,6 +468,9 @@ export function renderAssistant(
         ? { eotThreshold: FLUX_EOT_THRESHOLD, eotTimeoutMs: FLUX_EOT_TIMEOUT_MS }
         : {}),
       ...(settings.transcriber.languages ? { languages: settings.transcriber.languages } : {}),
+      ...(settings.transcriber.provider === 'deepgram'
+        ? { confidenceThreshold: DEEPGRAM_CONFIDENCE_THRESHOLD }
+        : {}),
     },
     startSpeakingPlan: buildStartSpeakingPlan(config, language, settings.transcriber.model),
     model: {
