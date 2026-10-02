@@ -83,13 +83,19 @@ const businessSchema = z.strictObject({
 const languageSettingsSchema = z.strictObject({
   voice: z.strictObject({ provider: nonEmpty, voiceId: nonEmpty }),
   /**
-   * `language` (e.g. "ja") is required alongside `provider`. `model` is optional —
-   * Cartesia's Ink Whisper needs `model: "ink-whisper"` alongside provider/language
-   * (VAPI-FACTS.md Vendor-swap R2); a future provider without a model concept can omit it.
+   * `model` is optional — Cartesia's Ink Whisper needs `model: "ink-whisper"` alongside
+   * provider/language (VAPI-FACTS.md Vendor-swap R2); a future provider without a model concept
+   * can omit it. `language` (e.g. "ja") is also optional — required for every provider used so far
+   * EXCEPT Deepgram Flux (`flux-general-en`/`flux-general-multi`), which auto-detects the spoken
+   * language and must NOT be pinned to one (VAPI-FACTS.md Vendor-swap R6).
    * `null` means "not chosen yet" — see docs/VAPI-FACTS.md for what's still open.
    */
   transcriber: z
-    .strictObject({ provider: nonEmpty, model: nonEmpty.optional(), language: nonEmpty })
+    .strictObject({
+      provider: nonEmpty,
+      model: nonEmpty.optional(),
+      language: nonEmpty.optional(),
+    })
     .nullable(),
   switchKeywords: z.array(nonEmpty).min(1, 'needs at least one keyword'),
   /**

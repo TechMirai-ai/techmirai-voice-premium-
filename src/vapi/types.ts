@@ -19,12 +19,27 @@ export interface VapiVoiceConfig {
 }
 
 export interface VapiTranscriberConfig {
-  /** "cartesia" as of the vendor swap (VAPI-FACTS.md Vendor-swap R2). */
+  /** "deepgram" as of the Flux swap (VAPI-FACTS.md Vendor-swap R6); "cartesia"/"azure" elsewhere. */
   provider: string;
-  /** Cartesia's Ink Whisper model requires this alongside `provider`/`language` — VAPI-FACTS.md Vendor-swap R2. */
+  /** e.g. "flux-general-multi", "ink-2". */
   model?: string;
-  /** e.g. "ja" (Cartesia; plain ISO code, not "ja-JP") — VAPI-FACTS.md Vendor-swap R2. */
-  language: string;
+  /**
+   * e.g. "ja" (Cartesia; plain ISO code, not "ja-JP"). Omitted for Deepgram Flux models, which
+   * auto-detect the spoken language instead of being pinned to one (VAPI-FACTS.md Vendor-swap R6) —
+   * required for every other provider/model this project has used so far.
+   */
+  language?: string;
+  /**
+   * Deepgram Flux only: confidence (0.5–1.0) required to end a turn — Flux's own replacement for
+   * `VapiStartSpeakingPlan.smartEndpointingPlan`, which must NOT be set alongside a Flux transcriber
+   * (VAPI-FACTS.md Vendor-swap R7).
+   */
+  eotThreshold?: number;
+  /**
+   * Deepgram Flux only: hard backstop silence timeout in milliseconds, independent of
+   * `eotThreshold`'s confidence — VAPI-FACTS.md Vendor-swap R7.
+   */
+  eotTimeoutMs?: number;
 }
 
 export interface VapiModelMessage {

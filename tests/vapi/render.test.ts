@@ -31,9 +31,10 @@ describe('renderAssistant — Sakura fixture (ja)', () => {
       voiceId: 'e63d7d05-76b0-4ff5-b8fb-503a82688bfe',
     });
     expect(assistant.transcriber).toEqual({
-      provider: 'cartesia',
-      model: 'ink-2',
-      language: 'ja',
+      provider: 'deepgram',
+      model: 'flux-general-multi',
+      eotThreshold: 0.7,
+      eotTimeoutMs: 5000,
     });
     expect(assistant.model.provider).toBe('openai');
     expect(assistant.model.model).toBe('gpt-5.6-terra');
@@ -98,11 +99,10 @@ describe('renderAssistant — Sakura fixture (ja)', () => {
 });
 
 describe('renderAssistant — startSpeakingPlan (VP-6 A)', () => {
-  test('uses Vapi text-based smart endpointing and a longer timeout while the assistant is asking for the phone number', async () => {
-    const config = loadClient(SAKURA_ID);
-    const faq = await knowledge.listFaq(SAKURA_ID);
+  test('a non-Flux transcriber still uses Vapi text-based smart endpointing and a longer timeout while the assistant is asking for the phone number', () => {
+    const config = buildMinimalConfig({ language: 'fr' });
 
-    const { assistant } = renderAssistant(config, 'ja', faq, OPTIONS);
+    const { assistant } = renderAssistant(config, 'fr', config.faq, OPTIONS);
 
     expect(assistant.startSpeakingPlan?.smartEndpointingPlan).toEqual({ provider: 'vapi' });
     // The "vapi" smart provider reads its own decision thresholds from
@@ -118,11 +118,6 @@ describe('renderAssistant — startSpeakingPlan (VP-6 A)', () => {
     expect(rules[0]?.type).toBe('assistant');
     // Still longer than both the old fixed default AND the new shorter one.
     expect(rules[0]?.timeoutSeconds).toBeGreaterThan(1.5);
-    expect(new RegExp(rules[0]?.regex ?? '')).toEqual(
-      expect.objectContaining({
-        source: expect.stringContaining('お電話番号を教えていただけますか'),
-      }),
-    );
   });
 
   test('the same plan shape holds for an arbitrary language — no hard-coded ja/en', () => {
@@ -133,6 +128,59 @@ describe('renderAssistant — startSpeakingPlan (VP-6 A)', () => {
     expect(assistant.startSpeakingPlan?.smartEndpointingPlan).toEqual({ provider: 'vapi' });
     const regex = new RegExp(assistant.startSpeakingPlan?.customEndpointingRules?.[0]?.regex ?? '');
     expect(regex.test('askPhone text (fr)')).toBe(true);
+  });
+});
+
+describe('renderAssistant — Deepgram Flux transcriber and endpointing (VAPI-FACTS.md Vendor-swap R6/R7)', () => {
+  test('the Sakura fixture (now on Flux) omits smartEndpointingPlan but keeps customEndpointingRules and transcriptionEndpointingPlan', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const { assistant } = renderAssistant(config, 'ja', faq, OPTIONS);
+
+    // Per Vapi's docs: do NOT set smartEndpointingPlan alongside a transcriber with its own
+    // built-in end-of-turn detection (R7) — render.ts omits it automatically for a "flux-" model.
+    expect(assistant.startSpeakingPlan?.smartEndpointingPlan).toBeUndefined();
+    // Left in place deliberately pending a real-call check of the R7 stacking risk — see the
+    // regex-matching customEndpointingRules test below for why it still has a job to do.
+    expect(assistant.startSpeakingPlan?.transcriptionEndpointingPlan?.onNoPunctuationSeconds).toBe(
+      0.7,
+    );
+    const rules = assistant.startSpeakingPlan?.customEndpointingRules ?? [];
+    expect(rules).toHaveLength(1);
+    expect(new RegExp(rules[0]?.regex ?? '')).toEqual(
+      expect.objectContaining({
+        source: expect.stringContaining('お電話番号を教えていただけますか'),
+      }),
+    );
+  });
+
+  test('a transcriber with no model (or a non-Flux model) keeps smartEndpointingPlan — the carve-out is Flux-specific, not blanket', () => {
+    const config = buildMinimalConfig({
+      language: 'fr',
+      transcriber: { provider: 'deepgram', model: 'nova-3', language: 'fr' },
+    });
+
+    const { assistant } = renderAssistant(config, 'fr', config.faq, OPTIONS);
+
+    expect(assistant.startSpeakingPlan?.smartEndpointingPlan).toEqual({ provider: 'vapi' });
+  });
+
+  test('a Flux transcriber gets eotThreshold/eotTimeoutMs and no language field, matching Vapi\'s documented config shape', () => {
+    const config = buildMinimalConfig({
+      language: 'fr',
+      transcriber: { provider: 'deepgram', model: 'flux-general-multi' },
+    });
+
+    const { assistant } = renderAssistant(config, 'fr', config.faq, OPTIONS);
+
+    expect(assistant.transcriber).toEqual({
+      provider: 'deepgram',
+      model: 'flux-general-multi',
+      eotThreshold: 0.7,
+      eotTimeoutMs: 5000,
+    });
+    expect(assistant.startSpeakingPlan?.smartEndpointingPlan).toBeUndefined();
   });
 });
 
@@ -169,9 +217,10 @@ describe('renderAssistant — handoff (Sakura)', () => {
       voiceId: 'e4d5f4c4-6601-4779-bee1-b3c14d629dc6',
     });
     expect(assistant.transcriber).toEqual({
-      provider: 'cartesia',
-      model: 'ink-2',
-      language: 'en',
+      provider: 'deepgram',
+      model: 'flux-general-multi',
+      eotThreshold: 0.7,
+      eotTimeoutMs: 5000,
     });
     expect(handoffTools.map((tool) => tool.toLanguage)).toEqual(['ja']);
     // Redirected to ja-return (VP-7 R1), not the call-starting ja assistant —

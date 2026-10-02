@@ -121,10 +121,31 @@ function escapeRegex(text: string): string {
  * targeted `customEndpointingRules` override for the one turn that needs
  * *more* patience — right after the assistant asks for the phone number,
  * since callers read digits back in paused chunks.
+ *
+ * NOT applied when the transcriber is Deepgram Flux — see `isFluxModel` below.
  */
 const NO_PUNCTUATION_WAIT_SECONDS = 0.7;
 
-function buildStartSpeakingPlan(config: ClientConfig, language: string): VapiStartSpeakingPlan {
+/**
+ * Deepgram Flux's own end-of-turn knobs (VAPI-FACTS.md Vendor-swap R6/R7), set on the transcriber
+ * itself rather than `startSpeakingPlan`. These are Deepgram's documented *defaults*, not a port of
+ * `NO_PUNCTUATION_WAIT_SECONDS` — Flux's confidence-based turn detection is a different mechanism
+ * from the text-heuristic `onNoPunctuationSeconds` wait, so the old tuning doesn't carry over.
+ * Starting from the baseline until a real test call justifies moving them.
+ */
+const FLUX_EOT_THRESHOLD = 0.7;
+const FLUX_EOT_TIMEOUT_MS = 5000;
+
+/** Deepgram's Flux models are named `flux-general-en` / `flux-general-multi`. */
+function isFluxModel(model: string | undefined): boolean {
+  return model?.startsWith('flux-') ?? false;
+}
+
+function buildStartSpeakingPlan(
+  config: ClientConfig,
+  language: string,
+  transcriberModel: string | undefined,
+): VapiStartSpeakingPlan {
   const askPhoneText = fillClinicPlaceholders(
     config,
     language,
@@ -132,7 +153,14 @@ function buildStartSpeakingPlan(config: ClientConfig, language: string): VapiSta
   );
 
   return {
-    smartEndpointingPlan: { provider: 'vapi' },
+    // Vapi's docs say explicitly not to set smartEndpointingPlan for a transcriber with its own
+    // built-in end-of-turn detection (Deepgram Flux) — leaving it set would silently override
+    // Flux's own detection and defeat the reason to use it (VAPI-FACTS.md Vendor-swap R7).
+    ...(isFluxModel(transcriberModel) ? {} : { smartEndpointingPlan: { provider: 'vapi' } }),
+    // Left in place even for Flux, deliberately: whether this text-heuristic wait also gets
+    // bypassed by Flux's built-in EOT, or stacks as a second silence timer on top of it, is the
+    // open question from VAPI-FACTS.md Vendor-swap R7 — a real test call (long/hesitant turn)
+    // decides whether this should be removed for Flux. Do not remove this without that evidence.
     transcriptionEndpointingPlan: { onNoPunctuationSeconds: NO_PUNCTUATION_WAIT_SECONDS },
     customEndpointingRules: [
       {
@@ -388,9 +416,12 @@ export function renderAssistant(
     transcriber: {
       provider: settings.transcriber.provider,
       ...(settings.transcriber.model ? { model: settings.transcriber.model } : {}),
-      language: settings.transcriber.language,
+      ...(settings.transcriber.language ? { language: settings.transcriber.language } : {}),
+      ...(isFluxModel(settings.transcriber.model)
+        ? { eotThreshold: FLUX_EOT_THRESHOLD, eotTimeoutMs: FLUX_EOT_TIMEOUT_MS }
+        : {}),
     },
-    startSpeakingPlan: buildStartSpeakingPlan(config, language),
+    startSpeakingPlan: buildStartSpeakingPlan(config, language, settings.transcriber.model),
     model: {
       provider: MODEL_PROVIDER,
       model: MODEL_ID,

@@ -27,6 +27,8 @@ export interface MinimalConfigOptions {
   clientId?: string;
   language?: string;
   faqIds?: string[];
+  /** Overrides the default `{ provider: 'azure', language }` transcriber — e.g. for a Flux fixture. */
+  transcriber?: { provider: string; model?: string; language?: string };
 }
 
 /** A minimal but fully valid ClientConfig, supporting exactly one language. */
@@ -64,7 +66,7 @@ export function buildMinimalConfig(options: MinimalConfigOptions = {}): ClientCo
       settings: {
         [language]: {
           voice: { provider: 'azure', voiceId: 'test-voice-id' },
-          transcriber: { provider: 'azure', language },
+          transcriber: options.transcriber ?? { provider: 'azure', language },
           switchKeywords: ['switch-language'],
         },
       },
