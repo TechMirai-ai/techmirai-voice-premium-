@@ -265,6 +265,13 @@ function phoneReadbackInstructions(
     '九=9), sometimes mixed with Arabic numerals in the same number (e.g. "080 1234567八" means ' +
     '08012345678). Treat all of these as digits when counting or reading back — never reject a ' +
     'transcript as incomplete just because some digits appear this way.\n' +
+    '   - Transcription sometimes inserts a sentence-final mark ("。" / "." / "?") in the MIDDLE of ' +
+    'a phone number, not just at the end (e.g. "080 123四。567八。" is one continuous 11-digit ' +
+    'number, 08012345678, not two separate utterances). A mid-number punctuation mark does NOT ' +
+    'mean the caller finished speaking — keep counting digits across it as one unbroken sequence. ' +
+    'Only treat punctuation as the actual end of the number once you have counted a full group (10 ' +
+    'digits for a landline, 11 for a mobile number starting 090/080/070…) — before that many ' +
+    'digits have been collected, a "。"/"."/"?" partway through is noise to ignore, not a boundary.\n' +
     '   - Speak every digit the caller gave, one at a time and in order, as a word — never a ' +
     'combined number (never "ninety"), and never skip, merge or change a digit — Japanese in ' +
     'katakana, English as words — grouped the way the caller said it. The caller checks the ' +
