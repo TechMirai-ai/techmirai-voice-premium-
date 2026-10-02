@@ -41,15 +41,15 @@ languages:
     ja:
       # Vendor-swap (VAPI-FACTS.md Vendor-swap R3): Cartesia voice "Miki" (Customer Concierge), replacing Azure ja-JP-NanamiNeural.
       voice: { provider: cartesia, voiceId: e63d7d05-76b0-4ff5-b8fb-503a82688bfe }
-      # Vendor-swap R6/R7 (2026-10-02): switched Cartesia ink-2 -> Deepgram Flux Multilingual
-      # (flux-general-multi), built-in end-of-turn detection replacing Vapi's own
-      # smartEndpointingPlan for this transcriber (render.ts omits it automatically for any
-      # "flux-" model — see isFluxModel). No `language` field: Flux auto-detects.
-      # R8 (2026-10-02): a real call with NO `languages` hint showed auto-detection drift across
-      # unrelated languages (it/de/en) for a single Japanese speaker, with plausible confidence
-      # scores each time — see docs/VAPI-FACTS.md Vendor-swap R8. `languages: [ja]` biases
-      # detection back toward Japanese for this leg. Not yet re-verified by a real call.
-      transcriber: { provider: deepgram, model: flux-general-multi, languages: [ja] }
+      # Vendor-swap R9 (2026-10-02): Flux Multilingual ABANDONED and reverted to Deepgram Nova-3
+      # — R9 found Flux's eotTimeoutMs backstop failing to force-close a turn for 21+ seconds on a
+      # real call, silently dropping a real caller answer before the LLM ever saw it. Not a tuning
+      # issue (R7/R8's concerns) — a correctness-critical failure with no confirmed fix on our
+      # side. See docs/VAPI-FACTS.md Vendor-swap R9 for the full reasoning. Nova-3 uses the
+      # singular `language` field (not Flux's `languages` array) and has no eotThreshold/
+      # eotTimeoutMs concept — render.ts's isFluxModel() check means smartEndpointingPlan is
+      # restored automatically for any non-"flux-" model, no code change needed for this revert.
+      transcriber: { provider: deepgram, model: nova-3, language: ja }
       switchKeywords: ["日本語", "Japanese"]   # 日本語 = "Japanese"
       # VP-7 R8: if the assistant SAYS one of these, Vapi hangs up after it finishes speaking —
       # a backstop for when the model speaks a farewell instead of calling endCall.
@@ -71,9 +71,8 @@ languages:
     en:
       # Vendor-swap (VAPI-FACTS.md Vendor-swap R3): Cartesia voice "Jillian" (Happy Spirit), replacing Azure en-US-JennyNeural.
       voice: { provider: cartesia, voiceId: e4d5f4c4-6601-4779-bee1-b3c14d629dc6 }
-      # Vendor-swap R6/R7/R8 (2026-10-02): switched to Deepgram Flux Multilingual, same reason as
-      # ja above; `languages: [en]` added for the same R8 auto-detection-drift reason.
-      transcriber: { provider: deepgram, model: flux-general-multi, languages: [en] }
+      # Vendor-swap R9 (2026-10-02): reverted to Deepgram Nova-3, same reason as ja above.
+      transcriber: { provider: deepgram, model: nova-3, language: en }
       # 英語 = "English"; イングリッシュ = "English" in katakana — how a Japanese
       # transcriber is likely to actually write the spoken word (source docs A7).
       switchKeywords: ["English", "英語", "イングリッシュ"]

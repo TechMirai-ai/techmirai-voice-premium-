@@ -32,10 +32,8 @@ describe('renderAssistant — Sakura fixture (ja)', () => {
     });
     expect(assistant.transcriber).toEqual({
       provider: 'deepgram',
-      model: 'flux-general-multi',
-      eotThreshold: 0.7,
-      eotTimeoutMs: 5000,
-      languages: ['ja'],
+      model: 'nova-3',
+      language: 'ja',
     });
     expect(assistant.model.provider).toBe('openai');
     expect(assistant.model.model).toBe('gpt-5.6-terra');
@@ -132,28 +130,24 @@ describe('renderAssistant — startSpeakingPlan (VP-6 A)', () => {
   });
 });
 
-describe('renderAssistant — Deepgram Flux transcriber and endpointing (VAPI-FACTS.md Vendor-swap R6/R7)', () => {
-  test('the Sakura fixture (now on Flux) omits smartEndpointingPlan but keeps customEndpointingRules and transcriptionEndpointingPlan', async () => {
-    const config = loadClient(SAKURA_ID);
-    const faq = await knowledge.listFaq(SAKURA_ID);
+describe('renderAssistant — Deepgram Flux transcriber and endpointing (VAPI-FACTS.md Vendor-swap R6/R7; Flux itself abandoned per R9, this mechanism kept in case it is revisited)', () => {
+  test('a Flux transcriber omits smartEndpointingPlan but keeps customEndpointingRules and transcriptionEndpointingPlan', () => {
+    const config = buildMinimalConfig({
+      language: 'fr',
+      transcriber: { provider: 'deepgram', model: 'flux-general-multi', languages: ['fr'] },
+    });
 
-    const { assistant } = renderAssistant(config, 'ja', faq, OPTIONS);
+    const { assistant } = renderAssistant(config, 'fr', config.faq, OPTIONS);
 
     // Per Vapi's docs: do NOT set smartEndpointingPlan alongside a transcriber with its own
     // built-in end-of-turn detection (R7) — render.ts omits it automatically for a "flux-" model.
     expect(assistant.startSpeakingPlan?.smartEndpointingPlan).toBeUndefined();
-    // Left in place deliberately pending a real-call check of the R7 stacking risk — see the
-    // regex-matching customEndpointingRules test below for why it still has a job to do.
     expect(assistant.startSpeakingPlan?.transcriptionEndpointingPlan?.onNoPunctuationSeconds).toBe(
       0.7,
     );
     const rules = assistant.startSpeakingPlan?.customEndpointingRules ?? [];
     expect(rules).toHaveLength(1);
-    expect(new RegExp(rules[0]?.regex ?? '')).toEqual(
-      expect.objectContaining({
-        source: expect.stringContaining('お電話番号を教えていただけますか'),
-      }),
-    );
+    expect(new RegExp(rules[0]?.regex ?? '').test('askPhone text (fr)')).toBe(true);
   });
 
   test('a transcriber with no model (or a non-Flux model) keeps smartEndpointingPlan — the carve-out is Flux-specific, not blanket', () => {
@@ -236,10 +230,8 @@ describe('renderAssistant — handoff (Sakura)', () => {
     });
     expect(assistant.transcriber).toEqual({
       provider: 'deepgram',
-      model: 'flux-general-multi',
-      eotThreshold: 0.7,
-      eotTimeoutMs: 5000,
-      languages: ['en'],
+      model: 'nova-3',
+      language: 'en',
     });
     expect(handoffTools.map((tool) => tool.toLanguage)).toEqual(['ja']);
     // Redirected to ja-return (VP-7 R1), not the call-starting ja assistant —

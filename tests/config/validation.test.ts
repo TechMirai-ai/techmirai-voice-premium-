@@ -168,17 +168,17 @@ describe('client config validation', () => {
     expect(config.languages.settings.ja?.transcriber).toBeNull();
   });
 
-  test('accepts the transcriber shape the client actually configures (provider + model + languages hint, no language for Flux)', () => {
+  test('accepts the transcriber shape the client actually configures (Deepgram Nova-3, provider + model + language)', () => {
     const { config } = parse(sakura);
 
     expect(config.languages.settings.ja?.transcriber).toEqual({
       provider: 'deepgram',
-      model: 'flux-general-multi',
-      languages: ['ja'],
+      model: 'nova-3',
+      language: 'ja',
     });
   });
 
-  test('also still accepts the older provider + model + language shape for a non-Flux transcriber', () => {
+  test('also still accepts an arbitrary provider + model + language shape (e.g. a Cartesia transcriber)', () => {
     const document = withChanges(sakura, (draft) => {
       draft.languages.settings.ja.transcriber = {
         provider: 'cartesia',
@@ -193,6 +193,24 @@ describe('client config validation', () => {
       provider: 'cartesia',
       model: 'ink-2',
       language: 'ja',
+    });
+  });
+
+  test('also still accepts a `languages` hint array (e.g. a Deepgram Flux transcriber), even though no client uses it today', () => {
+    const document = withChanges(sakura, (draft) => {
+      draft.languages.settings.ja.transcriber = {
+        provider: 'deepgram',
+        model: 'flux-general-multi',
+        languages: ['ja'],
+      };
+    });
+
+    const { config } = parse(document);
+
+    expect(config.languages.settings.ja?.transcriber).toEqual({
+      provider: 'deepgram',
+      model: 'flux-general-multi',
+      languages: ['ja'],
     });
   });
 
