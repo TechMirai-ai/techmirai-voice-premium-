@@ -260,6 +260,11 @@ function phoneReadbackInstructions(
   return (
     'Read the number back, as its own turn, then stop and wait: ' +
     `"${scriptLine(config, language, confirmScriptKey)}"\n` +
+    '   - A transcribed digit can appear as an Arabic numeral (0-9), a spelled-out word, or — in ' +
+    'Japanese — a kanji numeral character (零/〇=0, 一=1, 二=2, 三=3, 四=4, 五=5, 六=6, 七=7, 八=8, ' +
+    '九=9), sometimes mixed with Arabic numerals in the same number (e.g. "080 1234567八" means ' +
+    '08012345678). Treat all of these as digits when counting or reading back — never reject a ' +
+    'transcript as incomplete just because some digits appear this way.\n' +
     '   - Speak every digit the caller gave, one at a time and in order, as a word — never a ' +
     'combined number (never "ninety"), and never skip, merge or change a digit — Japanese in ' +
     'katakana, English as words — grouped the way the caller said it. The caller checks the ' +
@@ -318,7 +323,8 @@ function callbackSection(config: ClientConfig, language: string): string {
       "Japanese, use katakana so it's pronounced exactly as heard, and never ask how it's written " +
       "in kanji — staff only need the reading. In English, ask them to spell it if it's unusual or " +
       'unclear, and read the spelling back.',
-    `3. Phone number, if not already asked: "${scriptLine(config, language, 'askPhone')}"`,
+    `3. Phone number, if not already asked — say this exact line, word for word: ` +
+      `"${scriptLine(config, language, 'askPhone')}"`,
     `4. ${phoneReadbackInstructions(config, language, 'confirmDetails')}`,
     `5. ${PHONE_CONFIRMATION_ACK_INSTRUCTIONS}`,
     `6. Call ${REQUEST_CALLBACK_FUNCTION_NAME} only after that clear yes. Pass the caller's phone ` +
@@ -394,7 +400,7 @@ function reservationSection(
         'another pick; only move on once a check_availability call has actually returned a time ' +
         'as available.',
       `6. Once a specific time is confirmed available (by step 4 or step 5), ask for a phone ` +
-        `number: "${scriptLine(config, language, 'askPhone')}"`,
+        `number — say this exact line, word for word: "${scriptLine(config, language, 'askPhone')}"`,
       `7. ${phoneReadbackInstructions(config, language, 'confirmPhone')}`,
       `8. ${PHONE_CONFIRMATION_ACK_INSTRUCTIONS}`,
       `9. Call ${BOOK_APPOINTMENT_FUNCTION_NAME} only after that clear yes, with the chosen ` +

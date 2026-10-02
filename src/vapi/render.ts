@@ -113,6 +113,23 @@ function escapeRegex(text: string): string {
 }
 
 /**
+ * Returns the last sentence of a multi-sentence script line (split on ./!/?/。/！/？), or the
+ * whole string if it's only one sentence. A real call (VAPI-FACTS.md Vendor-swap R18) showed
+ * Vapi's `customEndpointingRules` regex — built from the FULL `askPhone` line — never matched,
+ * because the model doesn't reliably recite a multi-sentence filler line verbatim: it dropped one
+ * word from the opening clause when actually speaking it, breaking an exact-substring match on the
+ * whole sentence. Anchoring on just the final sentence (the actual question, not the leading
+ * acknowledgment) is far less likely to be paraphrased away, since `RegExp.test` only needs this
+ * substring to appear somewhere in the assistant's last message (Vapi's own docs confirm substring,
+ * not full-string, matching) — not a complete fix for every possible paraphrase, but a real
+ * improvement over requiring the whole sentence.
+ */
+function lastSentence(text: string): string {
+  const sentences = text.split(/(?<=[.!?。！？])\s*/).filter((s) => s.length > 0);
+  return sentences[sentences.length - 1] ?? text;
+}
+
+/**
  * VP-6 §A: text-based smart endpointing (works for any language). The "vapi"
  * smartEndpointingPlan provider decides using transcriptionEndpointingPlan's
  * own heuristic rules (VAPI-FACTS.md VP-6 R7) — leaving that unset meant it
@@ -165,7 +182,7 @@ function buildStartSpeakingPlan(
     customEndpointingRules: [
       {
         type: 'assistant',
-        regex: escapeRegex(askPhoneText),
+        regex: escapeRegex(lastSentence(askPhoneText)),
         timeoutSeconds: 2.5,
       },
     ],
