@@ -378,14 +378,20 @@ function reservationSection(
         'available or unavailable, and never assume a date is too far off to check, without ' +
         'calling this tool first. If it comes back unavailable, offer the alternative time(s) it ' +
         'gives you and wait for the caller to pick one, or offer a different date instead.',
-      `5. Once a specific time is confirmed available, ask for a phone number: ` +
-        `"${scriptLine(config, language, 'askPhone')}"`,
-      `6. ${phoneReadbackInstructions(config, language, 'confirmPhone')}`,
-      `7. ${PHONE_CONFIRMATION_ACK_INSTRUCTIONS}`,
-      `8. Call ${BOOK_APPOINTMENT_FUNCTION_NAME} only after that clear yes, with the chosen ` +
+      `5. Once the caller picks one of the offered alternative times, or names a different date, ` +
+        `call ${CHECK_AVAILABILITY_FUNCTION_NAME} again for that specific choice before treating ` +
+        'it as confirmed — an alternative merely being offered is NOT the same as it being ' +
+        'confirmed available. If that call also comes back unavailable, repeat this step with ' +
+        'another pick; only move on once a check_availability call has actually returned a time ' +
+        'as available.',
+      `6. Once a specific time is confirmed available (by step 4 or step 5), ask for a phone ` +
+        `number: "${scriptLine(config, language, 'askPhone')}"`,
+      `7. ${phoneReadbackInstructions(config, language, 'confirmPhone')}`,
+      `8. ${PHONE_CONFIRMATION_ACK_INSTRUCTIONS}`,
+      `9. Call ${BOOK_APPOINTMENT_FUNCTION_NAME} only after that clear yes, with the chosen ` +
         "service id, the confirmed date/time, and the caller's phone number as plain digits " +
         '(for example 09012345678) — never as spoken-word or katakana digits (isReturningPatient: false).',
-      `9. ${closing}`,
+      `10. ${closing}`,
       '',
       'RETURNING PATIENT — required before booking: a confirmed phone number and a confirmed ' +
         'date/time. Do NOT collect a service: a returning patient never chooses one. Never ask ' +
@@ -406,25 +412,34 @@ function reservationSection(
         `Ask only "${scriptLine(config, language, 'reservationAskService')}" and, once chosen, ` +
         `"${scriptLine(config, language, 'reservationAskDateTime')}", then call ` +
         `${CHECK_AVAILABILITY_FUNCTION_NAME} the same way as step 4 of the first-time-visitor path ` +
-        'above. The moment a specific time is confirmed available — with the service chosen and ' +
-        'the phone number already confirmed, nothing else is needed from the caller — call ' +
-        `${BOOK_APPOINTMENT_FUNCTION_NAME} right away, in this same turn, exactly like you chain ` +
-        `${LOG_CALL_TOPIC_FUNCTION_NAME} and ${END_CALL_FUNCTION_NAME} at the end of a call. Use ` +
-        'the chosen service id, the confirmed date/time, and the phone number you already ' +
-        'confirmed above (isReturningPatient: false). Do not ask for a phone number at this or ' +
-        'any other point in this fallback.',
+        'above. If it comes back unavailable, offer the alternative time(s) it gives you, and ' +
+        `once the caller picks one, call ${CHECK_AVAILABILITY_FUNCTION_NAME} again for that ` +
+        'specific choice before treating it as confirmed — exactly as in step 5 of the ' +
+        'first-time-visitor path above; an alternative merely being offered is NOT the same as it ' +
+        'being confirmed available. The moment a specific time IS confirmed available — with the ' +
+        'service chosen and the phone number already confirmed, nothing else is needed from the ' +
+        `caller — call ${BOOK_APPOINTMENT_FUNCTION_NAME} right away, in this same turn, exactly ` +
+        `like you chain ${LOG_CALL_TOPIC_FUNCTION_NAME} and ${END_CALL_FUNCTION_NAME} at the end ` +
+        'of a call. Use the chosen service id, the confirmed date/time, and the phone number you ' +
+        'already confirmed above (isReturningPatient: false). Do not ask for a phone number at ' +
+        'this or any other point in this fallback.',
       `7. If a record was found, skip service selection entirely — do not ask about it. ` +
         `"${scriptLine(config, language, 'reservationAskDateTime')}"`,
       `8. Call ${CHECK_AVAILABILITY_FUNCTION_NAME} the same way as step 4 of the first-time-visitor ` +
         'path above.',
-      `9. The moment a specific time is confirmed available, you already have every required ` +
-        `field (the confirmed phone number, the date/time just confirmed) — call ${BOOK_APPOINTMENT_FUNCTION_NAME} ` +
-        'right away, in this same turn, with no caller input needed first, exactly like you chain ' +
-        `${LOG_CALL_TOPIC_FUNCTION_NAME} and ${END_CALL_FUNCTION_NAME} at the end of a call. Pass no ` +
-        'service id, the confirmed date/time, and the confirmed phone number, with ' +
-        'isReturningPatient: true. Do not ask the caller for a service, a name, or an email ' +
-        'address — you already have everything this path needs.',
-      `10. ${closing}`,
+      `9. Once the caller picks one of the offered alternative times, or names a different date, ` +
+        `call ${CHECK_AVAILABILITY_FUNCTION_NAME} again for that specific choice before treating ` +
+        'it as confirmed — exactly as in step 5 of the first-time-visitor path above; an ' +
+        'alternative merely being offered is NOT the same as it being confirmed available.',
+      `10. The moment a specific time is confirmed available (by step 8 or step 9), you already ` +
+        `have every required field (the confirmed phone number, the date/time just confirmed) — ` +
+        `call ${BOOK_APPOINTMENT_FUNCTION_NAME} right away, in this same turn, with no caller ` +
+        `input needed first, exactly like you chain ${LOG_CALL_TOPIC_FUNCTION_NAME} and ` +
+        `${END_CALL_FUNCTION_NAME} at the end of a call. Pass no service id, the confirmed ` +
+        'date/time, and the confirmed phone number, with isReturningPatient: true. Do not ask the ' +
+        'caller for a service, a name, or an email address — you already have everything this ' +
+        'path needs.',
+      `11. ${closing}`,
     ].join('\n'),
   ];
 }
