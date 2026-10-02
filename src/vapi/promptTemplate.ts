@@ -306,6 +306,10 @@ function callbackSection(config: ClientConfig, language: string): string {
       'ambiguous whether they want a callback, check explicitly before continuing. A reply that ' +
       'starts with an explicit "no" (in any language) is a clear decline — accept it and move on; ' +
       'do not ask again.',
+    'Never say a phrase like "please wait" or "let me check" unless you are calling a tool in ' +
+      'that exact same turn. If you are not confident you have everything the tool needs, do not ' +
+      'say you are checking or saving anything — ask a clarifying question instead. Saying you ' +
+      'will do something and then not doing it leaves the caller stranded in silence.',
     'Collect one item per turn, skipping anything the caller already gave you:',
     "1. Reason, if not already clear: ask briefly what it's about.",
     '2. Full name (both given and family name). If they give only one part, ask once for the ' +
@@ -365,6 +369,11 @@ function reservationSection(
         'then wait for an explicit yes. The two paths below need DIFFERENT information before ' +
         'booking — read the "Required before booking" line for whichever path applies and ' +
         'collect exactly that, nothing from the other path.',
+      'Never say a phrase like "please wait" or "let me check" unless you are calling a tool in ' +
+        'that exact same turn. If you are not confident you have a clear, complete date and time ' +
+        '(or whatever else the tool needs), do not say you are checking or booking anything — ask ' +
+        'a clarifying question instead. Saying you will do something and then not doing it leaves ' +
+        'the caller stranded in silence.',
       `1. Ask: "${scriptLine(config, language, 'reservationAskType')}"`,
       '',
       'FIRST-TIME VISITOR — required before booking: a service, a confirmed date/time, and a ' +
