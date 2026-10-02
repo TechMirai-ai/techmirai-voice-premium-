@@ -168,18 +168,23 @@ describe('client config validation', () => {
     expect(config.languages.settings.ja?.transcriber).toBeNull();
   });
 
-  test('accepts the transcriber shape the client actually configures (provider + model, no language for Flux)', () => {
+  test('accepts the transcriber shape the client actually configures (provider + model + languages hint, no language for Flux)', () => {
     const { config } = parse(sakura);
 
     expect(config.languages.settings.ja?.transcriber).toEqual({
       provider: 'deepgram',
       model: 'flux-general-multi',
+      languages: ['ja'],
     });
   });
 
   test('also still accepts the older provider + model + language shape for a non-Flux transcriber', () => {
     const document = withChanges(sakura, (draft) => {
-      draft.languages.settings.ja.transcriber = { provider: 'cartesia', model: 'ink-2', language: 'ja' };
+      draft.languages.settings.ja.transcriber = {
+        provider: 'cartesia',
+        model: 'ink-2',
+        language: 'ja',
+      };
     });
 
     const { config } = parse(document);

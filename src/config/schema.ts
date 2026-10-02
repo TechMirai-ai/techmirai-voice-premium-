@@ -95,6 +95,13 @@ const languageSettingsSchema = z.strictObject({
       provider: nonEmpty,
       model: nonEmpty.optional(),
       language: nonEmpty.optional(),
+      /**
+       * Deepgram `flux-general-multi` only: BCP-47 language hints (Vapi's live OpenAPI
+       * `DeepgramTranscriber.languages`). A real call showed auto-detection drifting across
+       * unrelated languages for a single Japanese speaker when this was omitted — VAPI-FACTS.md
+       * Vendor-swap R8.
+       */
+      languages: z.array(nonEmpty).min(1).optional(),
     })
     .nullable(),
   switchKeywords: z.array(nonEmpty).min(1, 'needs at least one keyword'),

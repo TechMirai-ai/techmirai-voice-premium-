@@ -420,6 +420,7 @@ export function renderAssistant(
       ...(isFluxModel(settings.transcriber.model)
         ? { eotThreshold: FLUX_EOT_THRESHOLD, eotTimeoutMs: FLUX_EOT_TIMEOUT_MS }
         : {}),
+      ...(settings.transcriber.languages ? { languages: settings.transcriber.languages } : {}),
     },
     startSpeakingPlan: buildStartSpeakingPlan(config, language, settings.transcriber.model),
     model: {

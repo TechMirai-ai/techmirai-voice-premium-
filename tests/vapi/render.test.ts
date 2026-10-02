@@ -35,6 +35,7 @@ describe('renderAssistant — Sakura fixture (ja)', () => {
       model: 'flux-general-multi',
       eotThreshold: 0.7,
       eotTimeoutMs: 5000,
+      languages: ['ja'],
     });
     expect(assistant.model.provider).toBe('openai');
     expect(assistant.model.model).toBe('gpt-5.6-terra');
@@ -166,7 +167,7 @@ describe('renderAssistant — Deepgram Flux transcriber and endpointing (VAPI-FA
     expect(assistant.startSpeakingPlan?.smartEndpointingPlan).toEqual({ provider: 'vapi' });
   });
 
-  test('a Flux transcriber gets eotThreshold/eotTimeoutMs and no language field, matching Vapi\'s documented config shape', () => {
+  test("a Flux transcriber gets eotThreshold/eotTimeoutMs and no language field, matching Vapi's documented config shape", () => {
     const config = buildMinimalConfig({
       language: 'fr',
       transcriber: { provider: 'deepgram', model: 'flux-general-multi' },
@@ -181,6 +182,23 @@ describe('renderAssistant — Deepgram Flux transcriber and endpointing (VAPI-FA
       eotTimeoutMs: 5000,
     });
     expect(assistant.startSpeakingPlan?.smartEndpointingPlan).toBeUndefined();
+  });
+
+  test('a configured `languages` hint is passed through to the transcriber (R8: fixes auto-detection drift for a single-language speaker)', () => {
+    const config = buildMinimalConfig({
+      language: 'fr',
+      transcriber: { provider: 'deepgram', model: 'flux-general-multi', languages: ['fr'] },
+    });
+
+    const { assistant } = renderAssistant(config, 'fr', config.faq, OPTIONS);
+
+    expect(assistant.transcriber).toEqual({
+      provider: 'deepgram',
+      model: 'flux-general-multi',
+      eotThreshold: 0.7,
+      eotTimeoutMs: 5000,
+      languages: ['fr'],
+    });
   });
 });
 
@@ -221,6 +239,7 @@ describe('renderAssistant — handoff (Sakura)', () => {
       model: 'flux-general-multi',
       eotThreshold: 0.7,
       eotTimeoutMs: 5000,
+      languages: ['en'],
     });
     expect(handoffTools.map((tool) => tool.toLanguage)).toEqual(['ja']);
     // Redirected to ja-return (VP-7 R1), not the call-starting ja assistant —

@@ -40,6 +40,13 @@ export interface VapiTranscriberConfig {
    * `eotThreshold`'s confidence — VAPI-FACTS.md Vendor-swap R7.
    */
   eotTimeoutMs?: number;
+  /**
+   * `flux-general-multi` only: BCP-47 hints biasing language auto-detection (Vapi's live
+   * OpenAPI `DeepgramTranscriber.languages`). Without this, a real call showed auto-detection
+   * flip-flopping across unrelated languages (it/de/en) for a single Japanese speaker, with
+   * plausible-looking confidence scores each time — VAPI-FACTS.md Vendor-swap R8.
+   */
+  languages?: string[];
 }
 
 export interface VapiModelMessage {
