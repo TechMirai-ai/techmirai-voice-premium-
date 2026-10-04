@@ -3,17 +3,36 @@
  * without opening a port or a real database connection.
  */
 import express, { type Express, type NextFunction, type Request, type Response } from 'express';
-import * as helmetModule from 'helmet';
+import { createRequire } from 'node:module';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 
-// helmet@8's package.json "exports" map has no explicit "types" condition
-// (unlike bcryptjs's, which does) — it relies on TS's implicit sibling
-// .d.mts/.d.cts pairing instead. That resolves correctly under every local
-// tsc invocation tried, but proved fragile in a different build environment
-// (Vercel's function-level typecheck saw helmet's default as non-callable
-// with an identical TypeScript version). Binding to the named `default`
-// export explicitly, rather than via a plain default import, sidesteps any
-// esModuleInterop/synthetic-default ambiguity in how that import resolves.
-const helmet = helmetModule.default;
+// helmet@8's package.json "exports" map has no explicit "types" condition, so
+// TypeScript falls back to resolving its default export via implicit sibling
+// .d.mts/.d.cts pairing. That resolves fine under every plain `tsc`
+// invocation tried locally (default import, namespace import — both tried,
+// both typecheck here), but Vercel's build reported helmet's default as
+// non-callable under the identical TypeScript version — @vercel/node's
+// function-level typecheck runs through its own ts-node-derived compiler
+// host, a different code path through the TypeScript API than a one-shot
+// `tsc` Program, and this is exactly the kind of newer/edge-case resolution
+// feature more likely to diverge between host implementations even with
+// byte-identical compilerOptions (confirmed: @vercel/node's own fixConfig()
+// only fills in settings we leave unset — module/moduleResolution/
+// esModuleInterop/target are all explicit in tsconfig.json, none affected).
+// Sidestepping entirely: require it directly via Node's own CJS loader
+// (confirmed via node_modules/helmet/index.cjs that `module.exports =
+// exports.default`, so this returns the real callable middleware factory,
+// same as any import style would) and assert only the narrow shape this
+// file actually calls, so no TypeScript resolution of helmet's own
+// declaration files is involved at all.
+const require = createRequire(import.meta.url);
+type HelmetMiddleware = (
+  req: IncomingMessage,
+  res: ServerResponse,
+  next: (err?: unknown) => void,
+) => void;
+type Helmet = (options?: { contentSecurityPolicy?: false }) => HelmetMiddleware;
+const helmet = require('helmet') as Helmet;
 
 import type { Queryable } from './db/pool.js';
 import { isDatabaseReachable } from './db/pool.js';
