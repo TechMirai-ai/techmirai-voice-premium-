@@ -471,7 +471,7 @@ describe('buildSystemPrompt — phone read-back (VP-7)', () => {
     const en = buildSystemPrompt(config, 'en', faq);
 
     expect(ja).toContain(
-      '0=ゼロ, 1=イチ, 2=ニー, 3=サン, 4=ヨン, 5=ゴー, 6=ロク, 7=ナナ, 8=ハチ, 9=キュウ',
+      '0=ゼロ/レイ, 1=イチ, 2=ニー, 3=サン, 4=ヨン, 5=ゴー, 6=ロク, 7=ナナ, 8=ハチ, 9=キュウ',
     );
     expect(ja).toContain('"ゼロキュウゼロ、イチニーサンヨン、ゴーロクナナハチ"');
     expect(en).toContain('0=zero, 1=one, 2=two');

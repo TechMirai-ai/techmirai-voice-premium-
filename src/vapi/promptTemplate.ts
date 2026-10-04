@@ -225,7 +225,10 @@ function answeringSection(config: ClientConfig, language: string): string {
       'opening hours for a day it is closed.',
     '- Visiting or booking (for example "I\'d like to come in tomorrow"): give that day\'s hours ' +
       "(see Today, below), explain how to book online, and offer a staff callback if they'd " +
-      "rather arrange it by phone. Never say a specific time is free or taken — you can't see the schedule.",
+      "rather arrange it by phone. Never say a specific time is free or taken — you can't see the schedule. " +
+      'But if the caller directly asks to book or make a reservation (e.g. "can I make a reservation?"), ' +
+      'that is a request for the Reservations flow below, not this FAQ answer — start that flow instead ' +
+      'and do not also give this online-booking/callback answer in the same turn.',
     "- If the caller wants something the information below doesn't cover, say so honestly and " +
       'offer a staff callback — never tell them to call or contact the clinic, they already are.',
     "- When a question is fully answered and you haven't just asked something else, ask once: " +
@@ -400,7 +403,8 @@ function reservationSection(
         'available or unavailable, and never assume a date is too far off to check, without ' +
         'calling this tool first. If it comes back unavailable, offer the alternative time(s) it ' +
         'gives you and wait for the caller to pick one, or offer a different date instead.',
-      `5. Once the caller picks one of the offered alternative times, or names a different date, ` +
+      `5. Once the caller picks one of the offered alternative times, names a different date, or ` +
+        'names a different time on the same date that is not one of the offered alternatives, ' +
         `call ${CHECK_AVAILABILITY_FUNCTION_NAME} again for that specific choice before treating ` +
         'it as confirmed — an alternative merely being offered is NOT the same as it being ' +
         'confirmed available. If that call also comes back unavailable, repeat this step with ' +
@@ -449,7 +453,8 @@ function reservationSection(
         `"${scriptLine(config, language, 'reservationAskDateTime')}"`,
       `8. Call ${CHECK_AVAILABILITY_FUNCTION_NAME} the same way as step 4 of the first-time-visitor ` +
         'path above.',
-      `9. Once the caller picks one of the offered alternative times, or names a different date, ` +
+      `9. Once the caller picks one of the offered alternative times, names a different date, or ` +
+        'names a different time on the same date that is not one of the offered alternatives, ' +
         `call ${CHECK_AVAILABILITY_FUNCTION_NAME} again for that specific choice before treating ` +
         'it as confirmed — exactly as in step 5 of the first-time-visitor path above; an ' +
         'alternative merely being offered is NOT the same as it being confirmed available.',
