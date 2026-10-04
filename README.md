@@ -269,6 +269,51 @@ it, and `src/lib/htmlEscape.ts` for why it's always escaped before reaching a pa
 
 ---
 
+## Deploying to Vercel + Neon
+
+`api/index.ts` is the Vercel serverless entry point — same env/pool/repository wiring as
+`src/server.ts`, exporting a request handler instead of calling `.listen()`. `vercel.json` routes
+every path to it and tells Vercel's bundler to include `clients/**` and `.vapi-state.*.json` in the
+function (both are read dynamically via `fs`, which the bundler can't trace through static
+analysis alone).
+
+### Database
+
+Create a Neon project/branch and run migrations against it (`npm run db:migrate` with
+`DATABASE_URL` pointed at Neon) before the first deploy. **Use Neon's pooled connection string**
+(the one with `-pooler` in the hostname) for the `DATABASE_URL` Vercel env var, not the direct
+one — `src/db/pool.ts` opens up to 10 Postgres connections per pool instance, and a serverless
+function can have many concurrent lambda instances, so pooling at the connection-string level
+(PgBouncer, via Neon's pooler endpoint) avoids exhausting Neon's connection limit. Do not carry
+over local dev's dummy data; seed only `npm run demo:seed -- <clientId>` data if that's the
+intended demo state.
+
+### Environment variables
+
+Set these in the Vercel project's dashboard (Settings → Environment Variables), same values/rules
+as `.env.example` unless noted:
+
+| Variable                   | Production value                                                                                                        |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`                  | `production`                                                                                                                |
+| `DATABASE_URL`               | Neon's **pooled** connection string                                                                                       |
+| `PUBLIC_BASE_URL`            | The deployed Vercel URL (set after the project exists — Vercel assigns the domain at creation, before the first deploy) |
+| `VAPI_API_KEY`               | Same Vapi private key as local `.env`                                                                                     |
+| `VAPI_PUBLIC_KEY`            | Same Vapi public key as local `.env`                                                                                       |
+| `VAPI_WEBHOOK_SECRET`        | Same value as the Custom Credential's token in the Vapi dashboard                                                         |
+| `VAPI_SERVER_CREDENTIAL_ID`  | Same Custom Credential id                                                                                                  |
+| `SESSION_SECRET`             | Same value, or a freshly generated one (`openssl rand -hex 32`) if rotating                                               |
+| `TRUST_PROXY_HOPS`           | `1` (Vercel sits in front of the function as one reverse-proxy hop) — **required** in production, see `src/env.ts`       |
+
+`OPENAI_API_KEY` is not needed in production — it's only used by the local text-tester
+(`npm run vapi:test-chat`), never by the running app.
+
+After the first deploy, update the Vapi assistant configs (`npm run vapi:sync -- ... --apply`)
+so their `server.url` points at the real deployed URL instead of a local tunnel, then verify with
+a `GET /assistant` read-back that the webhook URL actually changed.
+
+---
+
 ## Everyday commands
 
 | Command                                                       | What it does                                       |
