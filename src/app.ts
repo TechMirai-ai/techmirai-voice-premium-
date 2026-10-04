@@ -3,7 +3,17 @@
  * without opening a port or a real database connection.
  */
 import express, { type Express, type NextFunction, type Request, type Response } from 'express';
-import helmet from 'helmet';
+import * as helmetModule from 'helmet';
+
+// helmet@8's package.json "exports" map has no explicit "types" condition
+// (unlike bcryptjs's, which does) — it relies on TS's implicit sibling
+// .d.mts/.d.cts pairing instead. That resolves correctly under every local
+// tsc invocation tried, but proved fragile in a different build environment
+// (Vercel's function-level typecheck saw helmet's default as non-callable
+// with an identical TypeScript version). Binding to the named `default`
+// export explicitly, rather than via a plain default import, sidesteps any
+// esModuleInterop/synthetic-default ambiguity in how that import resolves.
+const helmet = helmetModule.default;
 
 import type { Queryable } from './db/pool.js';
 import { isDatabaseReachable } from './db/pool.js';
