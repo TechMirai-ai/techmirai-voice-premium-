@@ -65,8 +65,10 @@ languages:
       callerDoneExamples: ["ありがとうございました", "以上です", "いえ、大丈夫です、ありがとうございます", "わかりました、ありがとうございました", "はい、結構です"]
       # VP-7: digits for the phone read-back (0..9). Example is 090-1234-5678 (11 digits, 3-4-4).
       # ニー/ゴー use a long vowel so 2 and 5 are unmistakable on the phone.
+      # 0 lists both readings, ゼロ/レイ — レイ (零) is a real alternate reading a caller may use,
+      # and wasn't recognized before a real call showed it getting rejected (VAPI-FACTS.md).
       phoneReadback:
-        digitWords: ["ゼロ", "イチ", "ニー", "サン", "ヨン", "ゴー", "ロク", "ナナ", "ハチ", "キュウ"]
+        digitWords: ["ゼロ/レイ", "イチ", "ニー", "サン", "ヨン", "ゴー", "ロク", "ナナ", "ハチ", "キュウ"]
         example: "ゼロキュウゼロ、イチニーサンヨン、ゴーロクナナハチ"
     en:
       # Vendor-swap (VAPI-FACTS.md Vendor-swap R3): Cartesia voice "Jillian" (Happy Spirit), replacing Azure en-US-JennyNeural.
