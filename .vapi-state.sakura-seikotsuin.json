@@ -1,5 +1,14 @@
 {
-  "tools": {},
-  "assistants": {},
+  "tools": {
+    "sakura-seikotsuin--ja--request-callback": "72810fd1-09ac-4896-a162-9de8bbcae78b",
+    "sakura-seikotsuin--ja--log-call-topic": "a0f7fab0-963c-4bda-b806-9b35fb598375",
+    "sakura-seikotsuin--ja--handoff-to-en": "920d09a6-7d53-452c-878f-a8277d137509",
+    "sakura-seikotsuin--ja--check-availability": "82b58da3-e20a-4919-8bab-bd22cd81d7bf",
+    "sakura-seikotsuin--ja--lookup-patient": "b3c41bec-ebe2-4dd9-8692-0160a84a8830",
+    "sakura-seikotsuin--ja--book-appointment": "a1d76e2d-fcb4-4708-9f1b-f6813858bdb5"
+  },
+  "assistants": {
+    "sakura-seikotsuin--ja": "b7a7aa09-bb77-4828-ae5d-8166c1f30f50"
+  },
   "squads": {}
 }
