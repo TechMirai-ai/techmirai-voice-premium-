@@ -400,7 +400,8 @@ function reservationSection(
         'available or unavailable, and never assume a date is too far off to check, without ' +
         'calling this tool first. If it comes back unavailable, offer the alternative time(s) it ' +
         'gives you and wait for the caller to pick one, or offer a different date instead.',
-      `5. Once the caller picks one of the offered alternative times, or names a different date, ` +
+      `5. Once the caller picks one of the offered alternative times, names a different date, or ` +
+        'names a different time on the same date that is not one of the offered alternatives, ' +
         `call ${CHECK_AVAILABILITY_FUNCTION_NAME} again for that specific choice before treating ` +
         'it as confirmed — an alternative merely being offered is NOT the same as it being ' +
         'confirmed available. If that call also comes back unavailable, repeat this step with ' +
@@ -449,7 +450,8 @@ function reservationSection(
         `"${scriptLine(config, language, 'reservationAskDateTime')}"`,
       `8. Call ${CHECK_AVAILABILITY_FUNCTION_NAME} the same way as step 4 of the first-time-visitor ` +
         'path above.',
-      `9. Once the caller picks one of the offered alternative times, or names a different date, ` +
+      `9. Once the caller picks one of the offered alternative times, names a different date, or ` +
+        'names a different time on the same date that is not one of the offered alternatives, ' +
         `call ${CHECK_AVAILABILITY_FUNCTION_NAME} again for that specific choice before treating ` +
         'it as confirmed — exactly as in step 5 of the first-time-visitor path above; an ' +
         'alternative merely being offered is NOT the same as it being confirmed available.',
