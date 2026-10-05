@@ -1,7 +1,22 @@
 /** Postgres connection pool. */
+import net from 'node:net';
+
 import pg from 'pg';
 
 const { Pool } = pg;
+
+// `pg` opens its socket with a bare `net.Socket.connect(port, host)` (see
+// pg/lib/connection.js) — it never passes `family`/`lookup`/`autoSelectFamily`
+// through, so Node's default dual-stack "Happy Eyeballs" racing (enabled by
+// default since Node 18.13/20) is the only thing deciding how that connect
+// happens. On networks with no outbound IPv6 route, the IPv6 candidate fails
+// instantly with ENETUNREACH, but — confirmed against a real Neon host — the
+// IPv4 candidate can still be aborted by the *same* racing/timeout machinery
+// and come back ETIMEDOUT even though a plain `nc`/`telnet` to that exact IP
+// succeeds immediately. `connectionTimeoutMillis` below never even gets a
+// chance to fire in that case. Disabling autoselection makes every `net`
+// connection in this process use plain sequential resolution instead.
+net.setDefaultAutoSelectFamily(false);
 
 /**
  * The narrow slice of `pg.Pool` the app actually uses. Depending on this rather

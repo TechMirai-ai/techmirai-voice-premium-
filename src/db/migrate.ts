@@ -164,7 +164,14 @@ const invokedDirectly =
 
 if (invokedDirectly) {
   main().catch((error: unknown) => {
-    console.error(error instanceof Error ? error.message : String(error));
+    // AggregateError (thrown by pg-pool when every resolved address fails to
+    // connect) has an empty top-level .message — the real detail is nested
+    // in .errors, which only the default inspect-style logging below prints.
+    if (error instanceof Error && error.message) {
+      console.error(error.message);
+    } else {
+      console.error(error);
+    }
     process.exitCode = 1;
   });
 }
