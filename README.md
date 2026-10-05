@@ -186,6 +186,20 @@ to the real Vapi API — all Vapi interaction in tests goes through a mocked cli
    the test-call feature in Vapi's own dashboard. The page and the server are internal QA tools and
    are never mounted in production.
 
+**A separate, public page exists for sharing a live demo link: `/talk/<clientId>/<language>`**
+(e.g. `/talk/sakura-seikotsuin/ja`). Unlike `/vapi-test-call` above, it is mounted in every
+environment (including production) and shows nothing but the clinic's own name — already public,
+it's what a caller hears on the phone — and a single Talk button; no clientId, no assistant id, no
+debug console output. It renders dynamically from the current Vapi state file, so (unlike the
+pre-baked `/vapi-test-call` files) it never goes stale after a `vapi:sync --apply`. Baking
+`VAPI_PUBLIC_KEY` into this page is intentional, not an oversight — see
+[`docs/VAPI-FACTS.md`](docs/VAPI-FACTS.md), "Public key vs. private key": Vapi's own docs confirm
+the public key is designed to be client-visible (the same model as Stripe's publishable key),
+while the **private** key must never appear client-side. As defense in depth, Vapi's docs recommend
+scoping the public key in the dashboard (Settings → API Keys → the public key's "Allowed Origins" /
+"Allowed Assistants") to this deployment's domain and the real assistants — worth doing once, not
+required for the page to work.
+
 ### 10. Create the webhook credential (from VP-4) — once per environment, **before** `vapi:sync --apply`
 
 Both voice webhooks (`POST /api/voice/callback-request` and `POST /api/voice/call-topic`) reject

@@ -25,6 +25,7 @@ const app = (db: Queryable = healthyDb, isProduction = false, vapiTestPageDir?: 
     isProduction,
     voice: buildVoiceApp().voiceOptions,
     staff: buildStaffOptions(),
+    talk: { publicKey: VAPI_PUBLIC_KEY },
     ...(vapiTestPageDir ? { vapiTestPageDir } : {}),
   });
 

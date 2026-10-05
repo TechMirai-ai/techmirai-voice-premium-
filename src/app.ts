@@ -39,6 +39,7 @@ import { isDatabaseReachable } from './db/pool.js';
 import { summarizeError } from './lib/errorSummary.js';
 import { logger } from './lib/logger.js';
 import { STAFF_URL_PREFIX, staffRouter, type StaffRouterOptions } from './routes/staffRouter.js';
+import { TALK_URL_PREFIX, talkRouter, type TalkRouterOptions } from './routes/talkPage.js';
 import { VOICE_API_PREFIX, voiceRouter, type VoiceRouterOptions } from './routes/voiceRouter.js';
 import { TEST_PAGE_URL_PREFIX, defaultTestPageDir } from './vapi/generateTestPage.js';
 
@@ -52,6 +53,8 @@ export interface AppOptions {
   voice: VoiceRouterOptions;
   /** The staff dashboard. `isProduction` is filled in from the field above. */
   staff: Omit<StaffRouterOptions, 'isProduction'>;
+  /** The public, link-shareable "Talk" demo page (mounted in every environment). */
+  talk: TalkRouterOptions;
   /**
    * Number of reverse proxies (ngrok, a load balancer) in front of the app, so
    * rate limiting sees the real client IP. Leave unset when directly exposed.
@@ -92,6 +95,12 @@ export function createApp(options: AppOptions): Express {
       }),
     );
   }
+
+  // Public, link-shareable "Talk" demo page — unlike the internal QA tool
+  // above, this is meant to work identically in every environment, so it is
+  // not gated by isProduction. Same no-CSP requirement and reasoning (Daily
+  // web-call join), see VAPI-FACTS.md's KNOWN ISSUE.
+  app.use(TALK_URL_PREFIX, helmet({ contentSecurityPolicy: false }), talkRouter(options.talk));
 
   app.use(helmet());
   // Before the global body parser: the voice routes throttle, authenticate and only then parse.

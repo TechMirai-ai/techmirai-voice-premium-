@@ -78,6 +78,7 @@ describe('voice route hardening (security review)', () => {
         },
       },
       staff: buildStaffOptions(),
+      talk: { publicKey: 'test-vapi-public-key' },
     });
 
     const response = await request(app)

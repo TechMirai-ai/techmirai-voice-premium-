@@ -57,6 +57,7 @@ const app = createApp({
     staffUsers: new PgStaffUserRepository(pool),
     callbacks,
   },
+  talk: { publicKey: env.VAPI_PUBLIC_KEY },
 });
 
 export default function handler(req: IncomingMessage, res: ServerResponse): void {

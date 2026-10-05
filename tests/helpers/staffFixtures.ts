@@ -178,6 +178,7 @@ export function buildStaffApp(
     isProduction: false,
     voice: minimalVoiceOptions(),
     staff: buildStaffOptions({ staffUsers, callbacks }),
+    talk: { publicKey: 'test-vapi-public-key' },
   });
   return { app, staffUsers, callbacks };
 }

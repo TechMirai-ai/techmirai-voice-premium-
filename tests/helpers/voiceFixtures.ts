@@ -150,6 +150,7 @@ export function buildVoiceApp(options: { rateLimit?: RateLimitOptions } = {}) {
     isProduction: false,
     voice: voiceOptions,
     staff: buildStaffOptions(),
+    talk: { publicKey: 'test-vapi-public-key' },
   });
   return { app, callbacks, topics, notifier, services, patients, appointments, voiceOptions };
 }
