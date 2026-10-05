@@ -26,7 +26,6 @@ describe('loadEnv', () => {
 
   test.each([
     'DATABASE_URL',
-    'PORT',
     'NODE_ENV',
     'PUBLIC_BASE_URL',
     'VAPI_API_KEY',
@@ -49,6 +48,11 @@ describe('loadEnv', () => {
 
   test('rejects a session secret shorter than 32 characters', () => {
     expect(() => load({ ...base, SESSION_SECRET: 'too-short' })).toThrow(/SESSION_SECRET/);
+  });
+
+  test('treats PORT as optional — api/index.ts (Vercel) never sets it', () => {
+    expect(load({ ...base, PORT: undefined }).PORT).toBeUndefined();
+    expect(load(base).PORT).toBe(3000);
   });
 
   test('treats TRUST_PROXY_HOPS as optional and coerces it to a number', () => {

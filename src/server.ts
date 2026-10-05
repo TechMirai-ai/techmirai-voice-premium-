@@ -4,7 +4,7 @@ import session from 'express-session';
 
 import { createApp } from './app.js';
 import { createPool } from './db/pool.js';
-import { isProduction, loadEnv } from './env.js';
+import { EnvError, isProduction, loadEnv } from './env.js';
 import { LoggingNotifier } from './lib/callbackNotifier.js';
 import { logger } from './lib/logger.js';
 import { FileKnowledgeSource } from './knowledge/KnowledgeSource.js';
@@ -17,6 +17,14 @@ import { PgStaffUserRepository } from './repositories/staffUserRepository.js';
 import { StateFileAssistantResolver } from './vapi/assistantResolver.js';
 
 const env = loadEnv();
+// PORT is optional in the shared schema (api/index.ts's Vercel runtime never
+// sets it), but a real process that calls .listen() genuinely needs one.
+if (env.PORT === undefined) {
+  throw new EnvError(
+    'Invalid environment configuration:\n  - PORT: is required — see .env.example',
+  );
+}
+const port = env.PORT;
 const pool = createPool({ connectionString: env.DATABASE_URL });
 const callbacks = new PgCallbackRequestRepository(pool);
 const PgSession = connectPgSimple(session);
@@ -50,8 +58,8 @@ const app = createApp({
   },
 });
 
-const server = app.listen(env.PORT, () => {
-  logger.info('server listening', { port: env.PORT, nodeEnv: env.NODE_ENV });
+const server = app.listen(port, () => {
+  logger.info('server listening', { port, nodeEnv: env.NODE_ENV });
 });
 
 function shutdown(signal: string): void {

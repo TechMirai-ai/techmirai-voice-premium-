@@ -11,7 +11,12 @@ const baseEnvSchema = z.object({
   // and `.env.example` supplies it. An unset NODE_ENV in production would
   // silently turn on developer-facing error messages.
   NODE_ENV: z.enum(['development', 'test', 'production']),
-  PORT: z.coerce.number().int().positive().max(65535),
+  // Optional: only `src/server.ts` (a real process that calls `.listen()`)
+  // needs an actual port number — it asserts that itself before listening.
+  // Vercel's serverless runtime (api/index.ts) owns ingress and never sets
+  // PORT at all, so requiring it here would crash every request in
+  // production with an unrelated env error before routing even runs.
+  PORT: z.coerce.number().int().positive().max(65535).optional(),
   DATABASE_URL: z.string().min(1, 'is required — see .env.example'),
 
   // Optional for now; required from the work order that first needs them.
