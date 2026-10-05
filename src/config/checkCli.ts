@@ -16,7 +16,6 @@ export function runCheck(clientId: string | undefined): number {
     console.error('Usage: npm run config:check -- <clientId>');
     return 1;
   }
-  
   try {
     const { config, warnings } = loadClientWithWarnings(clientId);
 
