@@ -104,14 +104,12 @@ export function talkRouter(options: TalkRouterOptions): Router {
       return;
     }
 
-    res
-      .type('application/javascript')
-      .send(
-        renderTalkBootstrapScript({
-          publicKey: options.publicKey,
-          assistantId: resolved.assistantId,
-        }),
-      );
+    res.type('application/javascript').send(
+      renderTalkBootstrapScript({
+        publicKey: options.publicKey,
+        assistantId: resolved.assistantId,
+      }),
+    );
   });
 
   return router;
