@@ -307,20 +307,26 @@ intended demo state.
 Set these in the Vercel project's dashboard (Settings → Environment Variables), same values/rules
 as `.env.example` unless noted:
 
-| Variable                   | Production value                                                                                                        |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `NODE_ENV`                  | `production`                                                                                                                |
-| `DATABASE_URL`               | Neon's **pooled** connection string                                                                                       |
-| `PUBLIC_BASE_URL`            | The deployed Vercel URL (set after the project exists — Vercel assigns the domain at creation, before the first deploy) |
-| `VAPI_API_KEY`               | Same Vapi private key as local `.env`                                                                                     |
-| `VAPI_PUBLIC_KEY`            | Same Vapi public key as local `.env`                                                                                       |
-| `VAPI_WEBHOOK_SECRET`        | Same value as the Custom Credential's token in the Vapi dashboard                                                         |
-| `VAPI_SERVER_CREDENTIAL_ID`  | Same Custom Credential id                                                                                                  |
-| `SESSION_SECRET`             | Same value, or a freshly generated one (`openssl rand -hex 32`) if rotating                                               |
-| `TRUST_PROXY_HOPS`           | `1` (Vercel sits in front of the function as one reverse-proxy hop) — **required** in production, see `src/env.ts`       |
+| Variable                    | Production value                                                                                                        |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`                  | `production`                                                                                                            |
+| `DATABASE_URL`              | Neon's **pooled** connection string                                                                                     |
+| `PUBLIC_BASE_URL`           | The deployed Vercel URL (set after the project exists — Vercel assigns the domain at creation, before the first deploy) |
+| `VAPI_API_KEY`              | Same Vapi private key as local `.env`                                                                                   |
+| `VAPI_PUBLIC_KEY`           | Same Vapi public key as local `.env`                                                                                    |
+| `VAPI_WEBHOOK_SECRET`       | Same value as the Custom Credential's token in the Vapi dashboard                                                       |
+| `VAPI_SERVER_CREDENTIAL_ID` | Same Custom Credential id                                                                                               |
+| `SESSION_SECRET`            | Same value, or a freshly generated one (`openssl rand -hex 32`) if rotating                                             |
+| `TALK_RATE_LIMIT_SECRET`    | Same value, or a freshly generated one (`openssl rand -hex 32`) if rotating                                             |
+| `TALK_BYPASS_KEY`           | Same value, or a freshly generated one (`openssl rand -hex 16`) if rotating                                             |
+| `TRUST_PROXY_HOPS`          | `1` (Vercel sits in front of the function as one reverse-proxy hop) — **required** in production, see `src/env.ts`      |
 
 `OPENAI_API_KEY` is not needed in production — it's only used by the local text-tester
-(`npm run vapi:test-chat`), never by the running app.
+(`npm run vapi:test-chat`), never by the running app. **Currently broken as a validation tool**
+(VP-9): it calls OpenAI's API directly with whatever model `render.ts`'s `MODEL_ID` names, and
+that's now a Gemini model id (`gemini-3.1-flash-lite`) — OpenAI's API will reject it. Same for
+`npm run vapi:test-web`, which reuses the same caller. Not fixed yet; see the comment at the top
+of `src/vapi/textTester.ts`.
 
 After the first deploy, update the Vapi assistant configs (`npm run vapi:sync -- ... --apply`)
 so their `server.url` points at the real deployed URL instead of a local tunnel, then verify with

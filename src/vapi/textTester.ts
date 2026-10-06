@@ -1,4 +1,16 @@
 /**
+ * ⚠️ CURRENTLY BROKEN as a validation tool (VP-9, 2026-10-06): this calls
+ * OpenAI's /v1/chat/completions directly with `render.ts`'s exported
+ * `MODEL_ID`, which assumed the live model was always an OpenAI one. Since
+ * VP-9 switched the real assistants to `google`/`gemini-3.1-flash-lite`,
+ * `MODEL_ID` is now a Gemini id — OpenAI's API will reject every request
+ * with an unknown-model error. `npm run vapi:test-web` (webTester.ts) reuses
+ * this same caller and is equally broken. Not fixed yet: a real fix needs a
+ * second, Gemini-calling path (different API, different auth, different
+ * response shape), not a one-line change. Until then, local turn-by-turn
+ * prompt/tool-call validation isn't possible — rely on real Vapi calls plus
+ * the `GET /assistant/{id}` read-back instead (see VAPI-FACTS.md VP-9 R4).
+ *
  * Local, near-zero-cost text-based tester for the Vapi prompt/tool-call
  * logic — same spirit as `vapi:test-page`, but for LOGIC, not voice (work
  * order §4). Calls OpenAI directly with the exact model production uses

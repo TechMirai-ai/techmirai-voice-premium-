@@ -1,4 +1,9 @@
 /**
+ * ⚠️ CURRENTLY BROKEN as a validation tool (VP-9, 2026-10-06) — same reason
+ * as `src/vapi/textTester.ts` (see the note at the top of that file): this
+ * reuses textTester.ts's OpenAI-direct caller, and the live model is now
+ * Gemini. Not fixed yet.
+ *
  * Dedicated local web server and browser-based manual text-tester for the
  * Vapi AI prompt (turn-by-turn testing with model responses and tool calls).
  *
