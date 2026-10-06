@@ -24,7 +24,6 @@ import {
 function printLine(text: string): void {
   process.stdout.write(`${text}\n`);
 }
-
 function printError(text: string): void {
   process.stderr.write(`${text}\n`);
 }
