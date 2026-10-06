@@ -13,6 +13,12 @@ import { Router, type Request, type Response } from 'express';
 
 import { ClientConfigError, loadClient } from '../config/loadClient.js';
 import type { ClientConfig } from '../config/schema.js';
+import {
+  decideTalkCall,
+  talkCallCookieName,
+  TALK_CALL_COOKIE_MAX_AGE_MS,
+  TALK_MAX_CALL_DURATION_SECONDS,
+} from '../middleware/talkCallLimit.js';
 import { assistantResourceName } from '../vapi/squad.js';
 import { readState } from '../vapi/stateStore.js';
 import { renderTalkBootstrapScript, renderTalkPage } from '../vapi/talkPage.js';
@@ -22,6 +28,12 @@ export const TALK_URL_PREFIX = '/talk';
 export interface TalkRouterOptions {
   /** Vapi's public key — safe to expose in the browser (VAPI-FACTS.md). */
   publicKey: string;
+  /** Signs the per-visitor call-count cookie (VP-9, src/middleware/talkCallLimit.ts). */
+  rateLimitSecret: string;
+  /** Shared secret for the owner/staff `?key=` bypass link (VP-9). */
+  bypassKey: string;
+  /** Mirrors the staff session cookie's `secure` flag (VP-9). */
+  isProduction: boolean;
   /** Overrides for tests: where the client configs / Vapi state files are resolved from. */
   clientsDir?: string;
   repoRoot?: string;
@@ -85,6 +97,7 @@ export function talkRouter(options: TalkRouterOptions): Router {
         label: clinicNameOf(resolved.config, code),
         href: pagePath(clientId, code),
       }));
+    const key = typeof req.query.key === 'string' ? req.query.key : undefined;
 
     res.type('html').send(
       renderTalkPage({
@@ -92,6 +105,7 @@ export function talkRouter(options: TalkRouterOptions): Router {
         language,
         switchLinks,
         scriptSrc: `${pagePath(clientId, language)}/bootstrap.js`,
+        ...(key !== undefined ? { bypassKey: key } : {}),
       }),
     );
   });
@@ -107,9 +121,47 @@ export function talkRouter(options: TalkRouterOptions): Router {
     res.type('application/javascript').send(
       renderTalkBootstrapScript({
         publicKey: options.publicKey,
-        assistantId: resolved.assistantId,
+        callsUrl: `${pagePath(clientId, language)}/calls`,
       }),
     );
+  });
+
+  // Checked server-side on EVERY call attempt (not just hidden client-side, CLAUDE.md-style
+  // reasoning applied to the work order's own instruction) — see talkCallLimit.ts for the
+  // cookie-cap + bypass-key logic. Hands back the real assistant id only when allowed.
+  router.post('/:clientId/:language/calls', (req: Request, res: Response, next) => {
+    const { clientId, language } = req.params as { clientId: string; language: string };
+    const resolved = resolveTarget(clientId, language, options);
+    if (!resolved) {
+      next();
+      return;
+    }
+
+    const providedKey = typeof req.query.key === 'string' ? req.query.key : undefined;
+    const decision = decideTalkCall(clientId, req.headers.cookie, providedKey, {
+      rateLimitSecret: options.rateLimitSecret,
+      bypassKey: options.bypassKey,
+    });
+
+    if (!decision.allowed) {
+      res.status(429).json({ status: 'error', error: 'rate_limited' });
+      return;
+    }
+
+    if (decision.newCookieValue) {
+      res.cookie(talkCallCookieName(clientId), decision.newCookieValue, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: options.isProduction,
+        maxAge: TALK_CALL_COOKIE_MAX_AGE_MS,
+        path: TALK_URL_PREFIX,
+      });
+    }
+
+    res.json({
+      assistantId: resolved.assistantId,
+      maxDurationSeconds: TALK_MAX_CALL_DURATION_SECONDS,
+    });
   });
 
   return router;

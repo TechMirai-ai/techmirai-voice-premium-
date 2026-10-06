@@ -150,7 +150,12 @@ export function buildVoiceApp(options: { rateLimit?: RateLimitOptions } = {}) {
     isProduction: false,
     voice: voiceOptions,
     staff: buildStaffOptions(),
-    talk: { publicKey: 'test-vapi-public-key' },
+    talk: {
+      publicKey: 'test-vapi-public-key',
+      rateLimitSecret: 'test-talk-rate-limit-secret-0123456789',
+      bypassKey: 'test-talk-bypass-key',
+      isProduction: false,
+    },
   });
   return { app, callbacks, topics, notifier, services, patients, appointments, voiceOptions };
 }

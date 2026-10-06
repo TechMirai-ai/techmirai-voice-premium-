@@ -178,7 +178,12 @@ export function buildStaffApp(
     isProduction: false,
     voice: minimalVoiceOptions(),
     staff: buildStaffOptions({ staffUsers, callbacks }),
-    talk: { publicKey: 'test-vapi-public-key' },
+    talk: {
+      publicKey: 'test-vapi-public-key',
+      rateLimitSecret: 'test-talk-rate-limit-secret-0123456789',
+      bypassKey: 'test-talk-bypass-key',
+      isProduction: false,
+    },
   });
   return { app, staffUsers, callbacks };
 }

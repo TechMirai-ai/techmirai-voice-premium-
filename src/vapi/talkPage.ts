@@ -31,12 +31,22 @@ export interface TalkPageOptions {
   language: string;
   switchLinks: TalkSwitchLink[];
   scriptSrc: string;
+  /**
+   * Present only on the owner/staff bypass link (`?key=...`, VP-9). Embedded as a
+   * page-level global so the bootstrap script can forward it to the call-limit
+   * check — the actual bypass is still verified server-side on every call attempt,
+   * this is only how the value reaches that request from a page load.
+   */
+  bypassKey?: string;
 }
 
 export function renderTalkPage(options: TalkPageOptions): string {
   const clinicName = escapeHtml(options.clinicName);
   const language = escapeHtml(options.language);
   const scriptSrc = escapeHtml(options.scriptSrc);
+  const bypassKeyScript = options.bypassKey
+    ? `<script>window.__TALK_BYPASS_KEY__ = ${safeJsonForScript(options.bypassKey)};</script>\n`
+    : '';
   const switcher = options.switchLinks
     .map((link) => `<a href="${escapeHtml(link.href)}">${escapeHtml(link.label)}</a>`)
     .join(' · ');
@@ -138,7 +148,7 @@ h1 {
 ${switcher ? `<p class="switch">${switcher}</p>` : ''}
 <button type="button" id="talk-button">Talk</button>
 <p id="call-status" aria-live="polite">Tap to start.</p>
-<script type="module" src="${scriptSrc}"></script>
+${bypassKeyScript}<script type="module" src="${scriptSrc}"></script>
 </body>
 </html>
 `;
@@ -147,7 +157,14 @@ ${switcher ? `<p class="switch">${switcher}</p>` : ''}
 export interface TalkBootstrapOptions {
   /** Vapi's public key — safe to expose in the browser (VAPI-FACTS.md, "Public key vs. private key"). */
   publicKey: string;
-  assistantId: string;
+  /**
+   * The gated endpoint checked (server-side, VP-9) before each call attempt —
+   * it hands back the real assistant id only if the visitor is still under the
+   * call cap or has a valid bypass key, and never otherwise. Unlike the old
+   * flow, the assistant id is deliberately NOT embedded in this script: handing
+   * it out unconditionally on page load would make the whole cap meaningless.
+   */
+  callsUrl: string;
 }
 
 /**
@@ -165,6 +182,8 @@ export function renderTalkBootstrapScript(options: TalkBootstrapOptions): string
 // the default import is { __esModule, default: <Vapi class> } (VAPI-FACTS.md).
 var Vapi = VapiModule.default || VapiModule;
 var vapi = new Vapi(${safeJsonForScript(options.publicKey)});
+var callsUrl = ${safeJsonForScript(options.callsUrl)};
+var bypassKey = window.__TALK_BYPASS_KEY__;
 var button = document.getElementById('talk-button');
 var statusEl = document.getElementById('call-status');
 var inCall = false;
@@ -192,7 +211,24 @@ button.addEventListener('click', function () {
     return;
   }
   if (statusEl) statusEl.textContent = 'Connecting…';
-  vapi.start(${safeJsonForScript(options.assistantId)});
+  var url = callsUrl + (bypassKey ? '?key=' + encodeURIComponent(bypassKey) : '');
+  fetch(url, { method: 'POST', credentials: 'same-origin' })
+    .then(function (res) {
+      if (res.status === 429) {
+        if (statusEl) statusEl.textContent = "You've reached the demo call limit. Please get in touch to try it live.";
+        return null;
+      }
+      if (!res.ok) throw new Error('call session request failed');
+      return res.json();
+    })
+    .then(function (data) {
+      if (!data) return;
+      vapi.start(data.assistantId, { maxDurationSeconds: data.maxDurationSeconds });
+    })
+    .catch(function (e) {
+      console.error('Call session error:', e);
+      if (statusEl) statusEl.textContent = 'Something went wrong — please try again.';
+    });
 });
 `;
 }

@@ -25,7 +25,12 @@ const app = (db: Queryable = healthyDb, isProduction = false, vapiTestPageDir?: 
     isProduction,
     voice: buildVoiceApp().voiceOptions,
     staff: buildStaffOptions(),
-    talk: { publicKey: VAPI_PUBLIC_KEY },
+    talk: {
+      publicKey: VAPI_PUBLIC_KEY,
+      rateLimitSecret: 'test-talk-rate-limit-secret-0123456789',
+      bypassKey: 'test-talk-bypass-key',
+      isProduction,
+    },
     ...(vapiTestPageDir ? { vapiTestPageDir } : {}),
   });
 

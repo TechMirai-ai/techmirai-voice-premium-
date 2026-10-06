@@ -57,6 +57,17 @@ const baseEnvSchema = z.object({
   // https://platform.openai.com/api-keys. Never sent to a browser: this tool
   // is a CLI, not a served page.
   OPENAI_API_KEY: z.string().min(1).optional(),
+
+  // Required from VP-9: signs the public Talk demo page's per-visitor call-count
+  // cookie (src/middleware/talkCallLimit.ts), so the count can't be edited by
+  // hand client-side. A compromised value only lets an attacker forge an
+  // unlimited demo-call count, not a staff session — kept separate from
+  // SESSION_SECRET on that basis.
+  TALK_RATE_LIMIT_SECRET: z.string().min(32, 'must be at least 32 characters — see .env.example'),
+  // Required from VP-9: the shared secret for the owner/staff `?key=` link that
+  // bypasses the public demo's call cap (talkPage.ts). Never logged, never sent
+  // to a browser except as the literal query value on that one private link.
+  TALK_BYPASS_KEY: z.string().min(16, 'must be at least 16 characters — see .env.example'),
 });
 
 // Rate limiting keys on the client IP, which is only correct if we know how many

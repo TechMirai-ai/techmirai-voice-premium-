@@ -12,6 +12,8 @@ const base = {
   VAPI_WEBHOOK_SECRET: 'test-webhook-secret-0123456789',
   VAPI_SERVER_CREDENTIAL_ID: 'test-credential-id',
   SESSION_SECRET: 'test-session-secret-0123456789-0123456789',
+  TALK_RATE_LIMIT_SECRET: 'test-talk-rate-limit-secret-0123456789',
+  TALK_BYPASS_KEY: 'test-talk-bypass-key',
 };
 
 const load = (source: NodeJS.ProcessEnv) => loadEnv(source, { readDotenvFile: false });
@@ -33,6 +35,8 @@ describe('loadEnv', () => {
     'VAPI_WEBHOOK_SECRET',
     'VAPI_SERVER_CREDENTIAL_ID',
     'SESSION_SECRET',
+    'TALK_RATE_LIMIT_SECRET',
+    'TALK_BYPASS_KEY',
   ])('fails fast and names %s when it is missing', (key) => {
     const source = { ...base, [key]: undefined };
 
@@ -48,6 +52,16 @@ describe('loadEnv', () => {
 
   test('rejects a session secret shorter than 32 characters', () => {
     expect(() => load({ ...base, SESSION_SECRET: 'too-short' })).toThrow(/SESSION_SECRET/);
+  });
+
+  test('rejects a talk rate-limit secret shorter than 32 characters', () => {
+    expect(() => load({ ...base, TALK_RATE_LIMIT_SECRET: 'too-short' })).toThrow(
+      /TALK_RATE_LIMIT_SECRET/,
+    );
+  });
+
+  test('rejects a talk bypass key shorter than 16 characters', () => {
+    expect(() => load({ ...base, TALK_BYPASS_KEY: 'too-short' })).toThrow(/TALK_BYPASS_KEY/);
   });
 
   test('treats PORT as optional — api/index.ts (Vercel) never sets it', () => {

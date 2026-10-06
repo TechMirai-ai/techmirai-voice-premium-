@@ -78,7 +78,12 @@ describe('voice route hardening (security review)', () => {
         },
       },
       staff: buildStaffOptions(),
-      talk: { publicKey: 'test-vapi-public-key' },
+      talk: {
+        publicKey: 'test-vapi-public-key',
+        rateLimitSecret: 'test-talk-rate-limit-secret-0123456789',
+        bypassKey: 'test-talk-bypass-key',
+        isProduction: false,
+      },
     });
 
     const response = await request(app)
@@ -118,6 +123,8 @@ describe('production must declare its proxy topology', () => {
     VAPI_WEBHOOK_SECRET: 'a-long-enough-secret-value',
     VAPI_SERVER_CREDENTIAL_ID: 'c',
     SESSION_SECRET: 'test-session-secret-0123456789-0123456789',
+    TALK_RATE_LIMIT_SECRET: 'test-talk-rate-limit-secret-0123456789',
+    TALK_BYPASS_KEY: 'test-talk-bypass-key',
   };
 
   test('fails at startup without TRUST_PROXY_HOPS', () => {

@@ -16,6 +16,8 @@ const healthyDb: Queryable = { query: () => Promise.resolve({ rows: [{ ok: 1 }] 
 const PUBLIC_KEY = 'test-vapi-public-key';
 const JA_ASSISTANT_ID = 'ja-assistant-uuid';
 const EN_ASSISTANT_ID = 'en-assistant-uuid';
+const RATE_LIMIT_SECRET = 'test-talk-rate-limit-secret-0123456789';
+const BYPASS_KEY = 'test-talk-bypass-key';
 
 describe('GET /talk', () => {
   let clientsDir: string;
@@ -57,7 +59,14 @@ describe('GET /talk', () => {
       isProduction,
       voice: buildVoiceApp().voiceOptions,
       staff: buildStaffOptions(),
-      talk: { publicKey: PUBLIC_KEY, clientsDir, repoRoot: stateRepoRoot },
+      talk: {
+        publicKey: PUBLIC_KEY,
+        rateLimitSecret: RATE_LIMIT_SECRET,
+        bypassKey: BYPASS_KEY,
+        isProduction,
+        clientsDir,
+        repoRoot: stateRepoRoot,
+      },
     });
 
   test("renders the clinic's own name and a Talk button", async () => {
@@ -86,20 +95,22 @@ describe('GET /talk', () => {
     expect(response.text).toContain('Test Clinic');
   });
 
-  test('serves the bootstrap script with the real assistant id and public key', async () => {
+  test('serves the bootstrap script with the public key and the gated calls URL — never a raw assistant id', async () => {
     const response = await request(app()).get('/talk/demo-clinic/ja/bootstrap.js');
 
     expect(response.status).toBe(200);
     expect(response.headers['content-type']).toMatch(/javascript/);
-    expect(response.text).toContain(`"${JA_ASSISTANT_ID}"`);
     expect(response.text).toContain(`"${PUBLIC_KEY}"`);
+    expect(response.text).toContain('"/talk/demo-clinic/ja/calls"');
+    expect(response.text).not.toContain(JA_ASSISTANT_ID);
+    expect(response.text).not.toContain(EN_ASSISTANT_ID);
   });
 
-  test('serves the other language from the same clientId, with its own assistant id', async () => {
+  test('serves the other language from the same clientId, with its own calls URL', async () => {
     const response = await request(app()).get('/talk/demo-clinic/en/bootstrap.js');
 
     expect(response.status).toBe(200);
-    expect(response.text).toContain(`"${EN_ASSISTANT_ID}"`);
+    expect(response.text).toContain('"/talk/demo-clinic/en/calls"');
   });
 
   test('works identically when isProduction is true — unlike the internal QA page', async () => {
@@ -155,5 +166,66 @@ describe('GET /talk', () => {
 
     const csp = response.headers['content-security-policy'] as string;
     expect(csp).toContain("default-src 'self'");
+  });
+
+  describe('POST /talk/:clientId/:language/calls', () => {
+    test('a fresh visitor is allowed and gets the real assistant id plus the 5-minute cap', async () => {
+      const response = await request(app()).post('/talk/demo-clinic/ja/calls');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ assistantId: JA_ASSISTANT_ID, maxDurationSeconds: 300 });
+      expect(response.headers['set-cookie']?.[0]).toContain('tmvp_talk_calls_demo-clinic=');
+    });
+
+    test('blocks the 5th call once the cookie shows the cap already reached, with no cookie set', async () => {
+      const agent = request.agent(app());
+      for (let i = 0; i < 4; i++) {
+        const ok = await agent.post('/talk/demo-clinic/ja/calls');
+        expect(ok.status).toBe(200);
+      }
+
+      const blocked = await agent.post('/talk/demo-clinic/ja/calls');
+
+      expect(blocked.status).toBe(429);
+      expect(blocked.body).toEqual({ status: 'error', error: 'rate_limited' });
+      expect(blocked.headers['set-cookie']).toBeUndefined();
+    });
+
+    test('the cap is shared across languages for the same clinic (switching ja/en does not reset it)', async () => {
+      const agent = request.agent(app());
+      await agent.post('/talk/demo-clinic/ja/calls');
+      await agent.post('/talk/demo-clinic/en/calls');
+      await agent.post('/talk/demo-clinic/ja/calls');
+      await agent.post('/talk/demo-clinic/en/calls');
+
+      const blocked = await agent.post('/talk/demo-clinic/ja/calls');
+
+      expect(blocked.status).toBe(429);
+    });
+
+    test('the owner/staff bypass key skips the cap entirely, even after it has been reached', async () => {
+      const agent = request.agent(app());
+      for (let i = 0; i < 4; i++) {
+        await agent.post('/talk/demo-clinic/ja/calls');
+      }
+
+      const bypassed = await agent.post(`/talk/demo-clinic/ja/calls?key=${BYPASS_KEY}`);
+
+      expect(bypassed.status).toBe(200);
+      expect(bypassed.body.assistantId).toBe(JA_ASSISTANT_ID);
+    });
+
+    test('a wrong key is rejected and falls back to the normal cap check', async () => {
+      const response = await request(app()).post('/talk/demo-clinic/ja/calls?key=not-the-real-key');
+
+      expect(response.status).toBe(200);
+      expect(response.headers['set-cookie']?.[0]).toContain('tmvp_talk_calls_demo-clinic=');
+    });
+
+    test('returns the JSON 404 for an unknown clientId', async () => {
+      const response = await request(app()).post('/talk/no-such-clinic/ja/calls');
+
+      expect(response.status).toBe(404);
+    });
   });
 });

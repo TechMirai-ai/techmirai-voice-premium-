@@ -33,6 +33,8 @@ const REQUIRED_ENV = {
   VAPI_WEBHOOK_SECRET: 'fake-webhook-secret-0123456789',
   VAPI_SERVER_CREDENTIAL_ID: 'fake-credential-id',
   SESSION_SECRET: 'fake-session-secret-0123456789-0123456789',
+  TALK_RATE_LIMIT_SECRET: 'fake-talk-rate-limit-secret-0123456789',
+  TALK_BYPASS_KEY: 'fake-talk-bypass-key',
 };
 
 async function runCli(args: string[], env: NodeJS.ProcessEnv = {}): Promise<CliResult> {

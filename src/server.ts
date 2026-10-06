@@ -56,7 +56,12 @@ const app = createApp({
     staffUsers: new PgStaffUserRepository(pool),
     callbacks,
   },
-  talk: { publicKey: env.VAPI_PUBLIC_KEY },
+  talk: {
+    publicKey: env.VAPI_PUBLIC_KEY,
+    rateLimitSecret: env.TALK_RATE_LIMIT_SECRET,
+    bypassKey: env.TALK_BYPASS_KEY,
+    isProduction: isProduction(env),
+  },
 });
 
 const server = app.listen(port, () => {
