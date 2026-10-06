@@ -13,3 +13,4 @@ public/vapi-test-call/
 *.log
 .DS_Store
 .vitest-cache/
+.vercel
