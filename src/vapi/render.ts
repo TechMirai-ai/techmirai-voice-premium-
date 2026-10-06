@@ -70,6 +70,14 @@ export const MODEL_ID = 'gemini-3.1-flash-lite';
  */
 export const MODEL_REASONING_EFFORT: string | undefined = undefined;
 
+/**
+ * VP-9 call-realism polish: subtle ambient noise during calls, for every member. `"office"` is
+ * the only non-"off" preset Vapi offers (confirmed against the live OpenAPI spec 2026-10-06,
+ * VAPI-FACTS.md VP-9 R7) — there is no separate "call-center" option, despite that being how the
+ * work order described it.
+ */
+const BACKGROUND_SOUND: 'off' | 'office' = 'office';
+
 export interface RenderOptions {
   /** Public HTTPS base URL Vapi will call — from PUBLIC_BASE_URL, never hard-coded (CLAUDE.md / work order §3). */
   baseUrl: string;
@@ -505,6 +513,7 @@ export function renderAssistant(
     // Platform-level backstops for a model that doesn't call endCall itself (VAPI-FACTS.md VP-7
     // R8) — the same values squad.ts threads through each handoff leg's overrides.
     ...(endCallPhrases ? { endCallPhrases } : {}),
+    backgroundSound: BACKGROUND_SOUND,
     hooks: [silenceHangupHook()],
   };
 

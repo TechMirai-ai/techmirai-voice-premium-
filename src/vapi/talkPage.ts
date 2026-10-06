@@ -205,14 +205,51 @@ vapi.on('call-end', function () {
   if (button) button.textContent = 'Talk';
 });
 
+// A real phone call rings before it connects; a browser web call has no such
+// delay by default, so this is purely cosmetic realism — a short synthesized
+// ringback tone (no audio file to host), played from inside the click handler
+// so the AudioContext satisfies browsers' user-gesture requirement. Never
+// blocks or fails the real call: any audio error just resolves immediately.
+function playRingback() {
+  return new Promise(function (resolve) {
+    try {
+      var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      var ctx = new AudioContextClass();
+      var duration = 1.4;
+      var now = ctx.currentTime;
+      [440, 480].forEach(function (freq) {
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.06, now + 0.05);
+        gain.gain.setValueAtTime(0.06, now + duration - 0.05);
+        gain.gain.linearRampToValueAtTime(0, now + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + duration);
+      });
+      setTimeout(function () {
+        ctx.close();
+        resolve();
+      }, duration * 1000);
+    } catch (e) {
+      resolve();
+    }
+  });
+}
+
 button.addEventListener('click', function () {
   if (inCall) {
     vapi.stop();
     return;
   }
-  if (statusEl) statusEl.textContent = 'Connecting…';
+  if (statusEl) statusEl.textContent = 'Calling…';
   var url = callsUrl + (bypassKey ? '?key=' + encodeURIComponent(bypassKey) : '');
-  fetch(url, { method: 'POST', credentials: 'same-origin' })
+  var ringbackDone = playRingback();
+  var sessionDone = fetch(url, { method: 'POST', credentials: 'same-origin' })
     .then(function (res) {
       if (res.status === 429) {
         if (statusEl) statusEl.textContent = "You've reached the demo call limit. Please get in touch to try it live.";
@@ -220,9 +257,14 @@ button.addEventListener('click', function () {
       }
       if (!res.ok) throw new Error('call session request failed');
       return res.json();
-    })
-    .then(function (data) {
+    });
+  // Starts as soon as the ringback tone ends AND the call-limit check has come
+  // back — whichever finishes last, so a slow network never cuts the ring short.
+  Promise.all([ringbackDone, sessionDone])
+    .then(function (results) {
+      var data = results[1];
       if (!data) return;
+      if (statusEl) statusEl.textContent = 'Connecting…';
       vapi.start(data.assistantId, { maxDurationSeconds: data.maxDurationSeconds });
     })
     .catch(function (e) {

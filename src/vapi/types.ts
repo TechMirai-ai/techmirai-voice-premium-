@@ -179,6 +179,13 @@ export interface VapiAssistantPayload {
    * (VAPI-FACTS.md VP-7 R8). Omitted when the client configures none.
    */
   endCallPhrases?: string[];
+  /**
+   * Ambient call-background sound. Vapi's own enum is only `"off"` | `"office"` (or a custom
+   * audio URL, not used here) — confirmed against the live OpenAPI spec 2026-10-06, no separate
+   * "call-center" preset exists. Default for web calls (what the public Talk page uses) is
+   * `"off"`; set explicitly rather than relying on that default, same reasoning as `endCallMessage`.
+   */
+  backgroundSound: 'off' | 'office';
   /** Silence-hangup hook — see `callEnding.ts`. */
   hooks: VapiSilenceHangupHook[];
   /** Not set in VP-2 — the callback webhook is reached via the tool's own server.url instead. */

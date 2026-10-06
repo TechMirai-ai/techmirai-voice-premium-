@@ -42,6 +42,7 @@ describe('renderAssistant — Sakura fixture (ja)', () => {
     expect(assistant.model.messages).toEqual([{ role: 'system', content: expect.any(String) }]);
     expect(assistant.model.messages[0]?.content).toContain('さくら整骨院');
     expect(assistant.model.toolIds).toEqual([]);
+    expect(assistant.backgroundSound).toBe('office');
   });
 
   test('builds the request_callback tool payload', async () => {

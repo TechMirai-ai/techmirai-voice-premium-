@@ -142,4 +142,29 @@ describe('renderTalkBootstrapScript', () => {
     expect(fetchIndex).toBeGreaterThan(-1);
     expect(fetchIndex).toBeLessThan(startCallIndex);
   });
+
+  test('plays a ringback tone on click, overlapping with (not blocking) the call-session request', () => {
+    const script = renderTalkBootstrapScript({ publicKey: 'pk', callsUrl: '/talk/x/ja/calls' });
+
+    const clickHandlerIndex = script.indexOf("addEventListener('click'");
+    const ringbackCallIndex = script.indexOf('= playRingback();');
+    const startCallIndex = script.indexOf('vapi.start(');
+    expect(script).toContain('function playRingback()');
+    expect(ringbackCallIndex).toBeGreaterThan(clickHandlerIndex);
+    expect(ringbackCallIndex).toBeLessThan(startCallIndex);
+    // Both the ringback and the session fetch are awaited together (Promise.all)
+    // before starting the call, so neither one blocks on the other individually.
+    expect(script).toMatch(/Promise\.all\(\[ringbackDone, sessionDone\]\)/);
+  });
+
+  test('never fails the call if ringback playback itself errors', () => {
+    const script = renderTalkBootstrapScript({ publicKey: 'pk', callsUrl: '/calls' });
+
+    const playRingbackBody = script.slice(
+      script.indexOf('function playRingback()'),
+      script.indexOf('button.addEventListener'),
+    );
+    expect(playRingbackBody).toContain('try {');
+    expect(playRingbackBody).toMatch(/catch[\s\S]*resolve\(\);/);
+  });
 });
