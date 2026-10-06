@@ -778,7 +778,7 @@ export function renderWebTesterHtml(): string {
   <header class="app-header">
     <div class="header-brand">
       <h1 class="header-title">AI Prompt Text Tester</h1>
-      <span class="header-subtitle">Model: gpt-5.6-terra · Direct Logic QA</span>
+      <span class="header-subtitle">Model: ${OPENAI_MODEL} · Direct Logic QA</span>
     </div>
 
     <div class="header-controls">

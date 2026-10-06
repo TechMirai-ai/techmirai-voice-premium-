@@ -53,16 +53,22 @@ export class UnconfiguredTranscriberError extends Error {
 
 export { LOG_CALL_TOPIC_FUNCTION_NAME, REQUEST_CALLBACK_FUNCTION_NAME };
 
-/** VAPI-FACTS.md Vendor-swap R1: openai/gpt-5.6-terra, replacing gpt-4o-mini (fallback: anthropic/claude-sonnet-5). */
-const MODEL_PROVIDER = 'openai';
-/** Exported so textTester.ts (VP-7) calls the exact same model, not a substitute — zero drift. */
-export const MODEL_ID = 'gpt-5.6-terra';
 /**
- * Required for gpt-5.6-terra (and the whole GPT-5.6 family) to use function tools at all —
- * OpenAI's Chat Completions API rejects tool calls on a reasoning-tier model unless this is
- * exactly "none" (VAPI-FACTS.md Vendor-swap R4). Exported for the same zero-drift reason as MODEL_ID.
+ * VP-9: google/gemini-3.1-flash-lite, replacing openai/gpt-5.6-terra — confirmed available
+ * (VAPI-FACTS.md VP-9 R2) on the user's explicit go-ahead, cost/latency/intelligence numbers
+ * not independently re-verified this session (only reachable via the Vapi Dashboard UI, which
+ * this session has no logged-in access to).
  */
-export const MODEL_REASONING_EFFORT = 'none';
+const MODEL_PROVIDER = 'google';
+/** Exported so textTester.ts (VP-7) calls the exact same model, not a substitute — zero drift. */
+export const MODEL_ID = 'gemini-3.1-flash-lite';
+/**
+ * `reasoningEffort` only exists on `OpenAIModel`, not `GoogleModel` (VAPI-FACTS.md VP-9 R3) — it
+ * was load-bearing for gpt-5.6-terra's tool-calling (Vendor-swap R4), but Gemini has no equivalent
+ * field to set. `undefined` here, not omitted, so textTester.ts's re-export stays correctly typed;
+ * render.ts below only includes the field in the payload when a model actually needs it.
+ */
+export const MODEL_REASONING_EFFORT: string | undefined = undefined;
 
 export interface RenderOptions {
   /** Public HTTPS base URL Vapi will call — from PUBLIC_BASE_URL, never hard-coded (CLAUDE.md / work order §3). */
@@ -476,7 +482,7 @@ export function renderAssistant(
     model: {
       provider: MODEL_PROVIDER,
       model: MODEL_ID,
-      reasoningEffort: MODEL_REASONING_EFFORT,
+      ...(MODEL_REASONING_EFFORT !== undefined ? { reasoningEffort: MODEL_REASONING_EFFORT } : {}),
       messages: [{ role: 'system', content: systemPrompt }],
       // Populated by sync.ts once the tools (request_callback + log_call_topic
       // + one handoff tool per other language + the VP-8 reservation tools,

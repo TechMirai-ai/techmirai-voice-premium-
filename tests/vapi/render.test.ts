@@ -36,8 +36,9 @@ describe('renderAssistant — Sakura fixture (ja)', () => {
       language: 'ja',
       confidenceThreshold: 0.2,
     });
-    expect(assistant.model.provider).toBe('openai');
-    expect(assistant.model.model).toBe('gpt-5.6-terra');
+    expect(assistant.model.provider).toBe('google');
+    expect(assistant.model.model).toBe('gemini-3.1-flash-lite');
+    expect(assistant.model.reasoningEffort).toBeUndefined();
     expect(assistant.model.messages).toEqual([{ role: 'system', content: expect.any(String) }]);
     expect(assistant.model.messages[0]?.content).toContain('さくら整骨院');
     expect(assistant.model.toolIds).toEqual([]);
