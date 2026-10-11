@@ -154,7 +154,7 @@ export interface VapiStartSpeakingPlan {
    * Leaving this unset means smartEndpointingPlan silently falls back to
    * that 1.5s default — exactly the wait it was meant to shorten.
    */
-  transcriptionEndpointingPlan?: { onNoPunctuationSeconds: number };
+  transcriptionEndpointingPlan?: { onNoPunctuationSeconds: number; onPunctuationSeconds?: number };
 }
 
 export interface VapiAssistantPayload {

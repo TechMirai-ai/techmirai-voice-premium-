@@ -114,7 +114,13 @@ describe('renderAssistant — startSpeakingPlan (VP-6 A)', () => {
     const onNoPunctuationSeconds =
       assistant.startSpeakingPlan?.transcriptionEndpointingPlan?.onNoPunctuationSeconds;
     expect(onNoPunctuationSeconds).toBeGreaterThanOrEqual(0.6);
-    expect(onNoPunctuationSeconds).toBeLessThanOrEqual(0.8);
+    expect(onNoPunctuationSeconds).toBeLessThan(1.5);
+    // Longer than Vapi's 0.1s default (fragment cut-ins, VP-10) but well under the
+    // no-punctuation wait, so a clearly complete sentence still answers quickly.
+    const onPunctuationSeconds =
+      assistant.startSpeakingPlan?.transcriptionEndpointingPlan?.onPunctuationSeconds;
+    expect(onPunctuationSeconds).toBeGreaterThan(0.1);
+    expect(onPunctuationSeconds).toBeLessThan(onNoPunctuationSeconds ?? 0);
     const rules = assistant.startSpeakingPlan?.customEndpointingRules ?? [];
     expect(rules).toHaveLength(1);
     expect(rules[0]?.type).toBe('assistant');
@@ -146,7 +152,7 @@ describe('renderAssistant — Deepgram Flux transcriber and endpointing (VAPI-FA
     // built-in end-of-turn detection (R7) — render.ts omits it automatically for a "flux-" model.
     expect(assistant.startSpeakingPlan?.smartEndpointingPlan).toBeUndefined();
     expect(assistant.startSpeakingPlan?.transcriptionEndpointingPlan?.onNoPunctuationSeconds).toBe(
-      0.7,
+      1.1,
     );
     const rules = assistant.startSpeakingPlan?.customEndpointingRules ?? [];
     expect(rules).toHaveLength(1);

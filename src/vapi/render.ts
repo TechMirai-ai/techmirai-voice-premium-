@@ -163,7 +163,15 @@ function stableQuestionAnchor(text: string): string {
  *
  * NOT applied when the transcriber is Deepgram Flux — see `isFluxModel` below.
  */
-const NO_PUNCTUATION_WAIT_SECONDS = 0.7;
+const NO_PUNCTUATION_WAIT_SECONDS = 1.1;
+
+/**
+ * Wait after a transcript that ends with punctuation (Vapi default 0.1s). A real English call
+ * (2026-10-11, VP-10) showed short punctuated fragments — "Yeah.", "Okay." — each firing the
+ * model within ~100ms while the caller was still mid-thought: six model calls in nine seconds,
+ * each aborting the last. A longer wait here lets the next fragment arrive first.
+ */
+const PUNCTUATION_WAIT_SECONDS = 0.45;
 
 /**
  * Deepgram Flux's own end-of-turn knobs (VAPI-FACTS.md Vendor-swap R6/R7), set on the transcriber
@@ -222,7 +230,10 @@ function buildStartSpeakingPlan(
     // bypassed by Flux's built-in EOT, or stacks as a second silence timer on top of it, is the
     // open question from VAPI-FACTS.md Vendor-swap R7 — a real test call (long/hesitant turn)
     // decides whether this should be removed for Flux. Do not remove this without that evidence.
-    transcriptionEndpointingPlan: { onNoPunctuationSeconds: NO_PUNCTUATION_WAIT_SECONDS },
+    transcriptionEndpointingPlan: {
+      onNoPunctuationSeconds: NO_PUNCTUATION_WAIT_SECONDS,
+      onPunctuationSeconds: PUNCTUATION_WAIT_SECONDS,
+    },
     customEndpointingRules: [
       {
         type: 'assistant',
