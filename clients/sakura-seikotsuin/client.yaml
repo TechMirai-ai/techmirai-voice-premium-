@@ -96,13 +96,17 @@ scripts:
     # entirely — previously ended with 'If you would like assistance in English, please say
     # "English."' (Jamal's call, confirmed). NEEDS NATIVE-SPEAKER REVIEW.
     en: Thank you for calling [[clinicName]]. How may I assist you today?
-    ja: お電話ありがとうございます。[[clinicName]]でございます。本日はどのようなご用件でしょうか。
+    # `.ja` CHANGED (2026-10-11): the assistant now introduces itself as AI receptionist ハルカ (Haruka)
+    # and asks whether the caller wants to book. The name is only spoken text; the TTS voice is unchanged.
+    ja: お電話ありがとうございます。[[clinicName]]のAI受付、ハルカと申します。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？
   # English assistant's first message after the handoff.
   englishGreeting:
     # `.en` CHANGED (content update, 2026-09-29): the project owner reversed the S-2 AI-disclosure
     # decision (see docs/FUTURE-FEATURES.md) — no longer identifies the assistant as AI. `.ja` is
     # unused (never spoken — see docs/JAPANESE-REVIEW.md item 1) and is left as-is.
-    en: Thank you for calling [[clinicName]]. How may I assist you today?
+    # `.en` CHANGED again (2026-10-11): the assistant introduces itself as AI receptionist Jenny and asks
+    # whether the caller wants to book. [[clinicName]] resolves to the phonetic respelling (namePronunciation).
+    en: Thank you for calling [[clinicName]]. I am your AI receptionist, Jenny. How may I assist you today? Are you calling to make an appointment?
     ja: >-
       こんにちは。[[clinicName]]です。こちらは英語でご案内するAI受付でございます。ご用件をお聞かせください。
   # Japanese assistant's first message when a caller is handed BACK to it from
