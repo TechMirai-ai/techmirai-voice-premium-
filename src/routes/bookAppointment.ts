@@ -10,7 +10,7 @@ import { z } from 'zod';
 
 import { logger } from '../lib/logger.js';
 import { loadClient } from '../config/loadClient.js';
-import { normalizePhoneDigits, isValidPhoneDigitCount } from '../lib/phone.js';
+import { DEMO_PLACEHOLDER_PHONE } from '../lib/demoCallerPhone.js';
 import { checkAvailability } from '../reservation/availability.js';
 import type { AppointmentRepository } from '../repositories/appointmentRepository.js';
 import type { ReservationServiceRepository } from '../repositories/reservationServiceRepository.js';
@@ -21,9 +21,14 @@ import { toolWebhook } from './voiceWebhook.js';
 
 export const BOOK_APPOINTMENT_PATH = '/book-appointment';
 
+const MAX_NAME_LENGTH = 100;
+
 const argumentsSchema = z.object({
   serviceId: z.string().min(1).optional(),
-  patientPhone: z.string().min(1),
+  patientName: z
+    .string()
+    .transform((value) => value.normalize('NFKC').trim())
+    .pipe(z.string().min(1).max(MAX_NAME_LENGTH)),
   isReturningPatient: z.boolean().optional().default(false),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be YYYY-MM-DD'),
   time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'must be HH:MM, 24-hour'),
@@ -58,14 +63,6 @@ export function bookAppointmentRouter(deps: BookAppointmentRouteDeps): Router {
         }
         const { date, time } = parsed.data;
 
-        const phoneDigits = normalizePhoneDigits(parsed.data.patientPhone);
-        if (!isValidPhoneDigitCount(phoneDigits)) {
-          return errorResult(
-            call,
-            'Invalid or missing: patientPhone. Ask the caller to repeat it, then try again.',
-          );
-        }
-
         const config = loadClient(context.clientId);
         const takenTimes = await deps.appointments.listTakenTimes(context.clientId, date);
         const availability = checkAvailability(config, date, time, takenTimes);
@@ -97,7 +94,9 @@ export function bookAppointmentRouter(deps: BookAppointmentRouteDeps): Router {
           language: context.language,
           serviceId: parsed.data.serviceId ?? null,
           serviceName,
-          patientPhone: phoneDigits,
+          patientName: parsed.data.patientName,
+          // TODO(SV-5): replace with the real caller-ID number once phone calls exist.
+          patientPhone: DEMO_PLACEHOLDER_PHONE,
           isReturningPatient: parsed.data.isReturningPatient,
           appointmentDate: date,
           appointmentTime: time,

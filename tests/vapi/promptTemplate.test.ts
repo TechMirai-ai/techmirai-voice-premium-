@@ -98,14 +98,14 @@ describe('buildSystemPrompt — Sakura fixture (ja)', () => {
     expect(buildSystemPrompt(config, 'fr', config.faq)).not.toContain('Language switching');
   });
 
-  test('leaves [[callerName]]/[[callerPhone]] untouched for the model to fill at call time', async () => {
+  test('leaves [[callerName]] untouched for the model to fill at call time', async () => {
     const config = loadClient(SAKURA_ID);
     const faq = await knowledge.listFaq(SAKURA_ID);
 
     const prompt = buildSystemPrompt(config, 'ja', faq);
 
     expect(prompt).toContain('[[callerName]]');
-    expect(prompt).toContain('[[callerPhone]]');
+    expect(prompt).not.toContain('[[callerPhone]]');
   });
 
   test('asks anythingElse after a successful (or failed) callback save too, not just after a FAQ answer', async () => {
@@ -314,62 +314,101 @@ describe('buildSystemPrompt — over-triggering guards (VP-7 follow-up)', () => 
   });
 });
 
-describe('buildSystemPrompt — phone read-back (VP-7)', () => {
-  test('gives the model the per-language digit words and a worked example from client.yaml', async () => {
+describe('buildSystemPrompt — name + contact-number flow (no spoken phone number)', () => {
+  const SERVICES = [
+    { id: 'general-consultation', name: { fr: 'Consultation générale' }, durationMinutes: 30 },
+  ];
+  const lang = ['ja', 'en'] as const;
+
+  test('never asks the caller for a phone number or a digit read-back, in either language', async () => {
     const config = loadClient(SAKURA_ID);
     const faq = await knowledge.listFaq(SAKURA_ID);
 
-    const ja = buildSystemPrompt(config, 'ja', faq);
-    const en = buildSystemPrompt(config, 'en', faq);
+    for (const language of lang) {
+      const prompt = buildSystemPrompt(config, language, faq, SERVICES);
 
-    expect(ja).toContain(
-      '0=ゼロ/レイ, 1=イチ, 2=ニー, 3=サン, 4=ヨン, 5=ゴー, 6=ロク, 7=ナナ, 8=ハチ, 9=キュウ',
-    );
-    expect(ja).toContain('"ゼロキュウゼロ、イチニーサンヨン、ゴーロクナナハチ"');
-    expect(en).toContain('0=zero, 1=one, 2=two');
-    expect(en).toContain('"zero nine zero, one two three four, five six seven eight"');
+      expect(prompt).not.toMatch(/digit words|3-4-4|read-?back/i);
+      expect(prompt).not.toContain('May I have a phone number');
+      expect(prompt).not.toContain('callerPhone');
+      expect(prompt).not.toContain('patientPhone');
+      expect(prompt).toContain('Never ask for, repeat or read out a phone number');
+    }
   });
 
-  test('tells the model to check the 3-4-4 digit grouping BEFORE reading back, and to ask again instead of reading back a wrong-length number', async () => {
+  test('callback flow: name, then name confirmation, then the contact-number question, then the tool', async () => {
     const config = loadClient(SAKURA_ID);
     const faq = await knowledge.listFaq(SAKURA_ID);
 
-    const prompt = buildSystemPrompt(config, 'ja', faq);
+    for (const language of lang) {
+      const prompt = buildSystemPrompt(config, language, faq);
+      const callback = prompt.slice(
+        prompt.indexOf('Callback requests:'),
+        prompt.indexOf('Medical questions:'),
+      );
+      const confirm = callback.indexOf(config.scripts.confirmName[language]!);
+      const contact = callback.indexOf(config.scripts.askContactNumber[language]!);
+      const tool = callback.indexOf('Call request_callback only after');
 
-    expect(prompt).toContain('Check the digits BEFORE reading anything back');
-    expect(prompt).toContain('exactly 11 digits in groups of 3-4-4');
-    expect(prompt).toContain('do NOT read it back');
-    expect(prompt).toContain('never skip, merge or change a digit');
-    // The retry line is its own script, so it never counts toward the three-strikes hang-up.
-    expect(prompt).toContain(config.scripts.phoneRetry['ja']!);
-    expect(prompt).toContain('not one of the "didn\'t catch it" attempts');
+      expect(confirm).toBeGreaterThan(-1);
+      expect(contact).toBeGreaterThan(confirm);
+      expect(tool).toBeGreaterThan(contact);
+      expect(callback).toContain('a first name or short name is enough');
+      expect(callback).toContain('There is no phone-number argument');
+    }
   });
 
-  test('omits the digit guide (but keeps the generic rule) for a client that configures none', () => {
-    const config = buildMinimalConfig();
-
-    const prompt = buildSystemPrompt(config, 'fr', []);
-
-    expect(prompt).not.toContain('Digit words:');
-    expect(prompt).toContain('Speak every digit the caller gave');
-  });
-});
-
-describe('buildSystemPrompt — full name required (VP-7 decision 6)', () => {
-  test('asks once for the rest of the name, then proceeds with what it has rather than getting stuck', async () => {
+  test('reservation flow (first-time): asks for the name only after a time is confirmed, then confirms it and asks the contact-number question before booking', async () => {
     const config = loadClient(SAKURA_ID);
     const faq = await knowledge.listFaq(SAKURA_ID);
 
-    const prompt = buildSystemPrompt(config, 'ja', faq);
+    for (const language of lang) {
+      const prompt = buildSystemPrompt(config, language, faq, SERVICES);
+      const firstTime = prompt.slice(
+        prompt.indexOf('FIRST-TIME VISITOR'),
+        prompt.indexOf('RETURNING PATIENT'),
+      );
+      const ask = firstTime.indexOf(config.scripts.askName[language]!);
+      const confirm = firstTime.indexOf(config.scripts.confirmName[language]!);
+      const contact = firstTime.indexOf(config.scripts.askContactNumber[language]!);
+      const book = firstTime.indexOf('Call book_appointment only after');
 
-    expect(prompt).toContain('Full name (both given and family name)');
-    expect(prompt).toContain('If they give only one part, ask once for the rest');
-    expect(prompt).toContain(
-      "If they still don't give it after that one ask, proceed with what they gave",
-    );
-    expect(prompt).toContain("don't ask a third time or get stuck on it");
-    expect(prompt.toLowerCase()).not.toContain('surname is fine');
-    expect(prompt.toLowerCase()).not.toContain("if they'd rather not");
+      expect(firstTime.indexOf('Once a specific time is confirmed available')).toBeLessThan(ask);
+      expect(ask).toBeLessThan(confirm);
+      expect(confirm).toBeLessThan(contact);
+      expect(contact).toBeLessThan(book);
+      expect(firstTime).toContain('isReturningPatient: false');
+    }
+  });
+
+  test('reservation flow (returning): confirms the name and the contact-number answer, then looks the patient up by name', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    for (const language of lang) {
+      const prompt = buildSystemPrompt(config, language, faq, SERVICES);
+      const returning = prompt.slice(
+        prompt.indexOf('RETURNING PATIENT'),
+        prompt.indexOf('Medical questions:'),
+      );
+      const confirm = returning.indexOf(config.scripts.confirmName[language]!);
+      const contact = returning.indexOf(config.scripts.askContactNumber[language]!);
+      const lookup = returning.indexOf('call lookup_patient with the confirmed name');
+
+      expect(confirm).toBeGreaterThan(-1);
+      expect(contact).toBeGreaterThan(confirm);
+      expect(lookup).toBeGreaterThan(contact);
+      expect(returning).toContain('do NOT ask for one again here under any circumstance');
+    }
+  });
+
+  test('every confirmation question is its own turn, separate from the tool call that depends on it', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'en', faq, SERVICES);
+
+    expect(prompt).toContain('that turn contains ONLY the question — no tool call');
+    expect(prompt).toContain('Never produce the tool call in the same turn as the question itself');
   });
 });
 

@@ -16,9 +16,10 @@ import type {
   CallTopicRepository,
   NewCallTopic,
 } from '../../src/repositories/callTopicRepository.js';
-import type {
-  ReservationPatient,
-  ReservationPatientRepository,
+import {
+  matchPatientsByName,
+  type ReservationPatient,
+  type ReservationPatientRepository,
 } from '../../src/repositories/reservationPatientRepository.js';
 import type {
   ReservationService,
@@ -88,12 +89,16 @@ export class MemoryReservationServices implements ReservationServiceRepository {
   }
 }
 
-/** Knows one fake returning patient, phone digits "09011112222". */
+/** Knows one fake returning patient, 'ヤマダ タロウ'. */
 export class MemoryReservationPatients implements ReservationPatientRepository {
-  patients: ReservationPatient[] = [{ name: 'ヤマダ タロウ', phone: '09011112222' }];
+  patients: ReservationPatient[] = [{ name: 'ヤマダ タロウ' }];
 
-  findByPhone(_clientId: string, phoneDigits: string): Promise<ReservationPatient | undefined> {
-    return Promise.resolve(this.patients.find((patient) => patient.phone === phoneDigits));
+  findByName(_clientId: string, name: string): Promise<ReservationPatient | undefined> {
+    const matches = matchPatientsByName(
+      this.patients.map((patient) => patient.name),
+      name,
+    );
+    return Promise.resolve(matches.length === 1 ? { name: matches[0]! } : undefined);
   }
 }
 

@@ -124,7 +124,7 @@ describe('prompt: conditional collection and silent classification (VP-4 §4.4)'
   };
 
   test('forbids asking for a name or phone on a plain FAQ answer', async () => {
-    expect(await promptFor()).toMatch(/never ask for a name or phone number/i);
+    expect(await promptFor()).toMatch(/never ask for a name after answering a question normally/i);
   });
 
   test('restricts collection to "no match" and "asks for staff"', async () => {

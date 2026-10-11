@@ -124,14 +124,6 @@ const languageSettingsSchema = z.strictObject({
    * a re-sync of any other language can never pick it up by accident.
    */
   avoidRepeatedAcknowledgement: z.boolean().optional(),
-  /**
-   * How to speak a phone number aloud in this language (VP-7): the ten digit words, indexed by
-   * digit (0–9), plus one worked example for the prompt. The example is for 090-1234-5678 and is
-   * only ever shown to the model as a pattern to follow.
-   */
-  phoneReadback: z
-    .strictObject({ digitWords: z.array(nonEmpty).length(10), example: nonEmpty })
-    .optional(),
 });
 
 const languagesSchema = z.strictObject({
@@ -142,7 +134,7 @@ const languagesSchema = z.strictObject({
 
 const callbackSchema = z.strictObject({
   enabled: z.boolean(),
-  collect: z.array(z.enum(['name', 'phone'])).min(1),
+  collect: z.array(z.enum(['name'])).min(1),
   offerWhen: z.array(z.enum(['no_faq_match', 'caller_asks_for_staff'])).min(1),
   /** Notification channels. Empty = database only — see FUTURE-FEATURES F-2. */
   notifiers: z.array(nonEmpty),
@@ -160,14 +152,15 @@ const scriptsSchema = z.strictObject({
   anythingElse: localizedTextSchema,
   noMatch: localizedTextSchema,
   staffContactOffer: localizedTextSchema,
-  askPhone: localizedTextSchema,
-  confirmDetails: localizedTextSchema,
+  /** Asks for the caller's name (first or short name) — used by the reservation flow. */
+  askName: localizedTextSchema,
+  /** Reads the name back for a yes/no; the model substitutes the name for [[callerName]]. */
+  confirmName: localizedTextSchema,
   /**
-   * Phone-only read-back confirmation, used where no name is collected
-   * (the reservation flow) — same digit-by-digit pattern as `confirmDetails`,
-   * minus the name.
+   * Asks whether staff may contact the caller on the number they are calling from. No number is
+   * ever collected by voice (TODO(SV-5): real caller-ID; see src/lib/demoCallerPhone.ts).
    */
-  confirmPhone: localizedTextSchema,
+  askContactNumber: localizedTextSchema,
   callbackSaved: localizedTextSchema,
   callbackFailed: localizedTextSchema,
   /**
@@ -182,12 +175,6 @@ const scriptsSchema = z.strictObject({
    */
   pleaseWait: localizedTextSchema,
   didNotCatch: localizedTextSchema,
-  /**
-   * Asks for a phone number again — after a wrong digit count or a "no" to the read-back (VP-7).
-   * Deliberately separate from `didNotCatch`: it must not count toward the "three failed attempts
-   * to understand the caller" hang-up.
-   */
-  phoneRetry: localizedTextSchema,
   /** Spoken after three failed attempts in a row to understand the caller — ends the call. */
   repeatedMisunderstanding: localizedTextSchema,
   noMedicalAdvice: localizedTextSchema,
@@ -199,11 +186,9 @@ const scriptsSchema = z.strictObject({
   reservationAskService: localizedTextSchema,
   /** Asks for a preferred date/time — used on both the first-visit and returning-patient paths. */
   reservationAskDateTime: localizedTextSchema,
-  /** Asks a returning patient for name and phone number, for the lookup_patient tool. */
-  reservationReturningAsk: localizedTextSchema,
   /** Said when lookup_patient finds no record — falls back to the first-time-visitor path. */
   reservationPatientNotFound: localizedTextSchema,
-  /** May use [[reservationNumber]] — the only other script (besides confirmDetails) allowed a caller placeholder. */
+  /** May use [[reservationNumber]] — the only other script (besides confirmName) allowed a caller placeholder. */
   reservationSaved: localizedTextSchema,
   /** Said when book_appointment fails (e.g. the slot was taken in the meantime). */
   reservationFailed: localizedTextSchema,

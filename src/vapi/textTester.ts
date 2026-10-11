@@ -58,7 +58,7 @@ import { loadClient } from '../config/loadClient.js';
 import { createPool } from '../db/pool.js';
 import { loadEnv } from '../env.js';
 import { FileKnowledgeSource } from '../knowledge/KnowledgeSource.js';
-import { normalizePhoneDigits } from '../lib/phone.js';
+import { DEMO_PLACEHOLDER_PHONE } from '../lib/demoCallerPhone.js';
 import { checkAvailability } from '../reservation/availability.js';
 import {
   PgCallbackRequestRepository,
@@ -386,14 +386,13 @@ async function handleLookupPatient(
   deps: ToolCallHandlerDeps,
 ): Promise<ToolCallOutcome> {
   const args = parseArgs(call);
-  const phoneDigits = normalizePhoneDigits(asString(args.callerPhone));
   const patient = deps.patients
-    ? await deps.patients.findByPhone(deps.clientId, phoneDigits)
+    ? await deps.patients.findByName(deps.clientId, asString(args.callerName))
     : undefined;
   return {
     resultMessage: toolResult(
       call,
-      patient ? `Found: ${patient.name}.` : 'No patient record was found for that phone number.',
+      patient ? `Found: ${patient.name}.` : 'No patient record was found for that name.',
     ),
     ended: false,
   };
@@ -418,7 +417,8 @@ async function handleBookAppointment(
       language: deps.language,
       serviceId,
       serviceName,
-      patientPhone: normalizePhoneDigits(asString(args.patientPhone)),
+      patientName: asString(args.patientName),
+      patientPhone: DEMO_PLACEHOLDER_PHONE,
       isReturningPatient: asBoolean(args.isReturningPatient),
       appointmentDate: asString(args.date),
       appointmentTime: asString(args.time),
@@ -469,7 +469,7 @@ export async function handleToolCall(
         callId: deps.callId,
         language: deps.language,
         callerName: asString(args.callerName),
-        callerPhone: asString(args.callerPhone),
+        callerPhone: DEMO_PLACEHOLDER_PHONE,
         reason: typeof args.reason === 'string' ? args.reason : null,
       });
       deps.printLine(`Persisted callback_requests row: ${saved.id}`);

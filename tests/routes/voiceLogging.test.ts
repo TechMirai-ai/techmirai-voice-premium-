@@ -37,7 +37,7 @@ vi.mock('../../src/lib/logger.js', () => {
 const logged = (): string => JSON.stringify(records.map((entry) => redactPersonalData(entry)));
 
 const sensitive = [CALLER_NAME, CALLER_PHONE, CALLER_PHONE.replaceAll('-', '')];
-const args = { callerName: CALLER_NAME, callerPhone: CALLER_PHONE, reason: 'knee pain' };
+const args = { callerName: CALLER_NAME, reason: 'knee pain' };
 
 beforeEach(() => {
   records.length = 0;
@@ -91,9 +91,11 @@ describe('logging around the voice routes', () => {
     await request(app)
       .post('/api/voice/callback-request')
       .set(AUTH)
-      .send(toolCallsBody('request_callback', { callerName: CALLER_NAME, callerPhone: '12' }));
+      .send(
+        toolCallsBody('request_callback', { callerName: CALLER_NAME, reason: 'x'.repeat(600) }),
+      );
 
-    expect(logged()).toContain('callerPhone');
+    expect(logged()).toContain('reason');
     expect(logged()).not.toContain(CALLER_NAME);
   });
 

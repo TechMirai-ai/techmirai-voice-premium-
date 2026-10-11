@@ -121,45 +121,14 @@ function stripTrailingSlash(url: string): string {
   return url.replace(/\/+$/, '');
 }
 
-/** Escapes regex metacharacters so a literal script line is safe to use as a Vapi endpointing-rule regex. */
-function escapeRegex(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-/**
- * Returns a trailing fragment of a script line, meant to be used as a `customEndpointingRules`
- * regex anchor that survives the model paraphrasing the line when it actually speaks it.
- *
- * History: the first attempt at this (anchoring on the last *sentence* of `askPhone`) still broke
- * on two separate real calls (VAPI-FACTS.md Vendor-swap R18, R20) — the model dropped "スタッフ",
- * the first word of that last sentence, both times, so an anchor starting exactly at that word was
- * never going to survive. Anchoring on the whole line has the same problem one level up. Instead
- * of guessing which specific word is unstable (that's the same brittleness in a new spot — a future
- * deviation could just as easily hit some other word), this drops the first HALF of the line by
- * character count — far more than the single word actually observed dropping — then snaps forward
- * to the next word boundary where one exists (space-delimited languages), so the anchor doesn't
- * start mid-word. Also strips trailing punctuation before measuring, since the model's generated
- * text didn't reliably end in the configured "？" either (it used "。"/"?" interchangeably in both
- * observed deviations) — `RegExp.test` is substring matching, so the anchor doesn't need to extend
- * to the end of what's spoken, only to appear somewhere within it.
- */
-function stableQuestionAnchor(text: string): string {
-  const core = text.replace(/[.!?。！？]+$/, '');
-  const midpoint = Math.floor(core.length / 2);
-  const nextSpace = core.indexOf(' ', midpoint);
-  const cut = nextSpace === -1 ? midpoint : nextSpace + 1;
-  return core.slice(cut);
-}
-
 /**
  * VP-6 §A: text-based smart endpointing (works for any language). The "vapi"
  * smartEndpointingPlan provider decides using transcriptionEndpointingPlan's
  * own heuristic rules (VAPI-FACTS.md VP-6 R7) — leaving that unset meant it
  * silently used the default 1.5s `onNoPunctuationSeconds` wait, identical to
- * the behavior it was meant to shorten. Set explicitly here, alongside a
- * targeted `customEndpointingRules` override for the one turn that needs
- * *more* patience — right after the assistant asks for the phone number,
- * since callers read digits back in paused chunks.
+ * the behavior it was meant to shorten. Set explicitly here. There is no
+ * longer a per-question override: the assistants no longer ask for a spoken
+ * phone number, which was the only turn that needed one.
  *
  * NOT applied when the transcriber is Deepgram Flux — see `isFluxModel` below.
  */
@@ -190,15 +159,17 @@ const FLUX_EOT_TIMEOUT_MS = 5000;
  * quietly-spoken leading digit(s) of a phone number (two separate fragments at 0.31-0.33
  * confidence, both discarded, both immediately preceding a now-incomplete phone-number attempt)
  * — before the model, or anything else downstream, ever saw that text. No prompt-level fix can
- * reach this; it only has a transcriber-level lever.
+ * reach this; it only has a transcriber-level lever. (Spoken phone numbers have since been
+ * removed from the flows — callers now give a name — so this threshold is a candidate to revisit
+ * against a real call; it is left unchanged here.)
  *
  * Lowered rather than left at default based on this project's own existing architecture, not a
  * documented Vapi recommendation (none was found — a plausible-sounding "raise for background
  * chatter, lower for quiet callers" guideline surfaced in search results but could not be traced
  * to an actual Vapi doc after two attempts, so it is NOT relied on here): every place this
- * project uses transcribed digits already requires an explicit digit-by-digit read-back and a
- * clear "yes" before acting on them (`phoneReadbackInstructions`) — so a wrongly-*included*
- * low-confidence fragment gets caught at that confirmation step, while a wrongly-*discarded* one
+ * project uses transcribed caller details already requires an explicit read-back and a clear
+ * "yes" before acting on them (the name confirmation in promptTemplate.ts) — so a
+ * wrongly-*included* low-confidence fragment gets caught at that confirmation step, while a wrongly-*discarded* one
  * (today's bug) has no such safety net at all. That asymmetry favors erring toward inclusion.
  * 0.2 comfortably admits both observed drops (0.31, 0.33) while still filtering near-zero-
  * confidence noise. This is a judgment call pending real-call verification, not a confirmed fix.
@@ -210,17 +181,7 @@ function isFluxModel(model: string | undefined): boolean {
   return model?.startsWith('flux-') ?? false;
 }
 
-function buildStartSpeakingPlan(
-  config: ClientConfig,
-  language: string,
-  transcriberModel: string | undefined,
-): VapiStartSpeakingPlan {
-  const askPhoneText = fillClinicPlaceholders(
-    config,
-    language,
-    pick(config.scripts.askPhone, language),
-  );
-
+function buildStartSpeakingPlan(transcriberModel: string | undefined): VapiStartSpeakingPlan {
   return {
     // Vapi's docs say explicitly not to set smartEndpointingPlan for a transcriber with its own
     // built-in end-of-turn detection (Deepgram Flux) — leaving it set would silently override
@@ -234,13 +195,9 @@ function buildStartSpeakingPlan(
       onNoPunctuationSeconds: NO_PUNCTUATION_WAIT_SECONDS,
       onPunctuationSeconds: PUNCTUATION_WAIT_SECONDS,
     },
-    customEndpointingRules: [
-      {
-        type: 'assistant',
-        regex: escapeRegex(stableQuestionAnchor(askPhoneText)),
-        timeoutSeconds: 2.5,
-      },
-    ],
+    // Explicitly empty (not omitted) so a re-sync clears the old phone-number rule that earlier
+    // syncs put on the live assistant.
+    customEndpointingRules: [],
   };
 }
 
@@ -330,15 +287,15 @@ function renderReservationTools(
     function: {
       name: LOOKUP_PATIENT_FUNCTION_NAME,
       description:
-        "Looks up a returning patient's record by phone number, for a caller who says they've " +
-        'visited before. The phone number is the only match this uses — never speak a name back ' +
-        'to the caller from this result.',
+        "Looks up a returning patient's record by the name the caller gave and confirmed, for a " +
+        "caller who says they've visited before. Never speak a name back to the caller from this " +
+        'result.',
       parameters: {
         type: 'object',
         properties: {
-          callerPhone: { type: 'string', description: "The caller's phone number." },
+          callerName: { type: 'string', description: "The caller's confirmed name." },
         },
-        required: ['callerPhone'],
+        required: ['callerName'],
       },
     },
     server: { url: `${baseUrl}/api/voice/lookup-patient`, credentialId },
@@ -362,13 +319,13 @@ function renderReservationTools(
           },
           date: { type: 'string', description: 'The confirmed date, as YYYY-MM-DD.' },
           time: { type: 'string', description: 'The confirmed time, as 24-hour HH:MM.' },
-          patientPhone: { type: 'string', description: "The patient's phone number." },
+          patientName: { type: 'string', description: "The patient's confirmed name." },
           isReturningPatient: {
             type: 'boolean',
             description: 'True when the patient was already found via lookup_patient.',
           },
         },
-        required: ['date', 'time', 'patientPhone'],
+        required: ['date', 'time', 'patientName'],
       },
     },
     server: { url: `${baseUrl}/api/voice/book-appointment`, credentialId },
@@ -441,19 +398,17 @@ export function renderAssistant(
     type: 'function',
     function: {
       name: REQUEST_CALLBACK_FUNCTION_NAME,
-      description:
-        "Records the caller's name, phone number, and a short reason so staff can call them back.",
+      description: "Records the caller's name and a short reason so staff can call them back.",
       parameters: {
         type: 'object',
         properties: {
           callerName: { type: 'string', description: "The caller's name." },
-          callerPhone: { type: 'string', description: "The caller's phone number." },
           reason: {
             type: 'string',
             description: 'A short summary of what the caller was asking about.',
           },
         },
-        required: ['callerName', 'callerPhone'],
+        required: ['callerName'],
       },
     },
     server: { url: callbackUrl, credentialId: options.credentialId },
@@ -497,7 +452,7 @@ export function renderAssistant(
         ? { confidenceThreshold: DEEPGRAM_CONFIDENCE_THRESHOLD }
         : {}),
     },
-    startSpeakingPlan: buildStartSpeakingPlan(config, language, settings.transcriber.model),
+    startSpeakingPlan: buildStartSpeakingPlan(settings.transcriber.model),
     model: {
       provider: MODEL_PROVIDER,
       model: MODEL_ID,

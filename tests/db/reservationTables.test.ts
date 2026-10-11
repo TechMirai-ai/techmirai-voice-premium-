@@ -80,18 +80,26 @@ describe.skipIf(!TEST_DATABASE_URL)('VP-8 reservation tables (real Postgres)', (
   });
 
   describe('reservation_demo_patients', () => {
-    test('findByPhone matches by (client_id, phone) exactly', async () => {
+    test('findByName matches a whole name or one part of it, within one client only', async () => {
       await pool.query(
         `INSERT INTO reservation_demo_patients (client_id, name, phone) VALUES ('c', 'ヤマダ タロウ', '09011112222')`,
       );
 
       const repo = new PgReservationPatientRepository(pool);
-      expect(await repo.findByPhone('c', '09011112222')).toEqual({
-        name: 'ヤマダ タロウ',
-        phone: '09011112222',
-      });
-      expect(await repo.findByPhone('c', '09099998888')).toBeUndefined();
-      expect(await repo.findByPhone('other-clinic', '09011112222')).toBeUndefined();
+      expect(await repo.findByName('c', 'ヤマダ タロウ')).toEqual({ name: 'ヤマダ タロウ' });
+      expect(await repo.findByName('c', 'タロウ')).toEqual({ name: 'ヤマダ タロウ' });
+      expect(await repo.findByName('c', 'サトウ')).toBeUndefined();
+      expect(await repo.findByName('other-clinic', 'タロウ')).toBeUndefined();
+    });
+
+    test('findByName returns nothing when a short name is ambiguous', async () => {
+      await pool.query(
+        `INSERT INTO reservation_demo_patients (client_id, name, phone) VALUES ('c', 'Sato Hanako', '1'), ('c', 'Sato Ichiro', '2')`,
+      );
+
+      const repo = new PgReservationPatientRepository(pool);
+      expect(await repo.findByName('c', 'Sato')).toBeUndefined();
+      expect(await repo.findByName('c', 'hanako')).toEqual({ name: 'Sato Hanako' });
     });
 
     test('refuses a duplicate phone within one client', async () => {
@@ -118,7 +126,8 @@ describe.skipIf(!TEST_DATABASE_URL)('VP-8 reservation tables (real Postgres)', (
         language: 'ja',
         serviceId: null,
         serviceName: null,
-        patientPhone: '09000000000',
+        patientName: 'Test Name',
+        patientPhone: '000-0000-0000',
         isReturningPatient: false,
         appointmentDate: '2026-10-05',
         appointmentTime: '11:00',
@@ -138,7 +147,8 @@ describe.skipIf(!TEST_DATABASE_URL)('VP-8 reservation tables (real Postgres)', (
         language: 'en',
         serviceId: null,
         serviceName: null,
-        patientPhone: '09012345678',
+        patientName: 'Test Name',
+        patientPhone: '000-0000-0000',
         isReturningPatient: false,
         appointmentDate: '2026-10-05',
         appointmentTime: '14:00',
@@ -148,7 +158,8 @@ describe.skipIf(!TEST_DATABASE_URL)('VP-8 reservation tables (real Postgres)', (
       const { rows } = await pool.query('SELECT * FROM appointments WHERE id = $1', [booked.id]);
       expect(rows[0]).toMatchObject({
         client_id: 'c',
-        patient_phone: '09012345678',
+        patient_name: 'Test Name',
+        patient_phone: '000-0000-0000',
         appointment_date: '2026-10-05',
         appointment_time: '14:00',
       });
@@ -167,7 +178,8 @@ describe.skipIf(!TEST_DATABASE_URL)('VP-8 reservation tables (real Postgres)', (
         language: 'ja',
         serviceId: 'general-consultation',
         serviceName: 'General Consultation',
-        patientPhone: '09000000000',
+        patientName: 'Test Name',
+        patientPhone: '000-0000-0000',
         isReturningPatient: true,
         appointmentDate: '2026-10-05',
         appointmentTime: '09:00',
@@ -188,7 +200,8 @@ describe.skipIf(!TEST_DATABASE_URL)('VP-8 reservation tables (real Postgres)', (
         language: 'ja',
         serviceId: null,
         serviceName: null,
-        patientPhone: '09000000000',
+        patientName: 'Test Name',
+        patientPhone: '000-0000-0000',
         isReturningPatient: false,
         appointmentDate: '2026-10-05',
         appointmentTime: '09:00',

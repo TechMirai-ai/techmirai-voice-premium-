@@ -82,7 +82,7 @@ Treat the real-world gain as an estimate until the offline evaluation below is r
 2. Does the returned timeout **replace** `transcriptionEndpointingPlan` or stack on top of it?
 3. Exact payload: does `messages` include the in-progress partial utterance or only finalized turns?
 4. Request frequency per second of speech (sizes the rate limiter and the Vercel invocation cost).
-5. Does it interact with `customEndpointingRules`? (The phone-number rule is being removed separately, which simplifies this.)
+5. Does it interact with `customEndpointingRules`? (The phone-number rule was removed 2026-10-11, which simplifies this.)
 
 ## Recommendation
 

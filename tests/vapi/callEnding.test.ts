@@ -106,13 +106,6 @@ describe('schema bounds for the new language settings', () => {
     expect(clientConfigSchema.safeParse(bad).success).toBe(false);
   });
 
-  test('rejects a digit-word list that is not exactly ten entries', () => {
-    const bad = structuredClone(config);
-    bad.languages.settings['ja']!.phoneReadback = { digitWords: ['ゼロ', 'イチ'], example: 'x' };
-
-    expect(clientConfigSchema.safeParse(bad).success).toBe(false);
-  });
-
   test('the shipped Sakura config is valid', () => {
     expect(clientConfigSchema.safeParse(config).success).toBe(true);
   });

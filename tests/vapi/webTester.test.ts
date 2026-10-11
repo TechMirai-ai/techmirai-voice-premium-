@@ -1,6 +1,7 @@
 import request from 'supertest';
 import { describe, expect, test, vi } from 'vitest';
 
+import { DEMO_PLACEHOLDER_PHONE } from '../../src/lib/demoCallerPhone.js';
 import { createWebTesterApp, DEFAULT_CLIENT_ID } from '../../src/vapi/webTester.js';
 import type { CallModelFn } from '../../src/vapi/textTester.js';
 import type { CallbackRequestRepository } from '../../src/repositories/callbackRequestRepository.js';
@@ -96,7 +97,6 @@ describe('webTester app', () => {
                 name: 'request_callback',
                 arguments: JSON.stringify({
                   callerName: '山田 太郎',
-                  callerPhone: '090-1234-5678',
                   reason: '腰痛の相談',
                 }),
               },
@@ -126,7 +126,6 @@ describe('webTester app', () => {
     expect(turnRes.body.toolCalls[0].name).toBe('request_callback');
     expect(turnRes.body.toolCalls[0].arguments).toEqual({
       callerName: '山田 太郎',
-      callerPhone: '090-1234-5678',
       reason: '腰痛の相談',
     });
     expect(turnRes.body.toolCalls[0].result).toBe('Success.');
@@ -167,7 +166,6 @@ describe('webTester app', () => {
                 name: 'request_callback',
                 arguments: JSON.stringify({
                   callerName: '山田 太郎',
-                  callerPhone: '090-1234-5678',
                 }),
               },
             },
@@ -200,7 +198,7 @@ describe('webTester app', () => {
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         callerName: '山田 太郎',
-        callerPhone: '090-1234-5678',
+        callerPhone: DEMO_PLACEHOLDER_PHONE,
       }),
     );
   });

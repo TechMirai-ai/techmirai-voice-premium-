@@ -1,3 +1,4 @@
+import { DEMO_PLACEHOLDER_PHONE } from '../../src/lib/demoCallerPhone.js';
 import request from 'supertest';
 import { describe, expect, test } from 'vitest';
 
@@ -45,6 +46,18 @@ describe('GET /staff/dashboard', () => {
     expect(response.text).toContain('Hanako Yamada');
     expect(response.text).toContain('class="callback-row');
     expect(response.text).toContain('id="callback-cb-1"');
+  });
+
+  test('labels the demo placeholder number so staff never mistake it for a real one', async () => {
+    const callbacks = new MemoryCallbackAdmin();
+    callbacks.seed(sampleCallback({ id: 'cb-1', callerPhone: DEMO_PLACEHOLDER_PHONE }));
+    callbacks.seed(sampleCallback({ id: 'cb-2', callerPhone: '090-1234-5678' }));
+    const { agent } = await buildLoggedInApp(callbacks);
+
+    const response = await agent.get(DASHBOARD);
+
+    expect(response.text).toContain(`${DEMO_PLACEHOLDER_PHONE} (demo placeholder — no caller ID)`);
+    expect(response.text).toContain('090-1234-5678</p>');
   });
 
   test('shows an empty state with no callbacks', async () => {

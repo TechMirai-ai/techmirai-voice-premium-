@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { describe, expect, test } from 'vitest';
+import { DEMO_PLACEHOLDER_PHONE } from '../../src/lib/demoCallerPhone.js';
 
 import {
   AUTH,
@@ -83,41 +84,41 @@ describe('POST /api/voice/check-availability', () => {
 });
 
 describe('POST /api/voice/lookup-patient', () => {
-  test('finds a known patient by phone', async () => {
+  test('finds a known patient by the confirmed full name', async () => {
     const { app } = buildVoiceApp();
 
     const response = await request(app)
       .post(LOOKUP_PATIENT)
       .set(AUTH)
-      .send(toolCallsBody('lookup_patient', { callerPhone: '090-1111-2222' }));
+      .send(toolCallsBody('lookup_patient', { callerName: 'ヤマダ タロウ' }));
 
     expect(response.status).toBe(200);
     expect(response.body.results[0].result).toContain('ヤマダ タロウ');
   });
 
-  test('normalizes full-width digits before matching', async () => {
+  test('also matches a short name, ignoring case and spacing', async () => {
     const { app } = buildVoiceApp();
 
     const response = await request(app)
       .post(LOOKUP_PATIENT)
       .set(AUTH)
-      .send(toolCallsBody('lookup_patient', { callerPhone: '０９０１１１１２２２２' }));
+      .send(toolCallsBody('lookup_patient', { callerName: 'タロウ' }));
 
     expect(response.body.results[0].result).toContain('ヤマダ タロウ');
   });
 
-  test('reports no record for an unknown phone number', async () => {
+  test('reports no record for an unknown name', async () => {
     const { app } = buildVoiceApp();
 
     const response = await request(app)
       .post(LOOKUP_PATIENT)
       .set(AUTH)
-      .send(toolCallsBody('lookup_patient', { callerPhone: '090-9999-0000' }));
+      .send(toolCallsBody('lookup_patient', { callerName: 'スズキ' }));
 
     expect(response.body.results[0].result).toMatch(/no patient record/i);
   });
 
-  test('rejects a missing phone number', async () => {
+  test('rejects a missing name', async () => {
     const { app } = buildVoiceApp();
 
     const response = await request(app)
@@ -134,7 +135,7 @@ describe('POST /api/voice/book-appointment', () => {
     serviceId: 'general-consultation',
     date: MONDAY,
     time: '10:00',
-    patientPhone: '090-1234-5678',
+    patientName: 'Taro',
     isReturningPatient: false,
   };
 
@@ -154,7 +155,9 @@ describe('POST /api/voice/book-appointment', () => {
         callId: CALL_ID,
         serviceId: 'general-consultation',
         serviceName: 'General Consultation',
-        patientPhone: '09012345678',
+        patientName: 'Taro',
+        // No spoken number: the route stores the demo placeholder (src/lib/demoCallerPhone.ts).
+        patientPhone: DEMO_PLACEHOLDER_PHONE,
         appointmentDate: MONDAY,
         appointmentTime: '10:00',
       }),
@@ -171,7 +174,7 @@ describe('POST /api/voice/book-appointment', () => {
         toolCallsBody('book_appointment', {
           date: MONDAY,
           time: '11:00',
-          patientPhone: '090-1111-2222',
+          patientName: 'ヤマダ タロウ',
           isReturningPatient: true,
         }),
       );
@@ -206,8 +209,8 @@ describe('POST /api/voice/book-appointment', () => {
   });
 
   test.each([
-    ['a too-short phone', { ...firstVisitArgs, patientPhone: '123' }, 'patientPhone'],
-    ['a missing phone', { ...firstVisitArgs, patientPhone: undefined }, 'patientPhone'],
+    ['a blank name', { ...firstVisitArgs, patientName: '   ' }, 'patientName'],
+    ['a missing name', { ...firstVisitArgs, patientName: undefined }, 'patientName'],
   ])('answers %s with an error result and saves nothing', async (_n, args, field) => {
     const { app, appointments } = buildVoiceApp();
 

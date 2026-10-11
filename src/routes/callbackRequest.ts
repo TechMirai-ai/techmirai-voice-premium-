@@ -1,12 +1,14 @@
 /**
  * POST /api/voice/callback-request — the `request_callback` tool's endpoint.
- * Saves the caller's name, phone number and reason for staff to act on.
+ * Saves the caller's name and reason for staff to act on. The phone number is the demo
+ * placeholder until real caller-ID exists (src/lib/demoCallerPhone.ts).
  * The ONLY place personal data is stored; it never reaches a log unredacted.
  */
 import { Router } from 'express';
 import { z } from 'zod';
 
 import { logger } from '../lib/logger.js';
+import { DEMO_PLACEHOLDER_PHONE } from '../lib/demoCallerPhone.js';
 import { notifySafely, type CallbackNotifier } from '../lib/callbackNotifier.js';
 import type { CallbackRequestRepository } from '../repositories/callbackRequestRepository.js';
 import type { AssistantResolver } from '../vapi/assistantResolver.js';
@@ -18,27 +20,11 @@ export const CALLBACK_REQUEST_PATH = '/callback-request';
 
 const MAX_NAME_LENGTH = 100;
 const MAX_REASON_LENGTH = 500;
-const MIN_PHONE_DIGITS = 8;
-const MAX_PHONE_DIGITS = 15;
 
-/** Full-width digits/spaces (common in Japanese input) are folded to ASCII first. */
+/** Full-width characters/spaces (common in Japanese input) are folded to ASCII first. */
 const normalize = (value: string): string => value.normalize('NFKC').trim();
-const digitCount = (value: string): number => value.replace(/\D/g, '').length;
-
 const argumentsSchema = z.object({
   callerName: z.string().transform(normalize).pipe(z.string().min(1).max(MAX_NAME_LENGTH)),
-  callerPhone: z
-    .string()
-    .transform(normalize)
-    .pipe(
-      z
-        .string()
-        .max(40)
-        .refine((phone) => {
-          const digits = digitCount(phone);
-          return digits >= MIN_PHONE_DIGITS && digits <= MAX_PHONE_DIGITS;
-        }),
-    ),
   reason: z.string().transform(normalize).pipe(z.string().max(MAX_REASON_LENGTH)).optional(),
 });
 
@@ -81,7 +67,8 @@ export function callbackRequestRouter(deps: CallbackRequestRouteDeps): Router {
           callId: context.callId,
           language: context.language,
           callerName: parsed.data.callerName,
-          callerPhone: parsed.data.callerPhone,
+          // TODO(SV-5): replace with the real caller-ID number once phone calls exist.
+          callerPhone: DEMO_PLACEHOLDER_PHONE,
           reason: parsed.data.reason ?? null,
         });
 

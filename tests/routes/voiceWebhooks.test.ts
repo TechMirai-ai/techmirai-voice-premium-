@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { describe, expect, test } from 'vitest';
+import { DEMO_PLACEHOLDER_PHONE } from '../../src/lib/demoCallerPhone.js';
 
 import {
   AUTH,
@@ -18,7 +19,6 @@ const TOPIC = '/api/voice/call-topic';
 
 const callbackArgs = {
   callerName: CALLER_NAME,
-  callerPhone: CALLER_PHONE,
   reason: 'Asked about a treatment we do not list',
 };
 
@@ -129,7 +129,8 @@ describe('POST /api/voice/callback-request', () => {
           callId: CALL_ID,
           language: 'ja',
           callerName: CALLER_NAME,
-          callerPhone: CALLER_PHONE,
+          // No spoken number: the route stores the demo placeholder (src/lib/demoCallerPhone.ts).
+          callerPhone: DEMO_PLACEHOLDER_PHONE,
           reason: callbackArgs.reason,
         },
       ]);
@@ -173,7 +174,7 @@ describe('POST /api/voice/callback-request', () => {
     expect(callbacks.saved).toHaveLength(1);
   });
 
-  test('normalizes full-width digits and stores a null reason when none is given', async () => {
+  test('stores a null reason when none is given, and ignores any phone number the model sends', async () => {
     const { app, callbacks } = buildVoiceApp();
 
     await request(app)
@@ -188,21 +189,14 @@ describe('POST /api/voice/callback-request', () => {
 
     expect(callbacks.saved[0]).toMatchObject({
       callerName: '山田 花子',
-      callerPhone: '090-1234-5678',
+      callerPhone: DEMO_PLACEHOLDER_PHONE,
       reason: null,
     });
   });
 
   test.each([
-    ['a missing name', { callerPhone: CALLER_PHONE }, 'callerName'],
-    ['a blank name', { callerName: '   ', callerPhone: CALLER_PHONE }, 'callerName'],
-    ['a missing phone', { callerName: CALLER_NAME }, 'callerPhone'],
-    ['a too-short phone', { callerName: CALLER_NAME, callerPhone: '123' }, 'callerPhone'],
-    [
-      'a phone with letters only',
-      { callerName: CALLER_NAME, callerPhone: 'call me' },
-      'callerPhone',
-    ],
+    ['a missing name', { reason: 'x' }, 'callerName'],
+    ['a blank name', { callerName: '   ' }, 'callerName'],
   ])(
     'answers %s with an error result telling the model to re-ask, and saves nothing',
     async (_n, args, field) => {

@@ -60,13 +60,6 @@ languages:
       # Things a caller says when finished (shown to the model as examples): "Thank you very much",
       # "That's all", "No, that's all, thank you", "Understood, thank you", "OK, thanks".
       callerDoneExamples: ["ありがとうございました", "以上です", "いえ、大丈夫です、ありがとうございます", "わかりました、ありがとうございました", "はい、結構です"]
-      # VP-7: digits for the phone read-back (0..9). Example is 090-1234-5678 (11 digits, 3-4-4).
-      # ニー/ゴー use a long vowel so 2 and 5 are unmistakable on the phone.
-      # 0 lists both readings, ゼロ/レイ — レイ (零) is a real alternate reading a caller may use,
-      # and wasn't recognized before a real call showed it getting rejected (VAPI-FACTS.md).
-      phoneReadback:
-        digitWords: ["ゼロ/レイ", "イチ", "ニー", "サン", "ヨン", "ゴー", "ロク", "ナナ", "ハチ", "キュウ"]
-        example: "ゼロキュウゼロ、イチニーサンヨン、ゴーロクナナハチ"
     en:
       # Vendor-swap (VAPI-FACTS.md Vendor-swap R3): Cartesia voice "Jillian" (Happy Spirit), replacing Azure en-US-JennyNeural.
       voice: { provider: cartesia, voiceId: e4d5f4c4-6601-4779-bee1-b3c14d629dc6 }
@@ -82,13 +75,10 @@ languages:
       # VP-10: adds the "don't repeat an acknowledgement after a split utterance" prompt rule.
       # English only for now — NOT set for ja/ja-return until it has been tested there.
       avoidRepeatedAcknowledgement: true
-      phoneReadback:
-        digitWords: ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
-        example: "zero nine zero, one two three four, five six seven eight"
 
 callback:
   enabled: true
-  collect: [name, phone]
+  collect: [name]
   offerWhen:
     - no_faq_match
     - caller_asks_for_staff
@@ -142,17 +132,20 @@ scripts:
     ja: >-
       かしこまりました。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。
       お名前を伺ってもよろしいでしょうか？
-  askPhone:
-    en: Thank you. May I have a phone number where our staff can reach you?
-    ja: ありがとうございます。スタッフからご連絡できるお電話番号を教えていただけますか？
-  confirmDetails:
-    en: Let me confirm. Your name is [[callerName]], and your phone number is [[callerPhone]]. Is that correct?
-    ja: 確認いたします。お名前は[[callerName]]様、お電話番号は[[callerPhone]]でよろしいでしょうか？
-  # Phone-only read-back, used by the reservation flow, which never collects a name.
-  confirmPhone:
-    en: Let me confirm. Your phone number is [[callerPhone]]. Is that correct?
-    # Gloss: "Let me confirm. Your phone number is [[callerPhone]]. Is that correct?"
-    ja: 確認いたします。お電話番号は[[callerPhone]]でよろしいでしょうか？
+  # Demo flow (no spoken phone number — there is no real caller number on a browser web call yet;
+  # TODO(SV-5): real caller-ID). NEEDS NATIVE-SPEAKER REVIEW.
+  askName:
+    en: May I have your name, please?
+    # Gloss: "May I have your name?"
+    ja: お名前を伺ってもよろしいでしょうか？
+  confirmName:
+    en: Just to confirm, that's [[callerName]], correct?
+    # Gloss: "Just to confirm, your name is [[callerName]] — is that right?"
+    ja: 確認いたします。お名前は[[callerName]]様でよろしいでしょうか？
+  askContactNumber:
+    en: Is it okay to contact you at the number you're calling from right now?
+    # Gloss: "May we contact you at the phone number you are calling from now?"
+    ja: 今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？
   # CHANGED (content update, 2026-09-29).
   callbackSaved:
     en: Thank you. Our staff will contact you by the next business day.
@@ -173,14 +166,6 @@ scripts:
   didNotCatch:
     en: I'm sorry, I didn't quite catch that. Could you say it again, please?
     ja: 申し訳ございません。うまく聞き取れませんでした。もう一度おっしゃっていただけますか？
-  # VP-7 follow-up: asks for a phone number again (wrong digit count, or "no" to the read-back).
-  # Wording from the source test suite (cases 18/19). Separate from didNotCatch on purpose, so it
-  # never counts toward the three-strikes hang-up. NEEDS NATIVE-SPEAKER REVIEW.
-  phoneRetry:
-    en: >-
-      Excuse me, I'm not sure I caught all of that. Could you give me the phone number once more, please?
-    ja: >-
-      恐れ入ります、少し聞き取れなかったようでして、もう一度お電話番号をお願いできますでしょうか。
   # VP-7: spoken after three failed attempts in a row to understand the caller,
   # right before the call ends — NEEDS NATIVE-SPEAKER REVIEW.
   repeatedMisunderstanding:
@@ -217,17 +202,13 @@ scripts:
     en: What date and time would you prefer?
     # Gloss: "What date and time would be convenient for you?"
     ja: ご希望の日時はございますか？
-  reservationReturningAsk:
-    en: Could I have your phone number, so I can look up your information?
-    # Gloss: "May I have your phone number to look up your information?"
-    ja: お電話番号を教えていただけますでしょうか。お客様の情報を確認いたします。
   reservationPatientNotFound:
     en: >-
-      I'm sorry, I couldn't find that phone number in our records.
+      I'm sorry, I couldn't find that name in our records.
       Let's set you up as a new patient instead.
-    # Gloss: "I'm sorry, I couldn't find that phone number in our records. Let me set you up as a new patient instead."
+    # Gloss: "I'm sorry, I couldn't find that name in our records. Let me set you up as a new patient instead."
     ja: >-
-      申し訳ございません。そのお電話番号は当院の記録に見つかりませんでした。
+      申し訳ございません。そのお名前は当院の記録に見つかりませんでした。
       恐れ入りますが、初めてご来院の方として承ります。
   # Uses [[reservationNumber]] — the tool call supplies the actual number, substituted in by the model.
   # CHANGED (content update, 2026-09-29) — shortened, ends right after the reservation number.

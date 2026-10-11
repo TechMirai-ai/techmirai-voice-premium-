@@ -50,6 +50,7 @@ scales better than a growing inline list.
 **Base must allow:**
 - No code assumes calls are web-only.
 - Phone numbers stored in a form that can hold E.164 (`+81...`).
+- **SV-5 TODO:** the callback and reservation flows currently store a fake placeholder (`DEMO_PLACEHOLDER_PHONE`, `src/lib/demoCallerPhone.ts`) instead of a phone number. When real calls exist, replace it with the caller-ID from the Vapi webhook (`message.call.customer.number`) in `callbackRequest.ts`, `bookAppointment.ts`, `textTester.ts`, and remove the placeholder label in `staffViews.ts`. `lookup_patient` currently matches by confirmed name; switch it back to caller-ID matching then.
 - `client.yaml` may later gain a `telephony` section; the schema must tolerate adding it.
 - Server URLs come from `PUBLIC_BASE_URL`, never hard-coded.
 

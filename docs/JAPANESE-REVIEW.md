@@ -115,7 +115,7 @@ attempts) read as an acceptable way to close rather than abrupt?
 
 ---
 
-### 3. Answering & callback offers — `noMatch`, `staffContactOffer`, `askPhone`, `confirmDetails`
+### 3. Answering & callback offers — `noMatch`, `staffContactOffer`, `askName`, `confirmName`, `askContactNumber`
 
 **`noMatch.ja`** — carried over, not yet reviewed:
 > 申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？
@@ -129,18 +129,30 @@ you back, I'll pass along your information. May I ask your name?"
 Gloss: "Certainly. So a staff member can call you back, I'll pass along your information. May I
 ask your name?"
 
-**`askPhone.ja`** — carried over, not yet reviewed:
-> ありがとうございます。スタッフからご連絡できるお電話番号を教えていただけますか？
+**`askName.ja`** — NEW (2026-10-11; used by the reservation flow — the callback flow's name request is
+the end of `noMatch`/`staffContactOffer` above):
+> お名前を伺ってもよろしいでしょうか？
 
-Gloss: "Thank you. Could you tell me a phone number where staff can reach you?"
+Gloss: "May I ask your name?"
 
-**`confirmDetails.ja`** — carried over, not yet reviewed:
-> 確認いたします。お名前は[[callerName]]様、お電話番号は[[callerPhone]]でよろしいでしょうか？
+**`confirmName.ja`** — NEW (2026-10-11; replaces `confirmDetails`/`confirmPhone`, which read a phone
+number back digit by digit — spoken phone numbers were removed, see below):
+> 確認いたします。お名前は[[callerName]]様でよろしいでしょうか？
 
-Gloss: "Let me confirm. Your name is [[callerName]], and your phone number is [[callerPhone]] — is
-that correct?"
+Gloss: "Let me confirm. Your name is [[callerName]] — is that correct?"
 
-**Question for a native speaker:** do these four lines sound like the same receptionist speaking
+**`askContactNumber.ja`** — NEW (2026-10-11; asked after the name is confirmed, in both the callback and
+reservation flows):
+> 今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？
+
+Gloss: "May we contact you at the phone number you are calling from right now?"
+
+**Why no phone number is asked for any more:** there is no real caller number on a browser web call
+yet, so the assistants no longer ask for one; a clearly fake placeholder is stored instead
+(`src/lib/demoCallerPhone.ts`, TODO SV-5: real caller-ID). `askPhone`, `confirmDetails`,
+`confirmPhone`, `phoneRetry`, `reservationReturningAsk` and `phoneReadback` were deleted.
+
+**Question for a native speaker:** do these lines sound like the same receptionist speaking
 consistently across a callback flow, and is 「お名前を伺ってもよろしいでしょうか」 the right level
 of politeness for asking a caller's name over the phone?
 
@@ -309,7 +321,7 @@ a genuine offer to help rather than a brush-off?
 
 ---
 
-### 9. Call-ending phrases and phone-number digit words — NEW (VP-7 follow-up, 2026-09-25)
+### 9. Call-ending phrases and caller-done examples — NEW (VP-7 follow-up, 2026-09-25)
 
 **`languages.settings.ja.endCallPhrases`** — if the assistant *says* any of these phrases, Vapi
 hangs up the call after it finishes speaking (a backstop for when the model speaks a farewell
@@ -326,26 +338,6 @@ form — plus "Please take care (of yourself)", added to match the new goodbye w
 a call, and are there other closing phrases the model is likely to say (e.g. 「ありがとうございました」
 "thank you" — deliberately NOT included, because it is also said mid-call and would hang up on the
 caller)? The list must contain only phrases that mean "the call is over".
-
-**`languages.settings.ja.phoneReadback`** — how the model speaks a phone number back to the caller.
-Digit words, 0 to 9:
-> ゼロ、イチ、ニー、サン、ヨン、ゴー、ロク、ナナ、ハチ、キュウ
-
-Gloss: "zero, one, two, three, four, five, six, seven, eight, nine". ニー and ゴー carry a long vowel so
-"2" and "5" cannot be misheard on a phone line.
-Worked example the model is shown (for 090-1234-5678):
-> ゼロキュウゼロ、イチニーサンヨン、ゴーロクナナハチ
-
-Gloss: "zero-nine-zero, one-two-three-four, five-six-seven-eight".
-**Question for a native speaker:** is this how a receptionist reads a number back over the phone
-(4 as ヨン, 7 as ナナ, 9 as キュウ, groups separated by a pause)?
-
-**`phoneRetry.ja`** (NEW — asks for a phone number again after a wrong digit count or a "no" to the
-read-back; wording from the source test suite, cases 18/19):
-> 恐れ入ります、少し聞き取れなかったようでして、もう一度お電話番号をお願いできますでしょうか。
-
-Gloss: "Excuse me, it seems I couldn't quite catch that — could you give me the phone number once more,
-please?" **Question for a native speaker:** natural and polite enough for a clinic receptionist?
 
 **`languages.settings.ja.callerDoneExamples`** — NOT spoken to the caller; shown to the model as
 examples of a caller who has finished, so it ends the call silently instead of chatting on:

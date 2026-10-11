@@ -73,7 +73,7 @@ export function buildMinimalConfig(options: MinimalConfigOptions = {}): ClientCo
     },
     callback: {
       enabled: true,
-      collect: ['name', 'phone'],
+      collect: ['name'],
       offerWhen: ['no_faq_match', 'caller_asks_for_staff'],
       notifiers: [],
     },

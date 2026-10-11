@@ -234,11 +234,13 @@ caller IP rather than the proxy's.
 
 | Tool               | Endpoint                           | Table               | Holds personal data?          | Waits for us?                          |
 | ------------------ | ---------------------------------- | ------------------- | ----------------------------- | -------------------------------------- |
-| `request_callback` | `POST /api/voice/callback-request` | `callback_requests` | Yes (name, phone) — by design | Yes — the assistant speaks the outcome |
+| `request_callback` | `POST /api/voice/callback-request` | `callback_requests` | Yes (name; demo placeholder phone) | Yes — the assistant speaks the outcome |
 | `log_call_topic`   | `POST /api/voice/call-topic`       | `call_topics`       | **Never** (no such column)    | No (`async`) — fired after the goodbye |
 
-- A caller's name and phone are asked for **only** when the question matches no FAQ entry or the
-  caller asks for staff. A plain FAQ answer never collects them.
+- A caller's name is asked for (and read back) **only** when the question matches no FAQ entry or the
+  caller asks for staff. A plain FAQ answer never collects it. No phone number is ever asked for
+  by voice: until real phone calls exist (SV-5) the routes store `src/lib/demoCallerPhone.ts`'s
+  clearly fake placeholder in the phone column.
 - Neither tool takes a call id, client or language from the model. The server reads them from
   Vapi's webhook (`call.id`, and the assistant → `.vapi-state.<clientId>.json` lookup).
 - `call_topics.topic` is a FAQ id or `other` / `unresolved`; one row per call.
