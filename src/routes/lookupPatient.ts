@@ -1,14 +1,12 @@
 /**
  * POST /api/voice/lookup-patient — the `lookup_patient` tool's endpoint.
- * Matches by phone number only (VP-8 decision 5) — the spoken name the model
- * sends back to the caller is only for a verbal confirmation, never the
- * lookup key, and is not accepted as an argument here.
+ * Matches by the caller's confirmed name: there is no real caller number on a browser web call
+ * yet (src/lib/demoCallerPhone.ts). TODO(SV-5): match on caller-ID once phone calls exist.
  */
 import { Router } from 'express';
 import { z } from 'zod';
 
 import { logger } from '../lib/logger.js';
-import { normalizePhoneDigits } from '../lib/phone.js';
 import type { ReservationPatientRepository } from '../repositories/reservationPatientRepository.js';
 import type { AssistantResolver } from '../vapi/assistantResolver.js';
 import { LOOKUP_PATIENT_FUNCTION_NAME } from '../vapi/toolNames.js';
@@ -18,7 +16,7 @@ import { toolWebhook } from './voiceWebhook.js';
 export const LOOKUP_PATIENT_PATH = '/lookup-patient';
 
 const argumentsSchema = z.object({
-  callerPhone: z.string().min(1),
+  callerName: z.string().min(1),
 });
 
 export interface LookupPatientRouteDeps {
@@ -39,12 +37,11 @@ export function lookupPatientRouter(deps: LookupPatientRouteDeps): Router {
         if (!parsed.success) {
           return errorResult(
             call,
-            'Invalid or missing phone number. Ask the caller to repeat it, then try again.',
+            'Invalid or missing name. Ask the caller to repeat it, then try again.',
           );
         }
 
-        const phoneDigits = normalizePhoneDigits(parsed.data.callerPhone);
-        const patient = await deps.patients.findByPhone(context.clientId, phoneDigits);
+        const patient = await deps.patients.findByName(context.clientId, parsed.data.callerName);
 
         logger.info('lookup_patient', {
           clientId: context.clientId,
@@ -54,9 +51,7 @@ export function lookupPatientRouter(deps: LookupPatientRouteDeps): Router {
 
         return okResult(
           call,
-          patient
-            ? `Found: ${patient.name}.`
-            : 'No patient record was found for that phone number.',
+          patient ? `Found: ${patient.name}.` : 'No patient record was found for that name.',
         );
       },
     }),

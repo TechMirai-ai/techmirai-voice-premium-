@@ -139,9 +139,9 @@ export interface VapiCustomEndpointingRule {
  * speaking (VP-6 §A / VAPI-FACTS.md "VP-3 latency investigation"). Narrowed
  * to just what this project sets: Vapi's own text-based smart endpointing
  * (works for any language, unlike LiveKit's endpointing which docs say is
- * English-only) as the general mechanism, plus a `customEndpointingRules`
- * override for the one turn that needs extra patience — the caller reading a
- * phone number back in chunks.
+ * English-only) as the general mechanism. `customEndpointingRules` is sent as an empty list:
+ * its one use (extra patience while the caller read a phone number back in chunks) went away
+ * with the spoken phone-number step, and an explicit empty list clears the rule on a re-sync.
  */
 export interface VapiStartSpeakingPlan {
   smartEndpointingPlan?: { provider: 'vapi' };

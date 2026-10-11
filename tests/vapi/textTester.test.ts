@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
+import { DEMO_PLACEHOLDER_PHONE } from '../../src/lib/demoCallerPhone.js';
 import { loadClient } from '../../src/config/loadClient.js';
 import { FileKnowledgeSource } from '../../src/knowledge/KnowledgeSource.js';
 import { renderAssistant } from '../../src/vapi/render.js';
@@ -132,11 +133,11 @@ describe('transcript formatting', () => {
   test('formatToolCallLine prints the name and parsed arguments', () => {
     const call = toolCall('c1', 'request_callback', {
       callerName: 'ヤマダ タロウ',
-      callerPhone: '09012345678',
+      reason: '電話での予約希望',
     });
 
     expect(formatToolCallLine(call)).toBe(
-      'Tool call: request_callback({"callerName":"ヤマダ タロウ","callerPhone":"09012345678"})',
+      'Tool call: request_callback({"callerName":"ヤマダ タロウ","reason":"電話での予約希望"})',
     );
   });
 
@@ -246,7 +247,6 @@ describe('handleToolCall', () => {
     const { deps, lines } = makeDeps({ persist: false, callbacks });
     const call = toolCall('c1', 'request_callback', {
       callerName: 'ヤマダ タロウ',
-      callerPhone: '09012345678',
       reason: '電話での予約希望',
     });
 
@@ -267,7 +267,6 @@ describe('handleToolCall', () => {
     });
     const call = toolCall('c1', 'request_callback', {
       callerName: 'ヤマダ タロウ',
-      callerPhone: '09012345678',
       reason: '電話での予約希望',
     });
 
@@ -279,7 +278,8 @@ describe('handleToolCall', () => {
         callId: 'text-tester-42',
         language: 'ja',
         callerName: 'ヤマダ タロウ',
-        callerPhone: '09012345678',
+        // The tester stores the same demo placeholder the real route does.
+        callerPhone: DEMO_PLACEHOLDER_PHONE,
         reason: '電話での予約希望',
       },
     ]);

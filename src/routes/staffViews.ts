@@ -9,6 +9,7 @@
  * Semantic class names/ids throughout (§4.4) — no CSS exists yet, but the
  * owner's later styling pass should need no HTML restructuring.
  */
+import { DEMO_PLACEHOLDER_PHONE } from '../lib/demoCallerPhone.js';
 import { escapeHtml } from '../lib/htmlEscape.js';
 import type { CallbackRequestSummary } from '../repositories/callbackRequestRepository.js';
 import type { StaffUser } from '../repositories/staffUserRepository.js';
@@ -421,6 +422,14 @@ function callbackActionHtml(callback: CallbackRequestSummary): string {
   return `<span class="handled-label">Handled ${handledAt}</span>`;
 }
 
+/** Flags the demo placeholder so staff never mistake it for a real callback number. */
+function callerPhoneHtml(phone: string): string {
+  // TODO(SV-5): remove once real caller-ID numbers are stored.
+  return phone === DEMO_PLACEHOLDER_PHONE
+    ? `${escapeHtml(phone)} (demo placeholder — no caller ID)`
+    : escapeHtml(phone);
+}
+
 function callbackRowHtml(callback: CallbackRequestSummary): string {
   const statusClass = callback.status === 'pending' ? 'status-pending' : 'status-handled';
   const reasonHtml = callback.reason
@@ -428,7 +437,7 @@ function callbackRowHtml(callback: CallbackRequestSummary): string {
     : '<p class="callback-reason callback-reason-empty">(no reason given)</p>';
 
   return `<li class="callback-row ${statusClass}" id="callback-${escapeHtml(callback.id)}">
-    <p class="callback-caller">${escapeHtml(callback.callerName)} — ${escapeHtml(callback.callerPhone)}</p>
+    <p class="callback-caller">${escapeHtml(callback.callerName)} — ${callerPhoneHtml(callback.callerPhone)}</p>
     <p class="callback-meta">Language: ${escapeHtml(callback.language)} · Received: ${escapeHtml(callback.createdAt.toISOString())}</p>
     ${reasonHtml}
     ${callbackActionHtml(callback)}

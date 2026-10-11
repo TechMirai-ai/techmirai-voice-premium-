@@ -53,12 +53,8 @@ describe('renderAssistant — Sakura fixture (ja)', () => {
 
     expect(tool.type).toBe('function');
     expect(tool.function.name).toBe(REQUEST_CALLBACK_FUNCTION_NAME);
-    expect(tool.function.parameters.required).toEqual(['callerName', 'callerPhone']);
-    expect(Object.keys(tool.function.parameters.properties)).toEqual([
-      'callerName',
-      'callerPhone',
-      'reason',
-    ]);
+    expect(tool.function.parameters.required).toEqual(['callerName']);
+    expect(Object.keys(tool.function.parameters.properties)).toEqual(['callerName', 'reason']);
     expect(tool.server.url).toBe(`${BASE_URL}/api/voice/callback-request`);
   });
 
@@ -101,7 +97,7 @@ describe('renderAssistant — Sakura fixture (ja)', () => {
 });
 
 describe('renderAssistant — startSpeakingPlan (VP-6 A)', () => {
-  test('a non-Flux transcriber still uses Vapi text-based smart endpointing and a longer timeout while the assistant is asking for the phone number', () => {
+  test('a non-Flux transcriber still uses Vapi text-based smart endpointing and and no per-question endpointing rule (there is no phone-number question any more)', () => {
     const config = buildMinimalConfig({ language: 'fr' });
 
     const { assistant } = renderAssistant(config, 'fr', config.faq, OPTIONS);
@@ -121,11 +117,8 @@ describe('renderAssistant — startSpeakingPlan (VP-6 A)', () => {
       assistant.startSpeakingPlan?.transcriptionEndpointingPlan?.onPunctuationSeconds;
     expect(onPunctuationSeconds).toBeGreaterThan(0.1);
     expect(onPunctuationSeconds).toBeLessThan(onNoPunctuationSeconds ?? 0);
-    const rules = assistant.startSpeakingPlan?.customEndpointingRules ?? [];
-    expect(rules).toHaveLength(1);
-    expect(rules[0]?.type).toBe('assistant');
-    // Still longer than both the old fixed default AND the new shorter one.
-    expect(rules[0]?.timeoutSeconds).toBeGreaterThan(1.5);
+    // Explicitly empty (not omitted), so a re-sync clears the old phone-number rule.
+    expect(assistant.startSpeakingPlan?.customEndpointingRules).toEqual([]);
   });
 
   test('the same plan shape holds for an arbitrary language — no hard-coded ja/en', () => {
@@ -134,13 +127,12 @@ describe('renderAssistant — startSpeakingPlan (VP-6 A)', () => {
     const { assistant } = renderAssistant(config, 'fr', config.faq, OPTIONS);
 
     expect(assistant.startSpeakingPlan?.smartEndpointingPlan).toEqual({ provider: 'vapi' });
-    const regex = new RegExp(assistant.startSpeakingPlan?.customEndpointingRules?.[0]?.regex ?? '');
-    expect(regex.test('askPhone text (fr)')).toBe(true);
+    expect(assistant.startSpeakingPlan?.customEndpointingRules).toEqual([]);
   });
 });
 
 describe('renderAssistant — Deepgram Flux transcriber and endpointing (VAPI-FACTS.md Vendor-swap R6/R7; Flux itself abandoned per R9, this mechanism kept in case it is revisited)', () => {
-  test('a Flux transcriber omits smartEndpointingPlan but keeps customEndpointingRules and transcriptionEndpointingPlan', () => {
+  test('a Flux transcriber omits smartEndpointingPlan but keeps transcriptionEndpointingPlan', () => {
     const config = buildMinimalConfig({
       language: 'fr',
       transcriber: { provider: 'deepgram', model: 'flux-general-multi', languages: ['fr'] },
@@ -154,9 +146,7 @@ describe('renderAssistant — Deepgram Flux transcriber and endpointing (VAPI-FA
     expect(assistant.startSpeakingPlan?.transcriptionEndpointingPlan?.onNoPunctuationSeconds).toBe(
       1.1,
     );
-    const rules = assistant.startSpeakingPlan?.customEndpointingRules ?? [];
-    expect(rules).toHaveLength(1);
-    expect(new RegExp(rules[0]?.regex ?? '').test('askPhone text (fr)')).toBe(true);
+    expect(assistant.startSpeakingPlan?.customEndpointingRules).toEqual([]);
   });
 
   test('a transcriber with no model (or a non-Flux model) keeps smartEndpointingPlan — the carve-out is Flux-specific, not blanket', () => {
@@ -410,8 +400,8 @@ describe('renderAssistant — VP-8 reservation tools', () => {
       'follow-up',
     ]);
     expect(bookAppointment?.function.parameters.required).not.toContain('serviceId');
-    expect(bookAppointment?.function.parameters.required).toEqual(['date', 'time', 'patientPhone']);
-    expect(bookAppointment?.function.parameters.properties.patientName).toBeUndefined();
+    expect(bookAppointment?.function.parameters.required).toEqual(['date', 'time', 'patientName']);
+    expect(bookAppointment?.function.parameters.properties.patientPhone).toBeUndefined();
     expect(bookAppointment?.function.parameters.properties.patientEmail).toBeUndefined();
   });
 });

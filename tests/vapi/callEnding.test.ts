@@ -34,14 +34,6 @@ describe('endCallPhrasesFor', () => {
   test('returns undefined for a client that configures none', () => {
     expect(endCallPhrasesFor(buildMinimalConfig(), 'fr')).toBeUndefined();
   });
-
-  test('the emergency goodbye contains a hang-up phrase, so the emergency path ends the call by itself', () => {
-    for (const language of ['ja', 'en']) {
-      const goodbye = config.scripts.emergencyGoodbye[language]!.toLowerCase();
-      const phrases = endCallPhrasesFor(config, language)!;
-      expect(phrases.some((phrase) => goodbye.includes(phrase.toLowerCase()))).toBe(true);
-    }
-  });
 });
 
 describe('silenceHangupHook', () => {
@@ -110,13 +102,6 @@ describe('schema bounds for the new language settings', () => {
   test('rejects a one-character hang-up phrase (Vapi requires 2–140 characters)', () => {
     const bad = structuredClone(config);
     bad.languages.settings['ja']!.endCallPhrases = ['あ'];
-
-    expect(clientConfigSchema.safeParse(bad).success).toBe(false);
-  });
-
-  test('rejects a digit-word list that is not exactly ten entries', () => {
-    const bad = structuredClone(config);
-    bad.languages.settings['ja']!.phoneReadback = { digitWords: ['ゼロ', 'イチ'], example: 'x' };
 
     expect(clientConfigSchema.safeParse(bad).success).toBe(false);
   });

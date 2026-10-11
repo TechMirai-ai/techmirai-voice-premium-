@@ -115,7 +115,7 @@ attempts) read as an acceptable way to close rather than abrupt?
 
 ---
 
-### 3. Answering & callback offers — `noMatch`, `staffContactOffer`, `askPhone`, `confirmDetails`
+### 3. Answering & callback offers — `noMatch`, `staffContactOffer`, `askName`, `confirmName`, `askContactNumber`
 
 **`noMatch.ja`** — carried over, not yet reviewed:
 > 申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？
@@ -129,18 +129,30 @@ you back, I'll pass along your information. May I ask your name?"
 Gloss: "Certainly. So a staff member can call you back, I'll pass along your information. May I
 ask your name?"
 
-**`askPhone.ja`** — carried over, not yet reviewed:
-> ありがとうございます。スタッフからご連絡できるお電話番号を教えていただけますか？
+**`askName.ja`** — NEW (2026-10-11; used by the reservation flow — the callback flow's name request is
+the end of `noMatch`/`staffContactOffer` above):
+> お名前を伺ってもよろしいでしょうか？
 
-Gloss: "Thank you. Could you tell me a phone number where staff can reach you?"
+Gloss: "May I ask your name?"
 
-**`confirmDetails.ja`** — carried over, not yet reviewed:
-> 確認いたします。お名前は[[callerName]]様、お電話番号は[[callerPhone]]でよろしいでしょうか？
+**`confirmName.ja`** — NEW (2026-10-11; replaces `confirmDetails`/`confirmPhone`, which read a phone
+number back digit by digit — spoken phone numbers were removed, see below):
+> 確認いたします。お名前は[[callerName]]様でよろしいでしょうか？
 
-Gloss: "Let me confirm. Your name is [[callerName]], and your phone number is [[callerPhone]] — is
-that correct?"
+Gloss: "Let me confirm. Your name is [[callerName]] — is that correct?"
 
-**Question for a native speaker:** do these four lines sound like the same receptionist speaking
+**`askContactNumber.ja`** — NEW (2026-10-11; asked after the name is confirmed, in both the callback and
+reservation flows):
+> 今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？
+
+Gloss: "May we contact you at the phone number you are calling from right now?"
+
+**Why no phone number is asked for any more:** there is no real caller number on a browser web call
+yet, so the assistants no longer ask for one; a clearly fake placeholder is stored instead
+(`src/lib/demoCallerPhone.ts`, TODO SV-5: real caller-ID). `askPhone`, `confirmDetails`,
+`confirmPhone`, `phoneRetry`, `reservationReturningAsk` and `phoneReadback` were deleted.
+
+**Question for a native speaker:** do these lines sound like the same receptionist speaking
 consistently across a callback flow, and is 「お名前を伺ってもよろしいでしょうか」 the right level
 of politeness for asking a caller's name over the phone?
 
@@ -198,57 +210,13 @@ item 15)?
 
 ---
 
-### 6. Emergencies — `emergency`, `emergencyUncertain`, `emergencyGoodbye` (two-tier, all changed)
+### 6. Emergencies — REMOVED (2026-10-11)
 
-VP-7 replaced the old single-tier emergency line with a two-tier design (source docs A8): a clear
-red-flag line said immediately, and a separate conditional line for uncertain/possibly-serious
-cases. Both are new wording, and `emergencyGoodbye` is an entirely new line (see
-`docs/VAPI-FACTS.md` VP-7 R3 — the model speaks this itself right before `endCall`, so the normal
-`goodbye` line also plays immediately after; two goodbye-shaped lines back to back is an accepted
-tradeoff, not a bug).
-
-**`emergency.ja`** (CHANGED (VP-7) — clear red flag, said immediately, no conditional wording):
-> すぐにお電話を切って、119番に連絡し、救急車を呼んでください。
-
-Gloss: "Please hang up right away, call 119, and call for an ambulance."
-
-**`emergency.ja` — CHANGED again (2026-09-25, emergency-loop fix):** now ends with 「失礼いたします」 ("Goodbye") so the call hangs up as soon as the line finishes, without waiting for the caller to reply:
-> すぐにお電話を切って、[[emergencyNumber]]番に連絡し、救急車を呼んでください。失礼いたします。
-
-Gloss: "Please hang up right away, call 119 and ask for an ambulance. Goodbye." **Question for a native speaker:** is ending the call immediately after this instruction acceptable and natural for an emergency caller? (The conditional line `emergencyUncertain` deliberately does NOT end the call.)
-
-**`emergencyUncertain.ja`** (NEW (VP-7) — uncertain/possibly-serious pain):
-> 緊急の場合は、このお電話を切って、すぐに119番で救急車を呼んでください。
-
-Gloss: "If this is an emergency, please hang up this call and immediately call 119 for an
-ambulance."
-
-**`emergencyGoodbye.ja`** — CHANGED (content update, 2026-09-29). Now shares its exact wording
-with `goodbye` below (project-owner-dictated), but stays a separate script key because the
-mechanism differs: this one is spoken by the model itself right before it calls `endCall` (the
-normal `goodbye` line, via `endCallMessage`, still plays immediately after):
-> お大事になさってください。
-
-Gloss: "Please take care (of yourself)."
-
-*(Before this change: 「失礼いたします。」 — "Goodbye" (literally closer to "please excuse me" /
-"I'll take my leave").)*
-
-**Note on the hang-up backstop:** the new text no longer contains 「失礼いたします」, so
-`languages.settings.ja.endCallPhrases` gained a matching entry
-(「お大事になさってください」) so the emergency path still hangs up on the platform side even if
-the model doesn't reliably call `endCall` (see `tests/vapi/callEnding.test.ts`).
-
-**Question for a native speaker:** do the two emergency lines read as urgent without sounding
-panicked, and is the distinction between them (immediate red flag vs. "if this is an emergency...")
-clear enough in Japanese that a caller wouldn't confuse the two? Also: is 「お大事になさってください」
-an appropriate short goodbye specifically right after telling someone to call an ambulance, or does
-it read as jarringly casual/formal for that moment (this is source doc Open Decision 7's own
-concern — see `docs/prompt-v2-source/01-...md`)?
-
-**Status:** open, not yet reviewed. This item is also flagged for a real-call judgment listen
-(work order §9), not just a text read — how it actually *sounds* right after the red-flag line
-matters as much as the wording.
+The emergency/119 handling was removed entirely: callers in Japan already know to call 119
+directly for a real emergency, not a clinic's AI receptionist. The `emergency`,
+`emergencyUncertain` and `emergencyGoodbye` scripts, `safety.emergencyNumber` and
+`severePainWords` no longer exist, so there is nothing here to review. (Item number kept so the
+other items keep their numbers.)
 
 ---
 
@@ -263,11 +231,10 @@ Gloss: "Please take care (of yourself)."
 *(Before this change: 「[[clinicName]]にお電話いただき、ありがとうございました。失礼いたします。」—
 "Thank you for calling [[clinicName]]. Goodbye.")*
 
-**Note on the hang-up backstop:** unlike `emergencyGoodbye` (item 6 above), `goodbye` is spoken via
-Vapi's own `endCallMessage` mechanism, not by the model deciding to say a farewell — it plays
-automatically right before the platform ends the call, so it was never one of the
-`endCallPhrases` the model's own speech is matched against. No functional dependency here; the
-`endCallPhrases` addition was only needed for `emergencyGoodbye`.
+**Note on the hang-up backstop:** `goodbye` is spoken via Vapi's own `endCallMessage` mechanism,
+not by the model deciding to say a farewell — it plays automatically right before the platform
+ends the call, so it was never one of the `endCallPhrases` the model's own speech is matched
+against.
 
 **Question for a native speaker:** is 「お大事になさってください」 a natural, appropriately warm way
 for a clinic receptionist to end an ordinary call, or does dropping the clinic name and "thank you
@@ -354,12 +321,12 @@ a genuine offer to help rather than a brush-off?
 
 ---
 
-### 9. Call-ending phrases and phone-number digit words — NEW (VP-7 follow-up, 2026-09-25)
+### 9. Call-ending phrases and caller-done examples — NEW (VP-7 follow-up, 2026-09-25)
 
 **`languages.settings.ja.endCallPhrases`** — if the assistant *says* any of these phrases, Vapi
 hangs up the call after it finishes speaking (a backstop for when the model speaks a farewell
 instead of calling `endCall` — `docs/VAPI-FACTS.md` VP-7 R8). CHANGED (content update,
-2026-09-29) — a third phrase was added so the new `emergencyGoodbye`/`goodbye` wording (item 6/7
+2026-09-29) — a third phrase was added so the new `goodbye` wording (item 7
 above) still triggers this backstop:
 > 失礼いたします
 > 失礼します
@@ -371,37 +338,6 @@ form — plus "Please take care (of yourself)", added to match the new goodbye w
 a call, and are there other closing phrases the model is likely to say (e.g. 「ありがとうございました」
 "thank you" — deliberately NOT included, because it is also said mid-call and would hang up on the
 caller)? The list must contain only phrases that mean "the call is over".
-
-**`languages.settings.ja.phoneReadback`** — how the model speaks a phone number back to the caller.
-Digit words, 0 to 9:
-> ゼロ、イチ、ニー、サン、ヨン、ゴー、ロク、ナナ、ハチ、キュウ
-
-Gloss: "zero, one, two, three, four, five, six, seven, eight, nine". ニー and ゴー carry a long vowel so
-"2" and "5" cannot be misheard on a phone line.
-Worked example the model is shown (for 090-1234-5678):
-> ゼロキュウゼロ、イチニーサンヨン、ゴーロクナナハチ
-
-Gloss: "zero-nine-zero, one-two-three-four, five-six-seven-eight".
-**Question for a native speaker:** is this how a receptionist reads a number back over the phone
-(4 as ヨン, 7 as ナナ, 9 as キュウ, groups separated by a pause)?
-
-**`languages.settings.ja.severePainWords`** — NOT spoken to the caller; the trigger list for the
-"possibly serious" 119 line (`emergencyUncertain`). The model only says that line when the caller's own
-words include one of these; without a concrete list it said it for any mention of pain:
-> 激痛 / ひどい痛み / 耐えられない / 我慢できない / 突然 / 動けない
-
-Gloss: "intense/sharp pain" / "terrible pain" / "unbearable" / "can't bear it" / "suddenly" / "can't move".
-**Question for a native speaker (safety-relevant):** what else do callers say when pain might be an
-emergency — e.g. 「ズキズキ」 (throbbing), 「息ができない」 (can't breathe), 「痺れる」 (numb/tingling),
-「意識」 (consciousness)? Too few words means a real emergency gets no 119 line; too many brings back
-the over-triggering on ordinary aches.
-
-**`phoneRetry.ja`** (NEW — asks for a phone number again after a wrong digit count or a "no" to the
-read-back; wording from the source test suite, cases 18/19):
-> 恐れ入ります、少し聞き取れなかったようでして、もう一度お電話番号をお願いできますでしょうか。
-
-Gloss: "Excuse me, it seems I couldn't quite catch that — could you give me the phone number once more,
-please?" **Question for a native speaker:** natural and polite enough for a clinic receptionist?
 
 **`languages.settings.ja.callerDoneExamples`** — NOT spoken to the caller; shown to the model as
 examples of a caller who has finished, so it ends the call silently instead of chatting on:

@@ -156,7 +156,7 @@ function minimalVoiceOptions(): VoiceRouterOptions {
     topics: { record: () => Promise.reject(new Error('not used by staff dashboard tests')) },
     notifier: { notify: () => Promise.resolve() },
     services: { listByClient: () => Promise.resolve([]) },
-    patients: { findByPhone: () => Promise.resolve(undefined) },
+    patients: { findByName: () => Promise.resolve(undefined) },
     appointments: {
       listTakenTimes: () => Promise.resolve(new Set<string>()),
       create: () => Promise.reject(new Error('not used by staff dashboard tests')),

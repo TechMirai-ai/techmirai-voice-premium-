@@ -86,17 +86,17 @@ describe('client config validation', () => {
     expect(issueAt(issues, 'scripts.goodbye.en')).toContain('[[foo]]');
   });
 
-  test('allows the caller placeholders only in scripts.confirmDetails or scripts.reservationSaved', () => {
+  test('allows the caller placeholders only in scripts.confirmName or scripts.reservationSaved', () => {
     const document = withChanges(sakura, (draft) => {
       draft.scripts.greeting.en = 'Hello [[callerName]].';
     });
 
     const { issues } = captureIssues(() => parse(document));
 
-    expect(issueAt(issues, 'scripts.greeting.en')).toContain('scripts.confirmDetails');
+    expect(issueAt(issues, 'scripts.greeting.en')).toContain('scripts.confirmName');
     expect(issueAt(issues, 'scripts.greeting.en')).toContain('scripts.reservationSaved');
 
-    // …and the real config, which uses them inside confirmDetails/reservationSaved, is fine.
+    // …and the real config, which uses them inside confirmName/reservationSaved, is fine.
     expect(() => parse(sakura)).not.toThrow();
   });
 

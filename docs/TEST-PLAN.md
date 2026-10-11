@@ -65,22 +65,20 @@ filled with real text, not literal brackets. Confirm it then asks `anythingElse`
 (「ほかに何かお手伝いできることはございますか？」/ "Is there anything else I can help you with
 today?") — this must follow **every** FAQ answer, not just the first one.
 
-### G2 — No FAQ match → callback flow → confirmDetails → save
-Ask something off-FAQ. Confirm it says `noMatch`, then asks for your name, then `askPhone`
-(「ありがとうございます。スタッフからご連絡できるお電話番号を教えていただけますか？」/ "Thank
-you. May I have a phone number where our staff can reach you?").
-**This is the highest-value check in the whole plan, per the confirmDetails-skip bug above.**
-After giving the phone number, confirm:
-- `confirmDetails` plays as **its own separate turn** — 「確認いたします。お名前は…お電話番号は…で
-  よろしいでしょうか？」("Let me confirm. Your name is ___, phone number is ___, is that
-  correct?") — not merged with the phone-number question or the save confirmation.
-- The assistant **waits** — no tool call should appear in the transcript between you giving the
-  number and you answering the confirmation question. Pull the transcript and check the
-  `tool_calls` timestamp is *after* your "yes," not before.
-- Say something wrong on purpose once (give a digit wrong when confirmed) and confirm it corrects
-  and re-confirms rather than saving the wrong number.
-- After it saves, confirm `anythingElse` fires again (same instruction as G1, different branch —
-  this was the exact prompt-coverage gap found today).
+### G2 — No FAQ match → callback flow → name confirm → contact number → save
+Ask something off-FAQ. Confirm it says `noMatch`, then asks for your name (a first or short name
+is enough). Then confirm, in order, each as **its own separate turn**:
+- `confirmName` — 「確認いたします。お名前は…様でよろしいでしょうか？」("Let me confirm. Your name
+  is ___ — is that correct?"), and the assistant **waits** for your answer.
+- `askContactNumber` — 「今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしい
+  でしょうか？」("May we contact you at the number you are calling from right now?"), and it waits
+  again.
+- It never asks for, or reads out, a phone number. Pull the transcript and check the
+  `request_callback` tool call comes *after* both of your "yes" answers and has no phone argument.
+- Say "no" / correct the name once on purpose and confirm it fixes and re-confirms rather than
+  saving the wrong name.
+- The staff dashboard shows the saved row with `000-0000-0000 (demo placeholder — no caller ID)`.
+- After it saves, confirm `anythingElse` fires again (same instruction as G1, different branch).
 
 ### G3 — Callback save failure (staff-contact path)
 Hard to trigger deliberately without breaking the tunnel — covered opportunistically. If the tunnel
@@ -104,13 +102,10 @@ the written spelling). Ask an English FAQ question, confirm it answers correctly
 reception. Please tell me what you need."). Test the handoff **mid-call**, not just at the start —
 after already answering a question in one language.
 
-### G6 — Emergency
-Say something indicating a medical emergency (e.g. describing severe pain and explicitly asking
-what to do). Confirm the `emergency` line plays instead of continuing the normal flow
-(directs to call `119`, the real `emergencyNumber`), that it does **not** attempt to collect a name
-or phone number, and does **not** call `request_callback`. Pull the transcript afterward and
-confirm `log_call_topic` was still called with `topic: "emergency"` — classification must still
-happen even on the emergency path.
+### G6 — Emergency (removed 2026-10-11)
+The prompt has no emergency handling any more (callers are expected to call 119 themselves).
+Nothing to test here; if a caller describes severe pain, the assistant treats it like any other
+service question and never gives medical advice.
 
 ### G7 — No medical advice
 Ask for a specific medical recommendation (e.g. "what medicine should I take"). Confirm
@@ -128,15 +123,10 @@ observed twice on real first turns. Deprioritized as a refinement, not a broken 
 `docs/FUTURE-FEATURES.md`'s VP-6 backlog item 2. Test it, but don't treat an inconsistent result
 here as a new bug; it's a documented, accepted limitation.
 
-### G9 — Phone number given in chunks (endpointing)
-Trigger the callback flow (G2) and when asked for your phone number, read it back in paused
-chunks — e.g. "090…" *(pause ~1–2s)* "1234…" *(pause)* "5678," the way people actually recite
-digits. Confirm the assistant waits through the pauses instead of cutting in after the first chunk.
-**Verify via transcript, not just by feel:** the whole number should land in a single `user`
-message, not fragmented across several. Pull `performanceMetrics` and confirm that specific turn's
-`endpointingLatency` is noticeably higher than the general ~700ms (the `customEndpointingRules`
-override is 2.5s) — if it's ~700ms like every other turn, the phone-number exception silently
-isn't firing.
+### G9 — (removed 2026-10-11)
+Was "phone number given in chunks" (endpointing). Spoken phone numbers and their
+`customEndpointingRules` override no longer exist. After a sync, the live assistants' read-back
+should show `customEndpointingRules` as an empty list.
 
 ### G10 — Natural end-of-call (goodbye)
 End a call with a short, low-content reply (e.g. 「いいえ、大丈夫です」/ "No, that's fine") — this

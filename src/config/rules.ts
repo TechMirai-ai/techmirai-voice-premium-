@@ -10,22 +10,13 @@ import type { ClientConfig, LocalizedText } from './schema.js';
 import { KNOWN_TOP_LEVEL_KEYS, SCRIPT_KEYS } from './schema.js';
 
 /** Placeholders our renderer (VP-2) understands. Anything else is a typo. */
-export const CLINIC_PLACEHOLDERS = [
-  'clinicName',
-  'clinicPhone',
-  'clinicAddress',
-  'emergencyNumber',
-] as const;
+export const CLINIC_PLACEHOLDERS = ['clinicName', 'clinicPhone', 'clinicAddress'] as const;
 
 /** Only known while a call is in progress, so only valid in one of `CALLER_PLACEHOLDER_SCRIPTS`. */
-export const CALLER_PLACEHOLDERS = ['callerName', 'callerPhone', 'reservationNumber'] as const;
+export const CALLER_PLACEHOLDERS = ['callerName', 'reservationNumber'] as const;
 
 /** The scripts that may use a caller placeholder — everywhere else, it's a typo. */
-export const CALLER_PLACEHOLDER_SCRIPTS = [
-  'confirmDetails',
-  'confirmPhone',
-  'reservationSaved',
-] as const;
+export const CALLER_PLACEHOLDER_SCRIPTS = ['confirmName', 'reservationSaved'] as const;
 
 export const ALLOWED_PLACEHOLDERS = [...CLINIC_PLACEHOLDERS, ...CALLER_PLACEHOLDERS] as const;
 

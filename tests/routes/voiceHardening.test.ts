@@ -8,7 +8,6 @@ import {
   AUTH,
   buildVoiceApp,
   CALLER_NAME,
-  CALLER_PHONE,
   healthyDb,
   toolCallsBody,
   WEBHOOK_SECRET,
@@ -16,7 +15,7 @@ import {
 import { buildStaffOptions } from '../helpers/staffFixtures.js';
 
 const CALLBACK = '/api/voice/callback-request';
-const args = { callerName: CALLER_NAME, callerPhone: CALLER_PHONE };
+const args = { callerName: CALLER_NAME };
 
 describe('voice route hardening (security review)', () => {
   test('a bare secret with no Bearer scheme is rejected', async () => {
