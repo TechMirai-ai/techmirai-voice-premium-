@@ -119,6 +119,12 @@ const languageSettingsSchema = z.strictObject({
    */
   callerDoneExamples: z.array(nonEmpty).min(1).optional(),
   /**
+   * Adds the "don't repeat an acknowledgement after a split utterance" rule to this language's
+   * prompt (VP-10). Off unless set, so a language only gets it once it has been tested there —
+   * a re-sync of any other language can never pick it up by accident.
+   */
+  avoidRepeatedAcknowledgement: z.boolean().optional(),
+  /**
    * Words a caller uses to describe pain that might be an emergency (VP-7 follow-up). The
    * "possibly serious" 119 line is only used when the caller's own words include one — without a
    * concrete trigger list the model said it for any mention of pain ("my back hurts").

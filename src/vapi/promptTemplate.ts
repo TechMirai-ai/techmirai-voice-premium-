@@ -203,6 +203,17 @@ function leadingSection(config: ClientConfig, language: string): string {
     "- New topic: follow the caller; don't pull them back to the previous subject.",
     "- Interrupted: stop, and respond to what the caller just said — don't repeat what they " +
       'already heard or restart an explanation.',
+    ...(config.languages.settings[language]?.avoidRepeatedAcknowledgement
+      ? [
+          '- Caller still finishing a thought: if their latest message just continues or completes what ' +
+            'they were saying when you last replied (for example one word that finishes the earlier ' +
+            'sentence), you have already acknowledged that thought. Respond only to what is new — do ' +
+            'not say the same acknowledgement or sentence again. This covers only your own earlier ' +
+            'acknowledgements. It never replaces the lines other rules require — the question asking ' +
+            'whether there is anything else, re-asking for a missing detail, the emergency lines and ' +
+            'the goodbye: say those whenever their own rules call for them, exactly as written there.',
+        ]
+      : []),
     `- Didn't catch it: never guess. Say: "${scriptLine(config, language, 'didNotCatch')}" — naming ` +
       "the part you missed when you can, and don't repeat the exact same wording twice in a row. " +
       'After three failed attempts in a row, say: ' +

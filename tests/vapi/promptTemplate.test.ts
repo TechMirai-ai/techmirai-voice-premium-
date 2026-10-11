@@ -596,3 +596,27 @@ describe('buildSystemPrompt — VP-8 reservation flow', () => {
     expect(prompt).toContain('reservationSaved text (fr)');
   });
 });
+
+describe('buildSystemPrompt — no repeated acknowledgement after a split utterance (VP-10)', () => {
+  test('English tells the model not to repeat an acknowledgement, and explicitly exempts every line other rules require', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'en', faq);
+
+    expect(prompt).toContain('Caller still finishing a thought');
+    expect(prompt).toContain('do not say the same acknowledgement or sentence again');
+    // The exemptions are what keep this from suppressing by-design repeats.
+    expect(prompt).toContain('whether there is anything else');
+    expect(prompt).toContain('re-asking for a missing detail');
+    expect(prompt).toContain('the emergency lines and the goodbye');
+  });
+
+  test('Japanese does NOT get the rule until avoidRepeatedAcknowledgement is set for it — a ja re-sync must never pick it up by accident', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    expect(config.languages.settings.ja?.avoidRepeatedAcknowledgement).toBeUndefined();
+    expect(buildSystemPrompt(config, 'ja', faq)).not.toContain('Caller still finishing a thought');
+  });
+});

@@ -83,6 +83,9 @@ languages:
       endCallPhrases: ["goodbye", "have a great day", "please take care"]
       severePainWords: ["severe", "intense", "excruciating", "unbearable", "sudden", "sharp", "can't move"]
       callerDoneExamples: ["Thank you very much", "That's all", "No, that's all, thank you", "Got it, thank you", "OK, thanks"]
+      # VP-10: adds the "don't repeat an acknowledgement after a split utterance" prompt rule.
+      # English only for now — NOT set for ja/ja-return until it has been tested there.
+      avoidRepeatedAcknowledgement: true
       phoneReadback:
         digitWords: ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
         example: "zero nine zero, one two three four, five six seven eight"
