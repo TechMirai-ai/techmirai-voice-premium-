@@ -269,7 +269,7 @@ function renderTopicTool(
             type: 'string',
             description:
               'The single best-matching FAQ topic id for the whole call; "other" if it fits none, ' +
-              '"unresolved" if a callback was needed, "emergency" for a medical emergency.',
+              '"unresolved" if a callback was needed.',
             enum: topics,
           },
           outcome: {

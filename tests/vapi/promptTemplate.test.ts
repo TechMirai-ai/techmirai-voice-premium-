@@ -27,7 +27,6 @@ describe('buildSystemPrompt — Sakura fixture (ja)', () => {
       clinicName: config.business.name['ja']!,
       clinicPhone: config.business.phone.display,
       clinicAddress: config.business.address['ja']!,
-      emergencyNumber: config.safety.emergencyNumber,
     };
     const substitute = (text: string): string =>
       text.replace(
@@ -42,16 +41,13 @@ describe('buildSystemPrompt — Sakura fixture (ja)', () => {
     }
   });
 
-  test('includes the safety rules (no-medical-advice and emergency scripts)', async () => {
+  test('includes the safety rule (no-medical-advice script)', async () => {
     const config = loadClient(SAKURA_ID);
     const faq = await knowledge.listFaq(SAKURA_ID);
 
     const prompt = buildSystemPrompt(config, 'ja', faq);
 
     expect(prompt).toContain(config.scripts.noMedicalAdvice['ja']!);
-    expect(prompt).toContain(
-      config.scripts.emergency['ja']!.replace('[[emergencyNumber]]', config.safety.emergencyNumber),
-    );
   });
 
   test("no longer contains VP-2's temporary language-deflection instruction, in either language", async () => {
@@ -134,7 +130,6 @@ describe('buildSystemPrompt — Sakura fixture (ja)', () => {
     expect(prompt).not.toContain('[[clinicName]]');
     expect(prompt).not.toContain('[[clinicPhone]]');
     expect(prompt).not.toContain('[[clinicAddress]]');
-    expect(prompt).not.toContain('[[emergencyNumber]]');
   });
 });
 
@@ -162,7 +157,7 @@ describe('buildSystemPrompt — clinic-name pronunciation override (VP-6 D)', ()
 });
 
 describe('buildSystemPrompt — section order (VP-7 source docs §B)', () => {
-  test('identity comes first; style/leading/answering/callback follow before medical/emergency/language/ending/clinic-info/today', async () => {
+  test('identity comes first; style/leading/answering/callback follow before medical/language/ending/clinic-info/today', async () => {
     const config = loadClient(SAKURA_ID);
     const faq = await knowledge.listFaq(SAKURA_ID);
 
@@ -179,7 +174,6 @@ describe('buildSystemPrompt — section order (VP-7 source docs §B)', () => {
     const answering = at('Answering questions:');
     const callback = at('Callback requests:');
     const medical = at('Medical questions:');
-    const emergency = at('Emergencies —');
     const language = at('Language switching:');
     const ending = at('Ending the call:');
     const clinicInfo = at('Clinic information (for your own grounding');
@@ -190,8 +184,7 @@ describe('buildSystemPrompt — section order (VP-7 source docs §B)', () => {
     expect(leading).toBeLessThan(answering);
     expect(answering).toBeLessThan(callback);
     expect(callback).toBeLessThan(medical);
-    expect(medical).toBeLessThan(emergency);
-    expect(emergency).toBeLessThan(language);
+    expect(medical).toBeLessThan(language);
     expect(language).toBeLessThan(ending);
     expect(ending).toBeLessThan(clinicInfo);
     expect(clinicInfo).toBeLessThan(today);
@@ -222,64 +215,27 @@ describe('buildSystemPrompt — topic/outcome separation (VP-7 R2)', () => {
   });
 });
 
-describe('buildSystemPrompt — emergency handling (VP-7)', () => {
-  test('two-tier: a clear red flag and an uncertain/possibly-serious tier, with a path back to normal flow', async () => {
+describe('buildSystemPrompt — no emergency handling', () => {
+  test('neither language contains an emergency section, an ambulance number or an emergency topic', async () => {
     const config = loadClient(SAKURA_ID);
     const faq = await knowledge.listFaq(SAKURA_ID);
 
-    const prompt = buildSystemPrompt(config, 'ja', faq);
+    for (const language of ['ja', 'en']) {
+      const prompt = buildSystemPrompt(config, language, faq);
 
-    expect(prompt).toContain(config.scripts.emergency['ja']!.replace('[[emergencyNumber]]', '119'));
-    expect(prompt).toContain(
-      config.scripts.emergencyUncertain['ja']!.replace('[[emergencyNumber]]', '119'),
-    );
-    expect(prompt).toContain("If, after that, the caller says it isn't an emergency");
-    expect(prompt).toContain('none of the rules below apply');
-    expect(prompt).toContain('resume the call completely normally');
+      expect(prompt).not.toContain('Emergencies —');
+      expect(prompt).not.toMatch(/119|ambulance|emergency/i);
+      expect(prompt).not.toContain('救急');
+      expect(prompt).not.toContain('緊急');
+    }
   });
 
-  test('the model speaks a short goodbye itself on the emergency path, before the normal end-call steps (R3 accepted fallback)', async () => {
+  test('the medical-advice line is scoped to advice requests, not to a caller who merely mentions pain', async () => {
     const config = loadClient(SAKURA_ID);
     const faq = await knowledge.listFaq(SAKURA_ID);
 
     const prompt = buildSystemPrompt(config, 'ja', faq);
 
-    expect(prompt).toContain(config.scripts.emergencyGoodbye['ja']!);
-    expect(prompt).toContain(
-      'This is the one case where you speak a goodbye yourself instead of leaving it to the system',
-    );
-  });
-
-  test('on the emergency path the model says the short goodbye itself, then logs the emergency and ends the call', async () => {
-    const config = loadClient(SAKURA_ID);
-    const faq = await knowledge.listFaq(SAKURA_ID);
-
-    const prompt = buildSystemPrompt(config, 'ja', faq);
-    const emergency = prompt.slice(
-      prompt.indexOf('Emergencies —'),
-      prompt.indexOf('Language switching:'),
-    );
-
-    const goodbye = emergency.indexOf('Once the caller responds or goes quiet, say the short line');
-    const log = emergency.lastIndexOf(
-      'log_call_topic (topic "emergency", outcome "emergency") and endCall',
-    );
-    expect(goodbye).toBeGreaterThan(-1);
-    expect(log).toBeGreaterThan(goodbye);
-  });
-
-  test('the uncertain-pain line comes before answering a "can you see me today?" question, and the medical-advice line is scoped to advice requests', async () => {
-    const config = loadClient(SAKURA_ID);
-    const faq = await knowledge.listFaq(SAKURA_ID);
-
-    const prompt = buildSystemPrompt(config, 'ja', faq);
-
-    expect(prompt).toContain('check this FIRST on every caller turn');
-    expect(prompt).toContain('even if they are only asking whether you can see them today');
-    expect(prompt).toContain(
-      config.scripts.emergencyUncertain['ja']!.replace('[[emergencyNumber]]', '119'),
-    );
-    expect(prompt).toContain('answer the question they originally asked');
     expect(prompt).toContain(
       'A caller who merely mentions pain while asking whether you can see them is asking a service question',
     );
@@ -337,44 +293,6 @@ describe("buildSystemPrompt — today's / tomorrow's hours (VP-7 follow-up)", ()
 });
 
 describe('buildSystemPrompt — over-triggering guards (VP-7 follow-up)', () => {
-  test("the uncertain-emergency line is tied to the language's own severe-pain words from client.yaml, and never to an ordinary ache or routine injury", async () => {
-    const config = loadClient(SAKURA_ID);
-    const faq = await knowledge.listFaq(SAKURA_ID);
-
-    const ja = buildSystemPrompt(config, 'ja', faq);
-    const en = buildSystemPrompt(config, 'en', faq);
-
-    expect(ja).toContain('with an intensity word such as "激痛", "ひどい痛み"');
-    expect(en).toContain('with an intensity word such as "severe", "intense"');
-    for (const prompt of [ja, en]) {
-      expect(prompt).toContain(
-        'Never use it for an ordinary ache, stiffness, a sprain, or a routine injury the caller mentions while asking whether you treat it',
-      );
-    }
-  });
-
-  test('does not quote example injuries next to the emergency line — that primed the model to say it for them (VP-7 suite run)', async () => {
-    const config = loadClient(SAKURA_ID);
-    const faq = await knowledge.listFaq(SAKURA_ID);
-
-    const prompt = buildSystemPrompt(config, 'en', faq);
-    const emergency = prompt.slice(
-      prompt.indexOf('Emergencies —'),
-      prompt.indexOf('Language switching:'),
-    );
-
-    expect(emergency).not.toContain('twisted my ankle');
-    expect(emergency).not.toContain('my back hurts');
-  });
-
-  test('falls back to the generic "sudden or severe pain" wording for a client with no severePainWords', () => {
-    const prompt = buildSystemPrompt(buildMinimalConfig(), 'fr', []);
-
-    expect(prompt).toContain(
-      "If they describe sudden or severe pain and you're not sure it's that serious,",
-    );
-  });
-
   test('an explicit "no" to a callback offer is a clear decline — no second check', async () => {
     const config = loadClient(SAKURA_ID);
     const faq = await knowledge.listFaq(SAKURA_ID);
@@ -392,72 +310,6 @@ describe('buildSystemPrompt — over-triggering guards (VP-7 follow-up)', () => 
       const line = config.scripts.repeatedMisunderstanding[language]!.toLowerCase();
       const phrases = config.languages.settings[language]!.endCallPhrases!;
       expect(phrases.some((phrase) => line.includes(phrase.toLowerCase()))).toBe(true);
-    }
-  });
-});
-
-describe('buildSystemPrompt — emergency loop guard (production call 01a0d7e1)', () => {
-  test('rule zero — never repeat an emergency line — is the FIRST emergency rule, and survives a history that omits the assistant’s own replies', async () => {
-    const config = loadClient(SAKURA_ID);
-    const faq = await knowledge.listFaq(SAKURA_ID);
-
-    for (const language of ['ja', 'en']) {
-      const prompt = buildSystemPrompt(config, language, faq);
-      const emergency = prompt.slice(
-        prompt.indexOf('Emergencies —'),
-        prompt.indexOf('Language switching:'),
-      );
-
-      expect(emergency.indexOf('Rule zero')).toBeGreaterThan(-1);
-      expect(emergency.indexOf('Rule zero')).toBeLessThan(
-        emergency.indexOf('If the caller says outright'),
-      );
-      expect(emergency).toContain('may not include your own earlier replies');
-      expect(emergency).toContain('Say NO emergency line — not even the conditional one');
-      expect(emergency).toContain(
-        'is answered ONLY with the short goodbye line and the two tool calls',
-      );
-    }
-  });
-
-  test('a caller who says outright that it is an emergency gets the clear-emergency line, even if they also ask a question', async () => {
-    const config = loadClient(SAKURA_ID);
-    const faq = await knowledge.listFaq(SAKURA_ID);
-
-    const prompt = buildSystemPrompt(config, 'en', faq);
-
-    expect(prompt).toContain('says outright that it is an emergency');
-    expect(prompt).toContain('even if they also ask another question');
-  });
-
-  test('the conditional (uncertain) line stays open-ended: the model must say only that line, no goodbye, and wait', async () => {
-    const config = loadClient(SAKURA_ID);
-    const faq = await knowledge.listFaq(SAKURA_ID);
-
-    const prompt = buildSystemPrompt(config, 'en', faq);
-
-    expect(prompt).toContain(
-      'Say exactly that line and nothing more — no goodbye, and do not end the call',
-    );
-  });
-
-  test('the clear-emergency line itself ends with a configured hang-up phrase, so the call ends without any later turn', () => {
-    const config = loadClient(SAKURA_ID);
-
-    for (const language of ['ja', 'en']) {
-      const line = config.scripts.emergency[language]!.toLowerCase();
-      const phrases = config.languages.settings[language]!.endCallPhrases!;
-      expect(phrases.some((phrase) => line.includes(phrase.toLowerCase()))).toBe(true);
-    }
-  });
-
-  test('the conditional emergency line does NOT contain a hang-up phrase (it must let a non-emergency caller answer)', () => {
-    const config = loadClient(SAKURA_ID);
-
-    for (const language of ['ja', 'en']) {
-      const line = config.scripts.emergencyUncertain[language]!.toLowerCase();
-      const phrases = config.languages.settings[language]!.endCallPhrases!;
-      expect(phrases.some((phrase) => line.includes(phrase.toLowerCase()))).toBe(false);
     }
   });
 });
@@ -609,7 +461,8 @@ describe('buildSystemPrompt — no repeated acknowledgement after a split uttera
     // The exemptions are what keep this from suppressing by-design repeats.
     expect(prompt).toContain('whether there is anything else');
     expect(prompt).toContain('re-asking for a missing detail');
-    expect(prompt).toContain('the emergency lines and the goodbye');
+    expect(prompt).toContain('re-asking for a missing detail and the goodbye');
+    expect(prompt).not.toContain('emergency');
   });
 
   test('Japanese does NOT get the rule until avoidRepeatedAcknowledgement is set for it — a ja re-sync must never pick it up by accident', async () => {

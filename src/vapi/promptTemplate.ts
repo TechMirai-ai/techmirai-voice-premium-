@@ -81,7 +81,6 @@ export function fillClinicPlaceholders(
     ['clinicName', spokenClinicName(config, language)],
     ['clinicPhone', config.business.phone.display],
     ['clinicAddress', pick(config.business.address, language)],
-    ['emergencyNumber', config.safety.emergencyNumber],
   ]);
 
   // CLINIC_PLACEHOLDERS is the schema's source of truth for this set; assert
@@ -210,8 +209,8 @@ function leadingSection(config: ClientConfig, language: string): string {
             'sentence), you have already acknowledged that thought. Respond only to what is new — do ' +
             'not say the same acknowledgement or sentence again. This covers only your own earlier ' +
             'acknowledgements. It never replaces the lines other rules require — the question asking ' +
-            'whether there is anything else, re-asking for a missing detail, the emergency lines and ' +
-            'the goodbye: say those whenever their own rules call for them, exactly as written there.',
+            'whether there is anything else, re-asking for a missing detail and the goodbye: say those ' +
+            'lines whenever their own rules call for them, exactly as written there.',
         ]
       : []),
     `- Didn't catch it: never guess. Say: "${scriptLine(config, language, 'didNotCatch')}" — naming ` +
@@ -497,64 +496,6 @@ function medicalSection(config: ClientConfig, language: string): string[] {
 }
 
 /**
- * When the "possibly serious" emergency line applies. Uses the language's `severePainWords` as a
- * concrete trigger list when the client sets one — a vague "strong terms" rule made the model say
- * the line for any mention of pain (English cases 6/7 in the VP-7 suite run).
- */
-function uncertainPainTrigger(config: ClientConfig, language: string): string {
-  const words = config.languages.settings[language]?.severePainWords ?? [];
-  if (words.length === 0) {
-    return "If they describe sudden or severe pain and you're not sure it's that serious,";
-  }
-  const list = words.map((word) => `"${word}"`).join(', ');
-  return (
-    "If the caller's own words describe pain with an intensity word such as " +
-    `${list} and you're not sure it's that serious,`
-  );
-}
-
-// 7. Emergencies (two-tier — source docs A8)
-function emergencySection(config: ClientConfig, language: string): string {
-  return [
-    'Emergencies — check this FIRST on every caller turn, before answering anything else:',
-    '- Rule zero — never say an emergency line twice. The conversation you are shown may not ' +
-      "include your own earlier replies (a known platform fault), so if the caller's latest " +
-      'message contains an acknowledgement ("OK", "thank you", "understood", "yes, I will") ' +
-      'together with, or after, a description of an emergency or severe pain, they have ' +
-      'already been told what to do. Say NO emergency line — not even the conditional one — and ' +
-      `answer nothing else: say only the short line "${scriptLine(config, language, 'emergencyGoodbye')}", ` +
-      `then call ${LOG_CALL_TOPIC_FUNCTION_NAME} (topic "emergency", outcome "emergency") and ` +
-      `${END_CALL_FUNCTION_NAME}.`,
-    '  Example — a message like "I have an emergency, very heavy pain, do you treat it? OK, thank ' +
-      'you." is answered ONLY with the short goodbye line and the two tool calls; never with an ' +
-      'emergency line and never with an answer to the question.',
-    '- If the caller says outright that it is an emergency ("this is an emergency", "I have an ' +
-      'emergency"), or describes something that\'s clearly a medical emergency right now (serious ' +
-      'injury, heavy bleeding, trouble breathing, chest pain, loss of consciousness, and similar), ' +
-      'even if they also ask another question, ' +
-      `say immediately: "${scriptLine(config, language, 'emergency')}"`,
-    `- ${uncertainPainTrigger(config, language)} say this FIRST, in that same turn, before ` +
-      `answering their question, even if they are only asking whether you can see them today: "${scriptLine(config, language, 'emergencyUncertain')}" ` +
-      'Say exactly that line and nothing more — no goodbye, and do not end the call: it is a ' +
-      'question, and you wait for their answer. ' +
-      'Never use it for an ordinary ache, stiffness, a sprain, or a routine injury the caller ' +
-      'mentions while asking whether you treat it — those are normal service questions.',
-    "- If, after that, the caller says it isn't an emergency: none of the rules below apply — " +
-      'resume the call completely normally, exactly as if this section had never come up: answer ' +
-      "the question they originally asked (for example today's hours and how to book), and " +
-      "collecting a name/phone number, offering a callback, etc. are all fine again. Don't " +
-      'force the call into the emergency path just because it was raised and dismissed.',
-    '- Otherwise — a clear red flag, or the caller confirms the uncertain case is serious — do ' +
-      `not collect a name or phone number, and do not call ${REQUEST_CALLBACK_FUNCTION_NAME}. Once ` +
-      'the caller responds or goes quiet, say the short line ' +
-      `"${scriptLine(config, language, 'emergencyGoodbye')}" yourself, then call ` +
-      `${LOG_CALL_TOPIC_FUNCTION_NAME} (topic "emergency", outcome "emergency") and ` +
-      `${END_CALL_FUNCTION_NAME}. This is the one case where you speak a goodbye yourself instead ` +
-      'of leaving it to the system.',
-  ].join('\n');
-}
-
-/**
  * Tells the model to tag every call with a topic and outcome, silently, then
  * hang up via the built-in endCall tool — real calls otherwise sit open
  * until the caller manually ends them (VAPI-FACTS.md, VP-4 R5).
@@ -589,12 +530,11 @@ function callClassificationSection(faq: FaqEntry[]): string {
     `- topic: exactly one of ${topics}. Choose whichever best matches what the caller was ` +
       'actually asking about — this reflects the SUBJECT of the call, regardless of whether you ' +
       'were able to help. Use "other" only if the call fits no listed topic (for example a ' +
-      'general question, or a callback with no specific subject). Use "emergency" only for an ' +
-      'emergency call.',
+      'general question, or a callback with no specific subject).',
     '- outcome: "resolved" when the caller\'s question was answered, "unresolved" when you took ' +
-      'a callback request or could not help, "emergency" for a medical emergency. This captures ' +
+      'a callback request or could not help. This captures ' +
       'HOW the call ended — never write this same value into topic.',
-    `- Do this even for an emergency call. Never pass a name, phone number or any free text to ${LOG_CALL_TOPIC_FUNCTION_NAME}.`,
+    `- Never pass a name, phone number or any free text to ${LOG_CALL_TOPIC_FUNCTION_NAME}.`,
   ].join('\n');
 }
 
@@ -618,8 +558,7 @@ function endingSection(config: ClientConfig, language: string, faq: FaqEntry[]):
       'the system speaks the goodbye automatically when the call ends, and saying it yourself ' +
       'would say it twice. Make the two calls through the tool-calling interface itself; never ' +
       'write them out or announce them (no "I\'ll record this", no asterisks). A reply that has ' +
-      'words but no tool calls is wrong here. (Exception: the emergency path above, where you ' +
-      'say a short goodbye yourself.)',
+      'words but no tool calls is wrong here.',
     ...examplesBullet,
   ].join('\n');
   return [goodbyeBullet, callClassificationSection(faq)].join('\n\n');
@@ -684,7 +623,7 @@ function todaySection(config: ClientConfig): string {
  * callbacks, and the reservation services list right after the FAQ, as the
  * closest analogous "take an action" / "grounding data" pairs): identity →
  * style → leading → answering → callback → reservations → medical →
- * emergency → language → ending → clinic information → reservation services
+ * language → ending → clinic information → reservation services
  * → today. Static meta-instruction first, per-client data next, per-call
  * data (today's date) last — if the model provider caches repeated prompt
  * prefixes, everything above the per-call line stays cacheable.
@@ -707,7 +646,6 @@ export function buildSystemPrompt(
     callbackSection(config, language),
     ...reservationSection(config, language, services),
     ...medicalSection(config, language),
-    emergencySection(config, language),
     ...languageSwitchSection(config, language),
     endingSection(config, language, faq),
     clinicInformationSection(config, language, faq),

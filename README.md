@@ -241,7 +241,7 @@ caller IP rather than the proxy's.
   caller asks for staff. A plain FAQ answer never collects them.
 - Neither tool takes a call id, client or language from the model. The server reads them from
   Vapi's webhook (`call.id`, and the assistant → `.vapi-state.<clientId>.json` lookup).
-- `call_topics.topic` is a FAQ id or `other` / `unresolved` / `emergency`; one row per call.
+- `call_topics.topic` is a FAQ id or `other` / `unresolved`; one row per call.
 - A new notification channel (email, LINE — `docs/FUTURE-FEATURES.md` F-2) is a new class
   implementing `CallbackNotifier` in `src/lib/callbackNotifier.ts`; today only `LoggingNotifier`
   exists. A failing notifier never fails the save.

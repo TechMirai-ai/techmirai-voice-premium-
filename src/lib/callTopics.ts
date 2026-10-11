@@ -4,8 +4,8 @@
  */
 
 /** Topics that are not a FAQ id. Everything else must be one of the client's FAQ ids. */
-export const RESERVED_TOPICS = ['other', 'unresolved', 'emergency'] as const;
-export const CALL_OUTCOMES = ['resolved', 'unresolved', 'emergency'] as const;
+export const RESERVED_TOPICS = ['other', 'unresolved'] as const;
+export const CALL_OUTCOMES = ['resolved', 'unresolved'] as const;
 
 export type CallOutcome = (typeof CALL_OUTCOMES)[number];
 

@@ -3,6 +3,8 @@
 Checked: 2026-09-17, updated 2026-09-18 (VP-2 research spike R1–R6), updated 2026-09-24 (VP-7 research spike R1–R7). Vapi changes often — re-check anything older than a few weeks before relying on it.
 Rule: if a fact you need is not here, check the docs (MCP server https://docs.vapi.ai/_mcp/server or https://docs.vapi.ai/llms.txt), then add it here with the source URL.
 
+Note (2026-10-11): the prompt's emergency/119 path (referenced in VP-7 R3 and R9 below) was removed. The platform facts in those rows (no conditional `endCallMessage`; Vapi dropping the assistant's own replies from history) are still true and still verified; only the emergency use case they describe is gone.
+
 ## Verified
 | Fact | Source |
 | --- | --- |

@@ -49,7 +49,7 @@ describe('log_call_topic tool definition', () => {
     expect(tool.server.credentialId).toBe('credential-uuid');
   });
 
-  test('offers exactly the FAQ ids plus other/unresolved/emergency as topics', async () => {
+  test('offers exactly the FAQ ids plus other/unresolved as topics', async () => {
     const config = loadClient(SAKURA_ID);
     const faq = await knowledge.listFaq(SAKURA_ID);
 
@@ -113,12 +113,7 @@ describe('log_call_topic tool definition', () => {
 
 describe('allowedTopics', () => {
   test('does not duplicate a reserved word that is also a FAQ id', () => {
-    expect(allowedTopics(['other', 'hours'])).toEqual([
-      'other',
-      'hours',
-      'unresolved',
-      'emergency',
-    ]);
+    expect(allowedTopics(['other', 'hours'])).toEqual(['other', 'hours', 'unresolved']);
   });
 });
 
@@ -155,15 +150,6 @@ describe('prompt: conditional collection and silent classification (VP-4 §4.4)'
 
     for (const entry of faq) expect(prompt).toContain(`"${entry.id}"`);
     for (const topic of RESERVED_TOPICS) expect(prompt).toContain(`"${topic}"`);
-  });
-
-  test('an emergency skips the callback flow but is still classified', async () => {
-    const prompt = await promptFor();
-
-    expect(prompt).toMatch(
-      /do not collect a name or phone number, and do not call request_callback/i,
-    );
-    expect(prompt).toMatch(/Do this even for an emergency call/);
   });
 
   test('the personal-data rule for the analytics tool is stated', async () => {

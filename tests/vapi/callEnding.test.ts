@@ -34,14 +34,6 @@ describe('endCallPhrasesFor', () => {
   test('returns undefined for a client that configures none', () => {
     expect(endCallPhrasesFor(buildMinimalConfig(), 'fr')).toBeUndefined();
   });
-
-  test('the emergency goodbye contains a hang-up phrase, so the emergency path ends the call by itself', () => {
-    for (const language of ['ja', 'en']) {
-      const goodbye = config.scripts.emergencyGoodbye[language]!.toLowerCase();
-      const phrases = endCallPhrasesFor(config, language)!;
-      expect(phrases.some((phrase) => goodbye.includes(phrase.toLowerCase()))).toBe(true);
-    }
-  });
 });
 
 describe('silenceHangupHook', () => {

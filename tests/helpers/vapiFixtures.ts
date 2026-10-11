@@ -78,7 +78,6 @@ export function buildMinimalConfig(options: MinimalConfigOptions = {}): ClientCo
       notifiers: [],
     },
     safety: {
-      emergencyNumber: '000',
       noMedicalAdvice: true,
     },
     scripts: buildScripts(language),

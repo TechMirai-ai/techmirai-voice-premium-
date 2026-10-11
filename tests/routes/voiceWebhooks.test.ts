@@ -303,7 +303,6 @@ describe('POST /api/voice/call-topic', () => {
     ['a FAQ id', 'insurance', 'resolved'],
     ['other', 'other', 'resolved'],
     ['unresolved', 'unresolved', 'unresolved'],
-    ['emergency', 'emergency', 'emergency'],
   ])('records %s', async (_label, topic, outcome) => {
     const { app, topics } = buildVoiceApp();
 
