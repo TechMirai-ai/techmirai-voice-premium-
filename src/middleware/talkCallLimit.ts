@@ -13,15 +13,16 @@
  *   2. A shared `?key=` query value, compared against TALK_BYPASS_KEY in constant
  *      time, bypasses the cap entirely for the owner/staff link.
  *
- * The call's own 5-minute hard cap is handled separately, by Vapi itself
- * (`maxDurationSeconds`, passed as a call-start override) — see talkPage.ts.
+ * There is no meaningful call-length cap: Vapi has no "unlimited" value and
+ * defaults to 600s when unset, so talkPage.ts passes Vapi's maximum
+ * (`maxDurationSeconds`, call-start override) to every call, public or bypassed.
  */
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 
 export const TALK_CALL_CAP = 4;
 export const TALK_CALL_COOKIE_MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000;
-/** Hard per-call cutoff enforced by Vapi itself, for every call (public or bypassed) alike. */
-export const TALK_MAX_CALL_DURATION_SECONDS = 300;
+/** Vapi's maximum allowed value (12h) — the closest to "no cap"; unset would mean Vapi's 600s default. */
+export const TALK_MAX_CALL_DURATION_SECONDS = 43200;
 
 export function talkCallCookieName(clientId: string): string {
   return `tmvp_talk_calls_${clientId}`;

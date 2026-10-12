@@ -169,11 +169,11 @@ describe('GET /talk', () => {
   });
 
   describe('POST /talk/:clientId/:language/calls', () => {
-    test('a fresh visitor is allowed and gets the real assistant id plus the 5-minute cap', async () => {
+    test('a fresh visitor is allowed and gets the real assistant id plus the maximum Vapi call duration (no 5-minute cap)', async () => {
       const response = await request(app()).post('/talk/demo-clinic/ja/calls');
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual({ assistantId: JA_ASSISTANT_ID, maxDurationSeconds: 300 });
+      expect(response.body).toEqual({ assistantId: JA_ASSISTANT_ID, maxDurationSeconds: 43200 });
       expect(response.headers['set-cookie']?.[0]).toContain('tmvp_talk_calls_demo-clinic=');
     });
 
