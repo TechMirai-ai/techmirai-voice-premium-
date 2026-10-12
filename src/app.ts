@@ -38,6 +38,11 @@ import type { Queryable } from './db/pool.js';
 import { isDatabaseReachable } from './db/pool.js';
 import { summarizeError } from './lib/errorSummary.js';
 import { logger } from './lib/logger.js';
+import {
+  ARCHIVE_RETRY_PATH,
+  archiveRetryRouter,
+  type ArchiveRetryRouteDeps,
+} from './routes/archiveRetry.js';
 import { STAFF_URL_PREFIX, staffRouter, type StaffRouterOptions } from './routes/staffRouter.js';
 import { TALK_URL_PREFIX, talkRouter, type TalkRouterOptions } from './routes/talkPage.js';
 import { VOICE_API_PREFIX, voiceRouter, type VoiceRouterOptions } from './routes/voiceRouter.js';
@@ -51,6 +56,8 @@ export interface AppOptions {
   isProduction: boolean;
   /** The Vapi webhooks. Required: there is deliberately no way to mount them unauthenticated. */
   voice: VoiceRouterOptions;
+  /** VP-12: the archive retry endpoint; omit to leave it unmounted (archive not configured). */
+  archiveRetry?: ArchiveRetryRouteDeps;
   /** The staff dashboard. `isProduction` is filled in from the field above. */
   staff: Omit<StaffRouterOptions, 'isProduction'>;
   /** The public, link-shareable "Talk" demo page (mounted in every environment). */
@@ -105,6 +112,10 @@ export function createApp(options: AppOptions): Express {
   app.use(helmet());
   // Before the global body parser: the voice routes throttle, authenticate and only then parse.
   app.use(VOICE_API_PREFIX, voiceRouter(options.voice));
+  // VP-12: the developer-archive retry pass. Only exists once the Google archive is configured.
+  if (options.archiveRetry) {
+    app.use(ARCHIVE_RETRY_PATH, archiveRetryRouter(options.archiveRetry));
+  }
   app.use(express.json({ limit: JSON_BODY_LIMIT }));
   // Self-contained cookie/session/urlencoded-body parsing, like the voice router above.
   app.use(STAFF_URL_PREFIX, staffRouter({ ...options.staff, isProduction: options.isProduction }));

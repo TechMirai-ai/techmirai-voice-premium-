@@ -12,6 +12,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import { createApp } from '../src/app.js';
 import { createPool } from '../src/db/pool.js';
+import { createArchive } from '../src/google/createArchive.js';
 import { isProduction, loadEnv } from '../src/env.js';
 import { LoggingNotifier } from '../src/lib/callbackNotifier.js';
 import { logger } from '../src/lib/logger.js';
@@ -28,6 +29,8 @@ import { StateFileAssistantResolver } from '../src/vapi/assistantResolver.js';
 const env = loadEnv();
 const pool = createPool({ connectionString: env.DATABASE_URL });
 const callbacks = new PgCallbackRequestRepository(pool);
+// VP-12: the developer archive (Google). Undefined until the GOOGLE_* variables are set.
+const archive = createArchive({ db: pool, vapiApiKey: env.VAPI_API_KEY });
 const PgSession = connectPgSimple(session);
 
 const app = createApp({
@@ -42,6 +45,7 @@ const app = createApp({
     topics: new PgCallTopicRepository(pool),
     // VP-12: staff summary/status row written from the end-of-call-report.
     callLogs: new PgCallLogRepository(pool),
+    ...(archive ? { archive: archive.reportArchiver } : {}),
     // F-2: email/LINE are new classes implementing CallbackNotifier, swapped in here.
     notifier: new LoggingNotifier(),
     // VP-8 demo reservation feature.
@@ -49,6 +53,7 @@ const app = createApp({
     patients: new PgReservationPatientRepository(pool),
     services: new PgReservationServiceRepository(pool),
   },
+  ...(archive ? { archiveRetry: archive.retry } : {}),
   staff: {
     sessionStore: new PgSession({
       pool,

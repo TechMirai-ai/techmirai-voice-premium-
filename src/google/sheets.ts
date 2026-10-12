@@ -16,6 +16,8 @@ export interface SheetsClient {
   /** Appends one row below the last row of `sheetName`; returns the A1 range it was written to. */
   appendRow(sheetName: string, values: readonly string[]): Promise<string>;
   clearRange(range: string): Promise<void>;
+  /** Overwrites a single cell, e.g. 'Sheet1!G5'. */
+  updateCell(range: string, value: string): Promise<void>;
 }
 
 const appendSchema = z.object({ updates: z.object({ updatedRange: z.string().min(1) }) });
@@ -44,6 +46,15 @@ export function createSheetsClient(
         );
       }
       return parsed.data.updates.updatedRange;
+    },
+
+    async updateCell(range, value) {
+      await googleFetch(
+        fetchFn,
+        auth,
+        `${base}/${encodeURIComponent(range)}?valueInputOption=RAW`,
+        { method: 'PUT', headers: json, body: JSON.stringify({ values: [[value]] }) },
+      );
     },
 
     async clearRange(range) {

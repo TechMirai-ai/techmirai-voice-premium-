@@ -1,6 +1,7 @@
 import request from 'supertest';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 
+import type { ArchiveReportInput, InlineOutcome } from '../../src/google/archiveService.js';
 import { AUTH, buildVoiceApp, CALL_ID } from '../helpers/voiceFixtures.js';
 
 const PATH = '/api/voice/end-of-call-report';
@@ -127,6 +128,74 @@ describe('POST /api/voice/end-of-call-report', () => {
     const body = reportBody({}, { assistant: { id: 'someone-else', name: 'unknown--ja' } });
     await request(app).post(PATH).set(AUTH).send(body).expect(200);
     expect(callLogs.recorded).toEqual([]);
+  });
+
+  describe('developer archive hand-off', () => {
+    const archiver = () => {
+      const archiveReport = vi.fn((_input: ArchiveReportInput) =>
+        Promise.resolve<InlineOutcome>('done'),
+      );
+      return { archiveReport };
+    };
+
+    test('hands the full transcript to the archiver AFTER the staff row is saved', async () => {
+      const archive = archiver();
+      const { app, callLogs } = buildVoiceApp({ archive });
+      archive.archiveReport.mockImplementation(() => {
+        // by the time the archiver runs, the staff row must already exist
+        expect(callLogs.recorded).toHaveLength(1);
+        return Promise.resolve('done');
+      });
+
+      await request(app)
+        .post(PATH)
+        .set(AUTH)
+        .send(reportBody({ presignedMonoUrl: 'https://signed.example/a.wav' }))
+        .expect(200);
+
+      expect(archive.archiveReport).toHaveBeenCalledWith({
+        clientId: 'sakura-seikotsuin',
+        callId: CALL_ID,
+        transcript: 'AI: Hello\nUser: Hi',
+        startedAt: '2026-10-12T01:00:00.000Z',
+        endedReason: 'assistant-ended-call',
+        presignedMonoUrl: 'https://signed.example/a.wav',
+      });
+    });
+
+    test('an archiver failure never changes the response or loses the staff row', async () => {
+      const archive = archiver();
+      archive.archiveReport.mockRejectedValue(new Error('Google exploded'));
+      const { app, callLogs } = buildVoiceApp({ archive });
+
+      await request(app).post(PATH).set(AUTH).send(reportBody()).expect(200);
+
+      expect(callLogs.recorded).toHaveLength(1);
+    });
+
+    test('no archive is attempted when the staff row could not be saved', async () => {
+      const archive = archiver();
+      const { app, callLogs } = buildVoiceApp({ archive });
+      callLogs.failWith = new Error('db down');
+
+      await request(app).post(PATH).set(AUTH).send(reportBody()).expect(500);
+
+      expect(archive.archiveReport).not.toHaveBeenCalled();
+    });
+
+    test('the staff row never contains the transcript even when archiving is on', async () => {
+      const { app, callLogs } = buildVoiceApp({ archive: archiver() });
+
+      await request(app).post(PATH).set(AUTH).send(reportBody()).expect(200);
+
+      expect(JSON.stringify(callLogs.recorded[0])).not.toContain('Hello');
+    });
+
+    test('works with no archive configured (the default before Google is set up)', async () => {
+      const { app, callLogs } = buildVoiceApp();
+      await request(app).post(PATH).set(AUTH).send(reportBody()).expect(200);
+      expect(callLogs.recorded).toHaveLength(1);
+    });
   });
 
   test('answers 500 when the database write fails, so the failure is visible', async () => {

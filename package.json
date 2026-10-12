@@ -28,6 +28,7 @@
     "vapi:test-web": "tsx src/vapi/webTester.ts",
     "google:consent": "tsx src/cli/googleConsent.ts",
     "google:check": "tsx src/cli/googleCheck.ts",
+    "archive:retry": "tsx src/cli/archiveRetry.ts",
     "staff:create": "tsx src/cli/createStaffUser.ts",
     "demo:seed": "tsx src/cli/seedReservationDemoData.ts"
   },

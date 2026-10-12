@@ -3,7 +3,9 @@
   "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }],
   "functions": {
     "api/index.ts": {
-      "includeFiles": "{clients/**,.vapi-state.*.json}"
+      "includeFiles": "{clients/**,.vapi-state.*.json}",
+      "maxDuration": 60
     }
-  }
+  },
+  "crons": [{ "path": "/api/internal/archive-retry", "schedule": "0 3 * * *" }]
 }

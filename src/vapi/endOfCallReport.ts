@@ -64,6 +64,8 @@ export interface EndOfCallReport {
   startedAt?: string;
   endedAt?: string;
   summary?: string;
+  /** The full transcript — for the developer archive ONLY, never the staff row. May be empty. */
+  transcript: string;
   /** Tool outcomes from `artifact.messages`, in call order. */
   toolResults: ToolOutcome[];
   /** From the first structured output that produced a result. */
@@ -148,6 +150,7 @@ export function parseEndOfCallReport(body: unknown): EndOfCallReport | undefined
     ...(message.startedAt ? { startedAt: message.startedAt } : {}),
     ...(message.endedAt ? { endedAt: message.endedAt } : {}),
     ...(message.analysis?.summary ? { summary: message.analysis.summary } : {}),
+    transcript: artifact?.transcript ?? '',
     toolResults: messages
       .filter((entry) => entry.role === 'tool_call_result' && entry.name)
       .map((entry) => ({ name: entry.name ?? '', result: entry.result })),

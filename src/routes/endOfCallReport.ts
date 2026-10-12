@@ -11,6 +11,7 @@
  */
 import { Router, type Request, type Response } from 'express';
 
+import type { ArchiveReportInput, InlineOutcome } from '../google/archiveService.js';
 import { deriveCallStatus } from '../lib/callStatus.js';
 import { summarizeError } from '../lib/errorSummary.js';
 import { logger } from '../lib/logger.js';
@@ -20,9 +21,40 @@ import { parseEndOfCallReport, type EndOfCallReport } from '../vapi/endOfCallRep
 
 export const END_OF_CALL_REPORT_PATH = '/end-of-call-report';
 
+/** The developer archive (full transcript + audio). Optional: off until Google is configured. */
+export interface ReportArchiver {
+  archiveReport(input: ArchiveReportInput): Promise<InlineOutcome>;
+}
+
 export interface EndOfCallReportRouteDeps {
   resolver: AssistantResolver;
   callLogs: CallLogRepository;
+  archive?: ReportArchiver;
+}
+
+/**
+ * Runs after the staff row is safely saved. A failure here is logged and swallowed: the archive has
+ * its own retry queue, and Google trouble must never turn a saved call into a failed webhook.
+ */
+async function archiveSafely(
+  archive: ReportArchiver | undefined,
+  input: ArchiveReportInput,
+): Promise<void> {
+  if (!archive) return;
+  try {
+    const outcome = await archive.archiveReport(input);
+    logger.info('call archive attempted', {
+      clientId: input.clientId,
+      callId: input.callId,
+      outcome,
+    });
+  } catch (error) {
+    logger.error('call archive failed to start', {
+      clientId: input.clientId,
+      callId: input.callId,
+      ...summarizeError(error),
+    });
+  }
 }
 
 function safeResolve(resolver: AssistantResolver, ref: AssistantRef) {
@@ -81,6 +113,15 @@ export function endOfCallReportRouter(deps: EndOfCallReportRouteDeps): Router {
     });
     await deps.callLogs.record(toCallLog(report, resolved.clientId, resolved.language, status));
     logger.info('call logged', { clientId: resolved.clientId, callId: report.callId, status });
+
+    await archiveSafely(deps.archive, {
+      clientId: resolved.clientId,
+      callId: report.callId,
+      transcript: report.transcript,
+      startedAt: report.startedAt,
+      endedReason: report.endedReason,
+      presignedMonoUrl: report.recordingUrl,
+    });
 
     res.status(200).json({ status: 'ok' });
   });

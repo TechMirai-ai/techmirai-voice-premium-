@@ -26,6 +26,8 @@ import type {
   ReservationService,
   ReservationServiceRepository,
 } from '../../src/repositories/reservationServiceRepository.js';
+import type { ArchiveRetryRouteDeps } from '../../src/routes/archiveRetry.js';
+import type { ReportArchiver } from '../../src/routes/endOfCallReport.js';
 import type { AssistantResolver } from '../../src/vapi/assistantResolver.js';
 import type { VoiceRouterOptions } from '../../src/routes/voiceRouter.js';
 import type { RateLimitOptions } from '../../src/middleware/rateLimit.js';
@@ -143,7 +145,13 @@ export const resolver: AssistantResolver = {
       : undefined,
 };
 
-export function buildVoiceApp(options: { rateLimit?: RateLimitOptions } = {}) {
+export function buildVoiceApp(
+  options: {
+    rateLimit?: RateLimitOptions;
+    archive?: ReportArchiver;
+    archiveRetry?: ArchiveRetryRouteDeps;
+  } = {},
+) {
   const callbacks = new MemoryCallbacks();
   const topics = new MemoryTopics();
   const callLogs = new MemoryCallLogs();
@@ -163,11 +171,13 @@ export function buildVoiceApp(options: { rateLimit?: RateLimitOptions } = {}) {
     patients,
     appointments,
     ...(options.rateLimit ? { rateLimit: options.rateLimit } : {}),
+    ...(options.archive ? { archive: options.archive } : {}),
   };
   const app = createApp({
     db: healthyDb,
     isProduction: false,
     voice: voiceOptions,
+    ...(options.archiveRetry ? { archiveRetry: options.archiveRetry } : {}),
     staff: buildStaffOptions(),
     talk: {
       publicKey: 'test-vapi-public-key',

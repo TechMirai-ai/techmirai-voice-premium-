@@ -48,6 +48,16 @@ describe('parseEndOfCallReport', () => {
     expect(parsed.recordingUrl).toBe('https://signed.example/mono.wav');
   });
 
+  test('carries the full transcript through for the developer archive', () => {
+    const parsed = parseEndOfCallReport(report())!;
+    expect(parsed.transcript).toBe('AI: Hello\nUser: Hi');
+  });
+
+  test('a report with no transcript yields an empty one', () => {
+    const parsed = parseEndOfCallReport(report({}, { transcript: undefined }))!;
+    expect(parsed.transcript).toBe('');
+  });
+
   test('reads topic and resolved from the first structured output with a result', () => {
     const parsed = parseEndOfCallReport(report())!;
     expect(parsed.topic).toBe('parking');
