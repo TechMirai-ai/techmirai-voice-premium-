@@ -1,76 +1,97 @@
-# VP-12 — Google setup guide (done by you, in your own Google account)
+# VP-12 — Google setup guide (Option B: Sheets via service account, Drive via one-time OAuth)
 
-Goal: a private Google Sheet (full transcripts) and a private Google Drive folder (call audio) that **only you** can open, written to by our server through a service account.
+Goal: a private Google Sheet (full transcripts) and a private Drive folder (call audio) that **only you** can open, written to by our server.
 
-**Never paste a key file, private key or secret into the chat, a commit, or a ticket.** What you send back to me at the end is only: the service-account **email**, the **Sheet ID** and the **Drive folder ID** (none of these are secrets).
+- **Sheets** is written by a **service account** (you share the Sheet with its email).
+- **Drive** is written with a **long-lived OAuth refresh token** from your own Gmail. A service account cannot upload into a personal Gmail's Drive (no storage quota), which is why Drive is different.
 
-Time: about 20 minutes.
+**Never paste a key, token or secret into the chat, a commit or a ticket.** What you send back to me at the end is only: the service-account **email**, the **Sheet ID** and the **Drive folder ID** (none are secrets).
+
+Time: about 30 minutes.
 
 ---
 
-## ⚠️ Read first: the Drive-upload problem
+## ⚠️ The two traps
 
-A service account has **no storage space of its own**. Google rejects uploads from it into a normal "My Drive" folder of a personal Gmail account with `Service Accounts do not have storage quota`. (Sheets is fine — the Sheet is yours, the service account only edits it.) Reports also say service accounts created after April 2025 have zero quota. This comes from vendor docs and forum posts, not an official Google page, so we will **test it** (Step 8) before I build more on it.
-
-Pick one for the audio folder:
-
-| Option | What you need | Notes |
-| --- | --- | --- |
-| **A. Shared Drive** (keeps the "service account only" design) | A Google **Workspace** account (paid, ~US$7/user/month). Personal Gmail cannot create Shared Drives. | Cleanest. Service account is a member of the Shared Drive. |
-| **B. One-time OAuth for Drive only** | Your normal Gmail. | You click "Allow" once; I store a refresh token. Sheets still uses the service account. Small deviation from decision 6 — tell me if you want it. |
-
-If you have no Workspace account, do **B**. Steps 1–7 are the same for both.
+1. **Publish the OAuth consent screen to "In production" BEFORE you run the consent step (Step 6).** A refresh token issued while the app is in **"Testing"** stops working after **7 days** — uploads would start failing a week after launch. Tokens issued before publishing do not become long-lived; you must consent again afterwards.
+2. **The Drive folder must be created by the app, not by hand.** We request only the narrow `drive.file` permission (the app sees only what it created, so a leaked token cannot read the rest of your Drive). `npm run google:consent` creates the folder for you.
 
 ---
 
 ## Step 1 — Create a Google Cloud project
-1. Go to https://console.cloud.google.com/ signed in as **your developer Google account**.
-2. Top bar → project picker → **New project**. Name: `techmirai-voice-archive`. Create, then select it.
+1. https://console.cloud.google.com/ signed in as **your developer Google account**.
+2. Project picker → **New project** → name `techmirai-voice-archive` → Create, then select it.
 
 ## Step 2 — Enable the two APIs
-1. Menu → **APIs & Services → Library**.
-2. Search **Google Sheets API** → **Enable**.
-3. Search **Google Drive API** → **Enable**.
+**APIs & Services → Library** → enable **Google Sheets API** and **Google Drive API**.
 
-## Step 3 — Create the service account
-1. **IAM & Admin → Service Accounts → Create service account**.
-2. Name: `call-archive-writer`. Skip the optional "grant access" and "grant users access" steps. **Done**.
-3. Click it and copy its **email** — it looks like `call-archive-writer@techmirai-voice-archive.iam.gserviceaccount.com`. **This is the address you share things with, and the one to send me.**
+## Step 3 — Service account (for the Sheet only)
+1. **IAM & Admin → Service Accounts → Create service account** → name `call-archive-writer`. Skip the optional access steps → Done.
+2. Open it and copy its **email** (`call-archive-writer@<project-id>.iam.gserviceaccount.com`). **Send me this.**
+3. **Keys → Add key → Create new key → JSON.** Move the downloaded file to `~/secrets/` (outside the project).
+4. Make it one line: `base64 -w0 ~/secrets/<file>.json` — that output is `GOOGLE_SERVICE_ACCOUNT_JSON_B64`.
 
-## Step 4 — Create its key (this is the secret)
-1. Open the service account → **Keys → Add key → Create new key → JSON → Create**. A `.json` file downloads.
-2. Move it somewhere **outside** the project folder (for example `~/secrets/`). Never commit it.
-3. Make it one line for Vercel (Linux): `base64 -w0 ~/secrets/<file>.json` — the output is the value of `GOOGLE_SERVICE_ACCOUNT_JSON_B64` below. Don't paste it anywhere except the env settings.
+(If key creation is blocked by an org policy, tell me.)
 
-If your Google Cloud org blocks key creation ("Service account key creation is disabled"), tell me — there is a keyless alternative, but it needs more setup.
+## Step 4 — OAuth consent screen, then the OAuth client
+1. **APIs & Services → OAuth consent screen** (shown as *Google Auth Platform* in newer consoles).
+   - User type **External**; app name e.g. `TechMirai call archive`; your email as support and developer contact.
+   - **Scopes / Data access:** add `https://www.googleapis.com/auth/drive.file` (non-sensitive — no Google verification review should be needed; tell me if the console says otherwise).
+2. **Publish app → "In production".** Confirm the status now reads *In production*, not *Testing*. (At consent time Google will show an "unverified app" warning — this is your own app: **Advanced → Go to … (unsafe)**.)
+3. **Credentials → Create credentials → OAuth client ID → Application type: Desktop app** → create.
+4. Copy the **client ID** and **client secret** into your local `.env`:
+   ```
+   GOOGLE_OAUTH_CLIENT_ID=...
+   GOOGLE_OAUTH_CLIENT_SECRET=...
+   ```
 
-## Step 5 — Create the private Sheet
-1. https://sheets.google.com → **Blank spreadsheet**. Name: `Call transcripts (private)`.
-2. **Share** → add the service-account email as **Editor**. Untick "Notify people". Leave "General access" as **Restricted**.
-3. Copy the **Sheet ID** from the URL: `https://docs.google.com/spreadsheets/d/<SHEET_ID>/edit`.
+## Step 5 — The private Sheet
+1. https://sheets.google.com → blank spreadsheet `Call transcripts (private)`.
+2. **Share** → add the service-account email as **Editor** (untick "Notify"); leave general access **Restricted**.
+3. Copy the **Sheet ID** from `https://docs.google.com/spreadsheets/d/<SHEET_ID>/edit`. **Send me this.**
 
-## Step 6 — Create the private audio folder
-- **Option A:** in your Workspace, create a Shared Drive `Call audio (private)`; add the service-account email as **Content manager**; create nothing else shared. Copy the folder ID from the URL `https://drive.google.com/drive/folders/<FOLDER_ID>`.
-- **Option B:** in Drive create a folder `Call audio (private)` (stays Restricted, shared with nobody). Copy `<FOLDER_ID>` the same way. You do not share it with the service account.
+## Step 6 — One-time consent (creates the folder and the refresh token)
+In a terminal in the project folder:
+```
+npm run google:consent
+```
+It prints a URL. Open it in a browser signed in as your developer account, approve, and return to the terminal. It then:
+- creates the private Drive folder **"Call audio (private)"** and prints its **folder ID** (send me this);
+- writes the secrets to `~/secrets/techmirai-google-oauth.env` (mode 0600, outside the repo) — it does **not** print the refresh token.
 
-## Step 7 — Set the values
-Put these in your local `.env` **and** in Vercel (Project → Settings → Environment Variables → Production; add Preview only if you want it):
+## Step 7 — Put the values where the other secrets live
+In your local `.env` **and** in Vercel (Project → Settings → Environment Variables → Production):
 
-| Variable | Value |
+| Variable | Where it comes from |
 | --- | --- |
-| `GOOGLE_SERVICE_ACCOUNT_JSON_B64` | the base64 line from Step 4 |
-| `GOOGLE_ARCHIVE_SHEET_ID` | Sheet ID (Step 5) |
-| `GOOGLE_ARCHIVE_DRIVE_FOLDER_ID` | Folder ID (Step 6) |
-| `ARCHIVE_RETRY_SECRET` | any random 32+ character string (protects the retry endpoint) |
+| `GOOGLE_SERVICE_ACCOUNT_JSON_B64` | Step 3 |
+| `GOOGLE_ARCHIVE_SHEET_ID` | Step 5 |
+| `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | Step 4 |
+| `GOOGLE_OAUTH_REFRESH_TOKEN` | from `~/secrets/techmirai-google-oauth.env` |
+| `GOOGLE_ARCHIVE_DRIVE_FOLDER_ID` | from the same file |
+| `GOOGLE_OAUTH_TOKEN_ISSUED_AT` | from the same file |
+| `ARCHIVE_RETRY_SECRET` | any random 32+ character string you make up |
 
-Option B adds, after I give you a small consent script: `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REFRESH_TOKEN`.
+All of them or none: the app refuses to start with a half-configured archive, and says which variable is missing. Open the files in an editor to copy values — don't `source` them in a shell.
 
-Do not use `source .env` in a shell to check them; just open the file.
+## Step 8 — Check it
+```
+npm run google:check
+```
+It writes a test row and two tiny test files, then removes them. It specifically proves:
+1. a first upload with a fresh token works;
+2. after the access token is forced to expire, a **second** token is minted from the stored refresh token and a second upload works;
+3. a brand-new process holding only the stored secrets can still read the file (what a fresh Vercel instance looks like);
+4. the token's age — see below.
 
-## Step 8 — Smoke test (I will provide it)
-The first Google code I write is `npm run google:check`: it appends one test row to the Sheet and uploads one tiny file to the folder, then deletes the test file. If the Drive step fails with a storage-quota error, we switch to Option A or B before anything else is built.
+**Expected `WARN` on day 1:** "The refresh token is 0.0 days old… re-run on or after <date>". The check cannot read whether Google treated the app as *Testing*; the proof is the same command still passing **8+ days later**. Put that date in your calendar.
+
+| If you see… | It means |
+| --- | --- |
+| `invalid_grant` / "rejected" | The token was revoked or expired — most likely issued while still in *Testing*. Confirm Step 4.2, then re-run `google:consent`. |
+| "folder not found … drive.file" | The folder wasn't created by this app. Re-run `google:consent`. |
+| HTTP 403 on Sheets | The Sheet isn't shared with the service-account email as Editor. |
+| "Did not return a refresh token" | Remove the app at https://myaccount.google.com/permissions and run `google:consent` again. |
 
 ## What to send me
-1. The service-account **email**.
-2. The **Sheet ID** and **folder ID**.
-3. Which Drive option you chose (A or B).
+1. The service-account **email**. 2. The **Sheet ID**. 3. The **Drive folder ID**. 4. The output of `npm run google:check` (it contains no secrets).
