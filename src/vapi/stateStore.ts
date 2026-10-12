@@ -17,6 +17,8 @@ export interface VapiState {
   tools: Record<string, string>;
   assistants: Record<string, string>;
   squads: Record<string, string>;
+  /** VP-12: the per-client call-outcome structured output. Absent in state files from before VP-12. */
+  structuredOutputs: Record<string, string>;
 }
 
 export interface StateStoreOptions {
@@ -34,7 +36,7 @@ export function stateFilePath(clientId: string, options: StateStoreOptions = {})
 
 /** Empty state — the shape a client gets on its first-ever sync. */
 function emptyState(): VapiState {
-  return { tools: {}, assistants: {}, squads: {} };
+  return { tools: {}, assistants: {}, squads: {}, structuredOutputs: {} };
 }
 
 /** Never throws on a missing file: absence means "nothing synced yet". */
@@ -47,6 +49,7 @@ export function readState(clientId: string, options: StateStoreOptions = {}): Va
     tools: { ...(parsed.tools ?? {}) },
     assistants: { ...(parsed.assistants ?? {}) },
     squads: { ...(parsed.squads ?? {}) },
+    structuredOutputs: { ...(parsed.structuredOutputs ?? {}) },
   };
 }
 

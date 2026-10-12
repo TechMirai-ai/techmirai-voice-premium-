@@ -40,7 +40,8 @@ import {
   type StateStoreOptions,
   type VapiState,
 } from './stateStore.js';
-import type { VapiToolPayload } from './types.js';
+import { callOutcomeStateName, renderCallOutcomeOutput } from './callReporting.js';
+import type { VapiStructuredOutputPayload, VapiToolPayload } from './types.js';
 
 export class UncommittedStateFileError extends Error {
   constructor(clientId: string) {
@@ -67,6 +68,8 @@ export interface SyncResult {
   clientId: string;
   /** The squad member id synced — a language code, or the default language's "-return" variant. */
   member: string;
+  /** VP-12: the per-client call-outcome structured output (shared by every member). */
+  outcomeOutput: SyncResourceResult;
   /** The request_callback tool. */
   tool: SyncResourceResult;
   /** The silent, asynchronous log_call_topic tool. */
@@ -175,9 +178,34 @@ async function applyTools(
   return { state, results };
 }
 
+/**
+ * Creates or updates the client's call-outcome structured output and persists its id immediately
+ * (same reasoning as `applyTools`: a retry after a later failure must update, not create again).
+ */
+async function applyCallOutcomeOutput(
+  payload: VapiStructuredOutputPayload,
+  plan: SyncResourceResult,
+  client: VapiSyncClient,
+  clientId: string,
+  startState: VapiState,
+  stateOptions: StateStoreOptions,
+): Promise<VapiState> {
+  const existingId = startState.structuredOutputs[plan.name];
+  const synced = existingId
+    ? await client.structuredOutputs.update(existingId, payload)
+    : await client.structuredOutputs.create(payload);
+  const state = {
+    ...startState,
+    structuredOutputs: { ...startState.structuredOutputs, [plan.name]: synced.id },
+  };
+  writeState(clientId, state, stateOptions);
+  return state;
+}
+
 function buildDiffLines(
   clientId: string,
   member: string,
+  outcomeOutput: SyncResourceResult,
   tool: SyncResourceResult,
   topicTool: SyncResourceResult,
   handoffTools: SyncResourceResult[],
@@ -186,6 +214,7 @@ function buildDiffLines(
 ): string[] {
   return [
     `Client: ${clientId}  Member: ${member}`,
+    `  outcome:   ${describeResource(outcomeOutput)}`,
     `  tool:      ${describeResource(tool)}`,
     `  topic:     ${describeResource(topicTool)}`,
     ...handoffTools.map((handoff) => `  handoff:   ${describeResource(handoff)}`),
@@ -206,13 +235,29 @@ export async function syncClient(
   const config = loadClient(clientId, loadOptions);
   const faq = await new FileKnowledgeSource(loadOptions).listFaq(clientId);
   const services = await options.services.listByClient(clientId);
+
+  // VP-12: the call-outcome structured output must exist before any assistant can link to it.
+  const outcomeName = callOutcomeStateName(clientId);
+  const initialState = readState(clientId, stateOptions);
+  const outcomePlan = planResource(outcomeName, initialState.structuredOutputs[outcomeName]);
+  const state = options.dryRun
+    ? initialState
+    : await applyCallOutcomeOutput(
+        renderCallOutcomeOutput(config, faq),
+        outcomePlan,
+        options.client,
+        clientId,
+        initialState,
+        stateOptions,
+      );
+  const outcomeOutputId = state.structuredOutputs[outcomeName];
+
   const rendered = renderAssistant(config, memberId, faq, {
     baseUrl: options.baseUrl,
     credentialId: options.credentialId,
     services,
+    ...(outcomeOutputId ? { outcomeOutputId } : {}),
   });
-
-  const state = readState(clientId, stateOptions);
   const assistantName = assistantResourceName(clientId, memberId);
   const toolName = toolStateName(clientId, memberId);
 
@@ -242,6 +287,7 @@ export async function syncClient(
       dryRun: true,
       clientId,
       member: memberId,
+      outcomeOutput: outcomePlan,
       tool: toolPlan.result,
       topicTool: topicToolPlan.result,
       handoffTools: handoffResults,
@@ -250,6 +296,7 @@ export async function syncClient(
       diffLines: buildDiffLines(
         clientId,
         memberId,
+        outcomePlan,
         toolPlan.result,
         topicToolPlan.result,
         handoffResults,
@@ -294,10 +341,12 @@ export async function syncClient(
   );
 
   const finalAssistant = { ...assistantPlan, id: syncedAssistant.id };
+  const finalOutcome = { ...outcomePlan, ...(outcomeOutputId ? { id: outcomeOutputId } : {}) };
   return {
     dryRun: false,
     clientId,
     member: memberId,
+    outcomeOutput: finalOutcome,
     tool: toolResult,
     topicTool: topicToolResult,
     handoffTools: handoffResults,
@@ -306,6 +355,7 @@ export async function syncClient(
     diffLines: buildDiffLines(
       clientId,
       memberId,
+      finalOutcome,
       toolResult,
       topicToolResult,
       handoffResults,

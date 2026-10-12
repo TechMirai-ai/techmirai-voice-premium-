@@ -14,7 +14,7 @@ import {
 } from './promptTemplate.js';
 import { endCallPhrasesFor, silenceHangupHook } from './callEnding.js';
 import type { ClientConfig, ScriptKey } from '../config/schema.js';
-import type { VapiHandoffToolPayload, VapiSquadPayload } from './types.js';
+import type { VapiHandoffToolPayload, VapiReportingConfig, VapiSquadPayload } from './types.js';
 
 export class MissingArrivalScriptError extends Error {
   constructor(clientId: string, language: string) {
@@ -118,6 +118,7 @@ export function renderHandoffTool(
   config: ClientConfig,
   from: string,
   to: string,
+  reporting?: VapiReportingConfig,
 ): VapiHandoffToolPayload {
   for (const code of [from, to]) {
     if (!config.languages.supported.includes(code)) {
@@ -151,6 +152,8 @@ export function renderHandoffTool(
           // Same reasoning for the platform-level hang-up backstops (VAPI-FACTS.md VP-7 R8).
           ...(endCallPhrases ? { endCallPhrases } : {}),
           hooks: [silenceHangupHook()],
+          // VP-12: a call that was handed off must still report and record (see callReporting.ts).
+          ...(reporting ?? {}),
         },
       },
     ],

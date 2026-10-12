@@ -15,6 +15,7 @@ import type {
   VapiAssistantPayload,
   VapiCreatedResource,
   VapiSquadPayload,
+  VapiStructuredOutputPayload,
   VapiToolPayload,
 } from './types.js';
 
@@ -30,6 +31,11 @@ export interface VapiSyncClient {
   squads: {
     create(payload: VapiSquadPayload): Promise<VapiCreatedResource>;
     update(id: string, payload: VapiSquadPayload): Promise<VapiCreatedResource>;
+  };
+  /** VP-12: the per-client call-outcome structured output. */
+  structuredOutputs: {
+    create(payload: VapiStructuredOutputPayload): Promise<VapiCreatedResource>;
+    update(id: string, payload: VapiStructuredOutputPayload): Promise<VapiCreatedResource>;
   };
 }
 
@@ -76,6 +82,17 @@ export function createVapiClient(apiKey: string): VapiSyncClient {
     squads: {
       create: (payload) => client.squads.create(payload),
       update: (id, payload) => client.squads.update({ id, ...payload }),
+    },
+    // `schemaOverride` is required by the SDK type but only the string "true" enables changing the
+    // schema's top-level type — ours is always an object, so it is deliberately left off ("false").
+    structuredOutputs: {
+      create: (payload) => client.structuredOutputs.structuredOutputControllerCreate(payload),
+      update: (id, payload) =>
+        client.structuredOutputs.structuredOutputControllerUpdate({
+          id,
+          schemaOverride: 'false',
+          ...payload,
+        }),
     },
   };
 }

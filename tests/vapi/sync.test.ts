@@ -38,6 +38,8 @@ interface MockClient {
   assistantsUpdate: ReturnType<typeof vi.fn>;
   squadsCreate: ReturnType<typeof vi.fn>;
   squadsUpdate: ReturnType<typeof vi.fn>;
+  outputsCreate: ReturnType<typeof vi.fn>;
+  outputsUpdate: ReturnType<typeof vi.fn>;
   /** Every real API call, in order, e.g. "tools.create", "squads.update". */
   callLog: string[];
 }
@@ -57,13 +59,18 @@ function createMockClient(): MockClient {
   const assistantsUpdate = logged('assistants.update', (id: string) => ({ id }));
   const squadsCreate = logged('squads.create', () => ({ id: `squad-${++counter}` }));
   const squadsUpdate = logged('squads.update', (id: string) => ({ id }));
+  const outputsCreate = logged('structuredOutputs.create', () => ({ id: `output-${++counter}` }));
+  const outputsUpdate = logged('structuredOutputs.update', (id: string) => ({ id }));
 
   return {
     client: {
       tools: { create: toolsCreate, update: toolsUpdate },
       assistants: { create: assistantsCreate, update: assistantsUpdate },
       squads: { create: squadsCreate, update: squadsUpdate },
+      structuredOutputs: { create: outputsCreate, update: outputsUpdate },
     },
+    outputsCreate,
+    outputsUpdate,
     toolsCreate,
     toolsUpdate,
     assistantsCreate,
@@ -126,7 +133,22 @@ describe('syncClient — dry run', () => {
     ]);
     expect(result.assistant.action).toBe('create');
     expect(mock.callLog).toEqual([]);
-    expect(readState(CLIENT_ID, { repoRoot })).toEqual({ tools: {}, assistants: {}, squads: {} });
+    expect(readState(CLIENT_ID, { repoRoot })).toEqual({
+      tools: {},
+      assistants: {},
+      squads: {},
+      structuredOutputs: {},
+    });
+  });
+
+  test('plans the call-outcome output as a create, and still sends the report config without a link', async () => {
+    const result = await sync(createMockClient().client, true);
+
+    expect(result.outcomeOutput).toEqual({
+      name: 'sakura-seikotsuin--call-outcome',
+      action: 'create',
+    });
+    expect(result.diffLines.join('\n')).toContain('outcome:');
   });
 });
 
@@ -137,6 +159,7 @@ describe('syncClient — apply', () => {
     const result = await sync(mock.client, false);
 
     expect(mock.callLog).toEqual([
+      'structuredOutputs.create',
       'tools.create',
       'tools.create',
       'tools.create',
@@ -147,6 +170,58 @@ describe('syncClient — apply', () => {
     expect(state.tools['sakura-seikotsuin--ja--log-call-topic']).toBe(result.topicTool.id);
     expect(state.tools['sakura-seikotsuin--ja--handoff-to-en']).toBe(result.handoffTools[0]?.id);
     expect(state.assistants['sakura-seikotsuin--ja']).toBe(result.assistant.id);
+  });
+
+  test('creates the call-outcome output first and stores its id in the state file', async () => {
+    const mock = createMockClient();
+
+    const result = await sync(mock.client, false);
+
+    expect(mock.callLog[0]).toBe('structuredOutputs.create');
+    const state = readState(CLIENT_ID, { repoRoot });
+    expect(state.structuredOutputs['sakura-seikotsuin--call-outcome']).toBe(
+      result.outcomeOutput.id,
+    );
+    expect(mock.outputsCreate.mock.calls[0]?.[0]).toMatchObject({
+      name: 'sakura-seikotsuin--call-outcome',
+      type: 'ai',
+    });
+  });
+
+  test('links the output into the assistant and every handoff leg, and records the call', async () => {
+    const mock = createMockClient();
+
+    const result = await sync(mock.client, false);
+
+    const assistant = mock.assistantsCreate.mock.calls[0]?.[0] as {
+      server: { url: string };
+      serverMessages: string[];
+      artifactPlan: { recordingEnabled: boolean; structuredOutputIds: string[] };
+    };
+    expect(assistant.server.url).toBe(`${BASE_URL}/api/voice/end-of-call-report`);
+    expect(assistant.serverMessages).toEqual(['end-of-call-report']);
+    expect(assistant.artifactPlan).toEqual({
+      recordingEnabled: true,
+      structuredOutputIds: [result.outcomeOutput.id],
+    });
+    const handoff = mock.toolsCreate.mock.calls
+      .map((call) => call[0] as { type: string; destinations?: Array<{ assistantOverrides: any }> })
+      .find((payload) => payload.type === 'handoff');
+    expect(handoff?.destinations?.[0]?.assistantOverrides.artifactPlan.structuredOutputIds).toEqual(
+      [result.outcomeOutput.id],
+    );
+  });
+
+  test('updates (not re-creates) the call-outcome output on a later sync', async () => {
+    const mock = createMockClient();
+    await sync(mock.client, false);
+    commitState();
+
+    const result = await sync(mock.client, false);
+
+    expect(result.outcomeOutput.action).toBe('update');
+    expect(mock.outputsCreate).toHaveBeenCalledTimes(1);
+    expect(mock.outputsUpdate).toHaveBeenCalledTimes(1);
   });
 
   test('sends a handoff tool payload to Vapi for the second tool', async () => {
@@ -299,11 +374,15 @@ describe('syncSquad', () => {
 
     const result = await syncTheSquad(mock.client, false);
 
+    // The first member creates the client's shared call-outcome output; the others just update it.
     expect(mock.callLog).toEqual([
+      'structuredOutputs.create',
       ...Array(3).fill('tools.create'),
       'assistants.create',
+      'structuredOutputs.update',
       ...Array(3).fill('tools.create'),
       'assistants.create',
+      'structuredOutputs.update',
       ...Array(3).fill('tools.create'),
       'assistants.create',
       'squads.create',

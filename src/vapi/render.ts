@@ -10,6 +10,7 @@
  */
 import { allowedTopics, CALL_OUTCOMES } from '../lib/callTopics.js';
 import { endCallPhrasesFor, silenceHangupHook } from './callEnding.js';
+import { renderReportingConfig } from './callReporting.js';
 import {
   UnsupportedLanguageError,
   buildSystemPrompt,
@@ -91,6 +92,11 @@ export interface RenderOptions {
    * rendered" pattern as a single-language client getting no handoff tools.
    */
   services?: ReservationService[];
+  /**
+   * VP-12: the id of this client's call-outcome structured output on Vapi. Unknown in a dry run
+   * (nothing exists yet) — the assistant then still reports and records, just without the link.
+   */
+  outcomeOutputId?: string;
 }
 
 export interface RenderedHandoffTool {
@@ -435,6 +441,7 @@ export function renderAssistant(
       : [];
 
   const endCallPhrases = endCallPhrasesFor(config, language);
+  const reporting = renderReportingConfig(baseUrl, options.credentialId, options.outcomeOutputId);
 
   const assistant: VapiAssistantPayload = {
     name: assistantResourceName(config.clientId, memberId),
@@ -481,11 +488,13 @@ export function renderAssistant(
     ...(endCallPhrases ? { endCallPhrases } : {}),
     backgroundSound: BACKGROUND_SOUND,
     hooks: [silenceHangupHook()],
+    // VP-12: route the end-of-call-report to us, record the call, run the outcome extraction.
+    ...reporting,
   };
 
   const handoffTools = handoffTargets(config, language).map((toLanguage) => ({
     toLanguage,
-    payload: renderHandoffTool(config, language, toLanguage),
+    payload: renderHandoffTool(config, language, toLanguage, reporting),
   }));
 
   return { assistant, tool, topicTool, handoffTools, reservationTools };

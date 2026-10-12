@@ -43,6 +43,7 @@ describe('GET /talk', () => {
           'demo-clinic--en': EN_ASSISTANT_ID,
         },
         squads: {},
+        structuredOutputs: {},
       },
       { repoRoot },
     );

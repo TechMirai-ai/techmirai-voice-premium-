@@ -26,6 +26,7 @@ beforeEach(() => {
       tools: {},
       assistants: { [`${SAKURA_ID}--ja`]: 'id-ja', [`${SAKURA_ID}--en`]: 'id-en' },
       squads: {},
+      structuredOutputs: {},
     },
     { repoRoot },
   );
@@ -86,6 +87,7 @@ describe('StateFileAssistantResolver', () => {
           [`${SAKURA_ID}--ja-return`]: 'id-ja-return',
         },
         squads: {},
+        structuredOutputs: {},
       },
       { repoRoot },
     );
@@ -105,7 +107,12 @@ describe('StateFileAssistantResolver', () => {
 
     writeState(
       SAKURA_ID,
-      { tools: {}, assistants: { [`${SAKURA_ID}--ja`]: 'id-new' }, squads: {} },
+      {
+        tools: {},
+        assistants: { [`${SAKURA_ID}--ja`]: 'id-new' },
+        squads: {},
+        structuredOutputs: {},
+      },
       { repoRoot },
     );
 

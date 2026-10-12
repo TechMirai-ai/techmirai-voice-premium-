@@ -34,7 +34,12 @@ afterEach(() => {
 
 describe('readState', () => {
   test('returns empty tools/assistants/squads when no state file exists yet', () => {
-    expect(readState(CLIENT_ID, { repoRoot })).toEqual({ tools: {}, assistants: {}, squads: {} });
+    expect(readState(CLIENT_ID, { repoRoot })).toEqual({
+      tools: {},
+      assistants: {},
+      squads: {},
+      structuredOutputs: {},
+    });
   });
 
   test('round-trips whatever writeState wrote', () => {
@@ -42,6 +47,9 @@ describe('readState', () => {
       tools: { 'sakura-seikotsuin--ja--request-callback': '00000000-0000-0000-0000-000000000000' },
       assistants: { 'sakura-seikotsuin--ja': '11111111-1111-1111-1111-111111111111' },
       squads: { 'sakura-seikotsuin--squad': '22222222-2222-2222-2222-222222222222' },
+      structuredOutputs: {
+        'sakura-seikotsuin--call-outcome': '33333333-3333-3333-3333-333333333333',
+      },
     };
 
     writeState(CLIENT_ID, state, { repoRoot });
@@ -62,6 +70,7 @@ describe('readState — older files', () => {
       tools: { a: '1' },
       assistants: { b: '2' },
       squads: {},
+      structuredOutputs: {},
     });
   });
 });
@@ -83,7 +92,11 @@ describe('getStateFileGitStatus', () => {
   });
 
   test('hasUncommittedChanges is true for an untracked state file', () => {
-    writeState(CLIENT_ID, { tools: {}, assistants: {}, squads: {} }, { repoRoot });
+    writeState(
+      CLIENT_ID,
+      { tools: {}, assistants: {}, squads: {}, structuredOutputs: {} },
+      { repoRoot },
+    );
 
     expect(getStateFileGitStatus(CLIENT_ID, { repoRoot })).toEqual({
       fileExists: true,
@@ -92,7 +105,11 @@ describe('getStateFileGitStatus', () => {
   });
 
   test('hasUncommittedChanges is false once the state file is committed', () => {
-    writeState(CLIENT_ID, { tools: {}, assistants: {}, squads: {} }, { repoRoot });
+    writeState(
+      CLIENT_ID,
+      { tools: {}, assistants: {}, squads: {}, structuredOutputs: {} },
+      { repoRoot },
+    );
     git('add', `.vapi-state.${CLIENT_ID}.json`);
     git('commit', '--quiet', '-m', 'sync state');
 
@@ -103,7 +120,11 @@ describe('getStateFileGitStatus', () => {
   });
 
   test('hasUncommittedChanges is true again after a committed file is edited', () => {
-    writeState(CLIENT_ID, { tools: {}, assistants: {}, squads: {} }, { repoRoot });
+    writeState(
+      CLIENT_ID,
+      { tools: {}, assistants: {}, squads: {}, structuredOutputs: {} },
+      { repoRoot },
+    );
     git('add', `.vapi-state.${CLIENT_ID}.json`);
     git('commit', '--quiet', '-m', 'sync state');
 
@@ -116,7 +137,11 @@ describe('getStateFileGitStatus', () => {
   });
 
   test('is scoped to the state file — unrelated uncommitted files do not trip it', () => {
-    writeState(CLIENT_ID, { tools: {}, assistants: {}, squads: {} }, { repoRoot });
+    writeState(
+      CLIENT_ID,
+      { tools: {}, assistants: {}, squads: {}, structuredOutputs: {} },
+      { repoRoot },
+    );
     git('add', `.vapi-state.${CLIENT_ID}.json`);
     git('commit', '--quiet', '-m', 'sync state');
 

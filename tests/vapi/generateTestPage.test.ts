@@ -21,7 +21,12 @@ describe('generateTestPage', () => {
   const syncAssistant = (assistantId: string): void =>
     writeState(
       'test-clinic',
-      { tools: {}, assistants: { 'test-clinic--ja': assistantId }, squads: {} },
+      {
+        tools: {},
+        assistants: { 'test-clinic--ja': assistantId },
+        squads: {},
+        structuredOutputs: {},
+      },
       { repoRoot },
     );
 
@@ -83,6 +88,7 @@ describe('generateTestPage', () => {
           tools: {},
           assistants: { 'test-clinic--ja': 'assistant-uuid' },
           squads: { 'test-clinic--squad': squadId },
+          structuredOutputs: {},
         },
         { repoRoot },
       );

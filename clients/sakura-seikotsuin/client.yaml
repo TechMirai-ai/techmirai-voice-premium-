@@ -98,7 +98,10 @@ scripts:
     en: Thank you for calling [[clinicName]]. How may I assist you today?
     # `.ja` CHANGED (2026-10-11): the assistant now introduces itself as AI receptionist ハルカ (Haruka)
     # and asks whether the caller wants to book. The name is only spoken text; the TTS voice is unchanged.
-    ja: お電話ありがとうございます。[[clinicName]]のAI受付、ハルカと申します。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？
+    # `.ja` CHANGED (2026-10-12, VP-12): recording notice added before the question, so the question is
+    # still the last thing the caller hears. サービス向上のため、この通話は録音されます = "This call is
+    # recorded to improve our service." NEEDS NATIVE-SPEAKER REVIEW.
+    ja: お電話ありがとうございます。[[clinicName]]のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？
   # English assistant's first message after the handoff.
   englishGreeting:
     # `.en` CHANGED (content update, 2026-09-29): the project owner reversed the S-2 AI-disclosure
@@ -106,7 +109,9 @@ scripts:
     # unused (never spoken — see docs/JAPANESE-REVIEW.md item 1) and is left as-is.
     # `.en` CHANGED again (2026-10-11): the assistant introduces itself as AI receptionist Jenny and asks
     # whether the caller wants to book. [[clinicName]] resolves to the phonetic respelling (namePronunciation).
-    en: Thank you for calling [[clinicName]]. I am your AI receptionist, Jenny. How may I assist you today? Are you calling to make an appointment?
+    # `.en` CHANGED (2026-10-12, VP-12): recording notice added before the question. Said again here (not
+    # only in the Japanese opening) so a caller who switched to English hears it in their own language.
+    en: Thank you for calling [[clinicName]]. I am your AI receptionist, Jenny. This call is recorded to improve our service. How may I assist you today? Are you calling to make an appointment?
     ja: >-
       こんにちは。[[clinicName]]です。こちらは英語でご案内するAI受付でございます。ご用件をお聞かせください。
   # Japanese assistant's first message when a caller is handed BACK to it from

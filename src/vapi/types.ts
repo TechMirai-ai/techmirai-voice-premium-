@@ -188,8 +188,46 @@ export interface VapiAssistantPayload {
   backgroundSound: 'off' | 'office';
   /** Silence-hangup hook — see `callEnding.ts`. */
   hooks: VapiSilenceHangupHook[];
-  /** Not set in VP-2 — the callback webhook is reached via the tool's own server.url instead. */
+  /**
+   * VP-12: where Vapi sends the `end-of-call-report` (tools keep their own `server`). Set together
+   * with `serverMessages` and `artifactPlan` — see `callReporting.ts`.
+   */
   server?: VapiServerConfig;
+  serverMessages?: VapiServerMessage[];
+  artifactPlan?: VapiArtifactPlan;
+}
+
+/** Only the server event this project subscribes the assistant-level `server` to. */
+export type VapiServerMessage = 'end-of-call-report';
+
+/** VAPI-FACTS.md VP-12: recording defaults to true; set explicitly rather than rely on the default. */
+export interface VapiArtifactPlan {
+  recordingEnabled: boolean;
+  /** Ids of structured outputs Vapi runs after the call; omitted until the output exists. */
+  structuredOutputIds?: string[];
+}
+
+/** The three assistant fields that route the end-of-call-report to us, as one unit. */
+export interface VapiReportingConfig {
+  server: VapiServerConfig;
+  serverMessages: VapiServerMessage[];
+  artifactPlan: VapiArtifactPlan;
+}
+
+/** `POST /structured-output` body (VAPI-FACTS.md VP-12). */
+export interface VapiStructuredOutputPayload {
+  /** ≤ 40 characters. */
+  name: string;
+  type: 'ai';
+  description: string;
+  schema: {
+    type: 'object';
+    properties: {
+      topic: { type: 'string'; description: string; enum: string[] };
+      resolved: { type: 'boolean'; description: string };
+    };
+    required: string[];
+  };
 }
 
 export type VapiFunctionParameterType = 'string' | 'number' | 'boolean' | 'object' | 'array';
@@ -270,6 +308,10 @@ export interface VapiHandoffDestination {
      */
     endCallPhrases?: string[];
     hooks: VapiSilenceHangupHook[];
+    /** VP-12: the end-of-call-report routing, threaded through for the same reason. */
+    server?: VapiServerConfig;
+    serverMessages?: VapiServerMessage[];
+    artifactPlan?: VapiArtifactPlan;
   };
 }
 
