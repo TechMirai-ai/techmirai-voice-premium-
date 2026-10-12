@@ -12,6 +12,7 @@ import type {
   CallbackRequestRepository,
   NewCallbackRequest,
 } from '../../src/repositories/callbackRequestRepository.js';
+import type { CallLogRepository, NewCallLog } from '../../src/repositories/callLogRepository.js';
 import type {
   CallTopicRepository,
   NewCallTopic,
@@ -59,6 +60,17 @@ export class MemoryTopics implements CallTopicRepository {
   record(topic: NewCallTopic): Promise<void> {
     if (this.failWith) return Promise.reject(this.failWith);
     this.recorded.push(topic);
+    return Promise.resolve();
+  }
+}
+
+export class MemoryCallLogs implements CallLogRepository {
+  readonly recorded: NewCallLog[] = [];
+  failWith: Error | undefined;
+
+  record(log: NewCallLog): Promise<void> {
+    if (this.failWith) return Promise.reject(this.failWith);
+    this.recorded.push(log);
     return Promise.resolve();
   }
 }
@@ -134,6 +146,7 @@ export const resolver: AssistantResolver = {
 export function buildVoiceApp(options: { rateLimit?: RateLimitOptions } = {}) {
   const callbacks = new MemoryCallbacks();
   const topics = new MemoryTopics();
+  const callLogs = new MemoryCallLogs();
   const notifier = new MemoryNotifier();
   const services = new MemoryReservationServices();
   const patients = new MemoryReservationPatients();
@@ -144,6 +157,7 @@ export function buildVoiceApp(options: { rateLimit?: RateLimitOptions } = {}) {
     knowledge: new FileKnowledgeSource(),
     callbacks,
     topics,
+    callLogs,
     notifier,
     services,
     patients,
@@ -162,7 +176,17 @@ export function buildVoiceApp(options: { rateLimit?: RateLimitOptions } = {}) {
       isProduction: false,
     },
   });
-  return { app, callbacks, topics, notifier, services, patients, appointments, voiceOptions };
+  return {
+    app,
+    callbacks,
+    topics,
+    callLogs,
+    notifier,
+    services,
+    patients,
+    appointments,
+    voiceOptions,
+  };
 }
 
 type ToolCallShape = 'sdk' | 'docs';

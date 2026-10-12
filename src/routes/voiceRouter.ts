@@ -7,6 +7,7 @@ import { bookAppointmentRouter, type BookAppointmentRouteDeps } from './bookAppo
 import { callbackRequestRouter, type CallbackRequestRouteDeps } from './callbackRequest.js';
 import { callTopicRouter, type CallTopicRouteDeps } from './callTopic.js';
 import { checkAvailabilityRouter, type CheckAvailabilityRouteDeps } from './checkAvailability.js';
+import { endOfCallReportRouter, type EndOfCallReportRouteDeps } from './endOfCallReport.js';
 import { lookupPatientRouter, type LookupPatientRouteDeps } from './lookupPatient.js';
 
 export const VOICE_API_PREFIX = '/api/voice';
@@ -23,6 +24,7 @@ export interface VoiceRouterOptions
   extends
     CallbackRequestRouteDeps,
     CallTopicRouteDeps,
+    EndOfCallReportRouteDeps,
     CheckAvailabilityRouteDeps,
     // BookAppointmentRouteDeps repeats `resolver`/`appointments` from CheckAvailabilityRouteDeps —
     // TypeScript merges identical-type members across intersected interfaces without conflict.
@@ -41,6 +43,7 @@ export function voiceRouter(options: VoiceRouterOptions): Router {
   router.use(express.json({ limit: VOICE_BODY_LIMIT }));
   router.use(callbackRequestRouter(options));
   router.use(callTopicRouter(options));
+  router.use(endOfCallReportRouter(options));
   router.use(checkAvailabilityRouter(options));
   router.use(lookupPatientRouter(options));
   router.use(bookAppointmentRouter(options));

@@ -10,6 +10,7 @@ import { logger } from './lib/logger.js';
 import { FileKnowledgeSource } from './knowledge/KnowledgeSource.js';
 import { PgAppointmentRepository } from './repositories/appointmentRepository.js';
 import { PgCallbackRequestRepository } from './repositories/callbackRequestRepository.js';
+import { PgCallLogRepository } from './repositories/callLogRepository.js';
 import { PgCallTopicRepository } from './repositories/callTopicRepository.js';
 import { PgReservationPatientRepository } from './repositories/reservationPatientRepository.js';
 import { PgReservationServiceRepository } from './repositories/reservationServiceRepository.js';
@@ -38,6 +39,8 @@ const app = createApp({
     knowledge: new FileKnowledgeSource(),
     callbacks,
     topics: new PgCallTopicRepository(pool),
+    // VP-12: staff summary/status row written from the end-of-call-report.
+    callLogs: new PgCallLogRepository(pool),
     // F-2: email/LINE are new classes implementing CallbackNotifier, swapped in here.
     notifier: new LoggingNotifier(),
     // VP-8 demo reservation feature.

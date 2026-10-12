@@ -154,6 +154,7 @@ function minimalVoiceOptions(): VoiceRouterOptions {
     knowledge: new FileKnowledgeSource(),
     callbacks: { create: () => Promise.reject(new Error('not used by staff dashboard tests')) },
     topics: { record: () => Promise.reject(new Error('not used by staff dashboard tests')) },
+    callLogs: { record: () => Promise.reject(new Error('not used by staff dashboard tests')) },
     notifier: { notify: () => Promise.resolve() },
     services: { listByClient: () => Promise.resolve([]) },
     patients: { findByName: () => Promise.resolve(undefined) },
