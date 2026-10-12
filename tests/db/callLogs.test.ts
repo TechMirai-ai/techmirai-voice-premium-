@@ -63,6 +63,7 @@ describe.skipIf(!TEST_DATABASE_URL)('call_logs (real Postgres)', () => {
 
   beforeEach(async () => {
     await pool.query('DELETE FROM call_logs');
+    await pool.query('DELETE FROM appointments');
   });
 
   test('has exactly the expected columns — no transcript or audio column', async () => {
@@ -126,6 +127,105 @@ describe.skipIf(!TEST_DATABASE_URL)('call_logs (real Postgres)', () => {
         summary: 'Asked for a callback.',
       },
     ]);
+  });
+
+  describe('staff reads (CallLogReader)', () => {
+    const log = (
+      callId: string,
+      overrides: Partial<Parameters<PgCallLogRepository['record']>[0]> = {},
+    ) =>
+      new PgCallLogRepository(pool).record({
+        clientId: 'c',
+        callId,
+        language: 'ja',
+        status: 'unresolved',
+        ...overrides,
+      });
+
+    test('lists one client’s calls newest first and never another client’s', async () => {
+      await log('old', { startedAt: '2026-10-10T00:00:00.000Z' });
+      await log('new', { startedAt: '2026-10-12T00:00:00.000Z' });
+      await log('foreign', { clientId: 'other' });
+
+      const rows = await new PgCallLogRepository(pool).listByClient('c');
+
+      expect(rows.map((row) => row.callId)).toEqual(['new', 'old']);
+    });
+
+    test('filters by status', async () => {
+      await log('a', { status: 'needs_callback' });
+      await log('b', { status: 'resolved_by_ai' });
+
+      const rows = await new PgCallLogRepository(pool).listByClient('c', {
+        status: 'needs_callback',
+      });
+
+      expect(rows.map((row) => row.callId)).toEqual(['a']);
+    });
+
+    test('is capped, so a busy clinic never loads an unbounded list', async () => {
+      await log('a');
+      await log('b');
+      await log('c2');
+
+      expect(await new PgCallLogRepository(pool).listByClient('c', { limit: 2 })).toHaveLength(2);
+    });
+
+    test('returns exactly the staff-safe fields — nothing else can come back', async () => {
+      await log('a', {
+        callerName: 'Hanako',
+        matchedPatientName: 'ヤマダ タロウ',
+        topic: 'parking',
+        summary: 'Asked about parking.',
+        endedReason: 'assistant-ended-call',
+        startedAt: '2026-10-12T00:00:00.000Z',
+      });
+
+      const [row] = await new PgCallLogRepository(pool).listByClient('c');
+
+      expect(Object.keys(row!).sort()).toEqual([
+        'callId',
+        'callerName',
+        'createdAt',
+        'id',
+        'language',
+        'matchedPatientName',
+        'startedAt',
+        'status',
+        'summary',
+        'topic',
+      ]);
+    });
+
+    test('reservations: only reservation_made calls, joined with the booking details', async () => {
+      await log('booked', { status: 'reservation_made', startedAt: '2026-10-12T00:00:00.000Z' });
+      await log('callback', { status: 'needs_callback' });
+      await pool.query(
+        `INSERT INTO appointments
+           (client_id, call_id, language, reservation_number, patient_name, patient_phone,
+            appointment_date, appointment_time, service_name)
+         VALUES ('c', 'booked', 'ja', 'R000001', 'ヤマダ タロウ', '000', '2026-10-20', '10:30', 'General')`,
+      );
+
+      const rows = await new PgCallLogRepository(pool).listReservations('c');
+
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        callId: 'booked',
+        reservationNumber: 'R000001',
+        appointmentDate: '2026-10-20',
+        appointmentTime: '10:30',
+        serviceName: 'General',
+      });
+    });
+
+    test('reservations: a reservation_made call with no appointment row still appears', async () => {
+      await log('booked', { status: 'reservation_made' });
+
+      const [row] = await new PgCallLogRepository(pool).listReservations('c');
+
+      expect(row).toMatchObject({ callId: 'booked', reservationNumber: null });
+    });
   });
 
   test('optional fields are stored as NULL when absent', async () => {

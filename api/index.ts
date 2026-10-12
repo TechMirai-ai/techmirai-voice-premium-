@@ -64,6 +64,7 @@ const app = createApp({
     sessionSecret: env.SESSION_SECRET,
     staffUsers: new PgStaffUserRepository(pool),
     callbacks,
+    callLogs: new PgCallLogRepository(pool),
   },
   talk: {
     publicKey: env.VAPI_PUBLIC_KEY,

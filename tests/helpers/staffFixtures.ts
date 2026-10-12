@@ -10,6 +10,12 @@ import type {
   CallbackRequestSummary,
 } from '../../src/repositories/callbackRequestRepository.js';
 import type {
+  CallLogReader,
+  StaffCallListOptions,
+  StaffCallSummary,
+  StaffReservationSummary,
+} from '../../src/repositories/callLogRepository.js';
+import type {
   NewStaffUser,
   StaffUser,
   StaffUserRepository,
@@ -106,6 +112,53 @@ export class MemoryCallbackAdmin implements CallbackRequestAdminRepository {
   }
 }
 
+/** A call as the staff reader returns it, plus the client it belongs to (the real reader filters by it). */
+export type SeededCall = StaffReservationSummary & { clientId: string };
+
+export class MemoryCallLogReader implements CallLogReader {
+  readonly rows: SeededCall[] = [];
+
+  seed(row: SeededCall): void {
+    this.rows.push(row);
+  }
+
+  listByClient(clientId: string, options: StaffCallListOptions = {}): Promise<StaffCallSummary[]> {
+    return Promise.resolve(
+      this.rows
+        .filter((row) => row.clientId === clientId)
+        .filter((row) => options.status === undefined || row.status === options.status)
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+    );
+  }
+
+  listReservations(clientId: string): Promise<StaffReservationSummary[]> {
+    return Promise.resolve(
+      this.rows.filter((row) => row.clientId === clientId && row.status === 'reservation_made'),
+    );
+  }
+}
+
+export function sampleCall(overrides: Partial<SeededCall> = {}): SeededCall {
+  return {
+    id: 'call-row-1',
+    clientId: STAFF_CLIENT_ID,
+    callId: 'call-1',
+    startedAt: new Date('2026-10-12T01:00:00.000Z'),
+    createdAt: new Date('2026-10-12T01:02:00.000Z'),
+    language: 'ja',
+    callerName: null,
+    matchedPatientName: null,
+    topic: 'parking',
+    status: 'resolved_by_ai',
+    summary: 'Caller asked about parking.',
+    reservationNumber: null,
+    appointmentDate: null,
+    appointmentTime: null,
+    serviceName: null,
+    ...overrides,
+  };
+}
+
 export function sampleCallback(
   overrides: Partial<CallbackRequestSummary> = {},
 ): CallbackRequestSummary {
@@ -128,6 +181,7 @@ export function buildStaffOptions(
   overrides: {
     staffUsers?: StaffUserRepository;
     callbacks?: CallbackRequestAdminRepository;
+    callLogs?: CallLogReader;
   } = {},
 ): StaffRouterOptions {
   return {
@@ -136,6 +190,7 @@ export function buildStaffOptions(
     isProduction: false,
     staffUsers: overrides.staffUsers ?? new MemoryStaffUsers(),
     callbacks: overrides.callbacks ?? new MemoryCallbackAdmin(),
+    callLogs: overrides.callLogs ?? new MemoryCallLogReader(),
   };
 }
 
@@ -170,15 +225,17 @@ export function buildStaffApp(
   overrides: {
     staffUsers?: StaffUserRepository;
     callbacks?: CallbackRequestAdminRepository;
+    callLogs?: CallLogReader;
   } = {},
 ) {
   const staffUsers = overrides.staffUsers ?? new MemoryStaffUsers();
   const callbacks = overrides.callbacks ?? new MemoryCallbackAdmin();
+  const callLogs = overrides.callLogs ?? new MemoryCallLogReader();
   const app = createApp({
     db: healthyDb,
     isProduction: false,
     voice: minimalVoiceOptions(),
-    staff: buildStaffOptions({ staffUsers, callbacks }),
+    staff: buildStaffOptions({ staffUsers, callbacks, callLogs }),
     talk: {
       publicKey: 'test-vapi-public-key',
       rateLimitSecret: 'test-talk-rate-limit-secret-0123456789',
@@ -186,5 +243,5 @@ export function buildStaffApp(
       isProduction: false,
     },
   });
-  return { app, staffUsers, callbacks };
+  return { app, staffUsers, callbacks, callLogs };
 }

@@ -9,3 +9,5 @@ export const STAFF_LOGIN_PATH = '/staff/login';
 export const STAFF_LOGOUT_PATH = '/staff/logout';
 export const STAFF_CHANGE_PASSWORD_PATH = '/staff/change-password';
 export const STAFF_DASHBOARD_PATH = '/staff/dashboard';
+export const STAFF_CALLS_PATH = '/staff/calls';
+export const STAFF_RESERVATIONS_PATH = '/staff/reservations';

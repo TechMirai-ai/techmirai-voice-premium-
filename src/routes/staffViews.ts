@@ -13,6 +13,7 @@ import { DEMO_PLACEHOLDER_PHONE } from '../lib/demoCallerPhone.js';
 import { escapeHtml } from '../lib/htmlEscape.js';
 import type { CallbackRequestSummary } from '../repositories/callbackRequestRepository.js';
 import type { StaffUser } from '../repositories/staffUserRepository.js';
+import { staffNavHtml } from './staffNav.js';
 import {
   STAFF_CHANGE_PASSWORD_PATH,
   STAFF_DASHBOARD_PATH,
@@ -20,7 +21,7 @@ import {
   STAFF_LOGOUT_PATH,
 } from './staffPaths.js';
 
-function pageShell(title: string, bodyHtml: string): string {
+export function pageShell(title: string, bodyHtml: string): string {
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -219,6 +220,104 @@ body {
   background: var(--brand-navy-hover);
   border-color: var(--brand-navy-hover);
 }
+
+/* Section navigation and the call / reservation lists */
+.staff-nav {
+  max-width: 860px;
+  margin: 1.25rem auto 0;
+  padding: 0 1.5rem;
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.staff-nav a {
+  padding: 0.5rem 1rem;
+  color: var(--text-sub);
+  text-decoration: none;
+  font-size: 0.9rem;
+  border-bottom: 2px solid transparent;
+}
+
+.staff-nav a[aria-current="page"] {
+  color: var(--brand-navy);
+  font-weight: 600;
+  border-bottom-color: var(--brand-navy);
+}
+
+.call-dashboard {
+  max-width: 860px;
+  margin: 1.5rem auto 2.5rem;
+  padding: 0 1.5rem;
+}
+
+.call-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.call-filters a {
+  padding: 0.25rem 0.8rem;
+  border: 1px solid var(--border-medium);
+  border-radius: 999px;
+  color: var(--text-sub);
+  text-decoration: none;
+  font-size: 0.825rem;
+}
+
+.call-filters a[aria-current="true"] {
+  background: var(--brand-navy);
+  border-color: var(--brand-navy);
+  color: #ffffff;
+}
+
+.call-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.call-row {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 1.1rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.call-row-empty {
+  background: var(--bg-surface);
+  border: 1px dashed var(--border-medium);
+  border-radius: 6px;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.status-badge {
+  align-self: flex-start;
+  padding: 0.15rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-medium);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.status-badge.status-reservation_made { color: #166534; background: #f0fdf4; border-color: #bbf7d0; }
+.status-badge.status-needs_callback { color: #92400e; background: #fffbeb; border-color: #fde68a; }
+.status-badge.status-resolved_by_ai { color: #1e40af; background: #eff6ff; border-color: #bfdbfe; }
+.status-badge.status-unresolved { color: var(--danger-text); background: var(--danger-bg); border-color: var(--danger-border); }
+
+.call-people { font-weight: 600; color: var(--brand-navy); }
+.call-meta { font-size: 0.8rem; color: var(--text-muted); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+.call-summary { color: var(--text-sub); white-space: pre-wrap; word-break: break-word; }
+.call-summary-empty, .reservation-details-missing { color: var(--text-muted); font-style: italic; }
+.reservation-details { color: var(--brand-navy); }
 
 .handled-label {
   display: inline-flex;
@@ -457,6 +556,7 @@ export function renderDashboardPage(options: RenderDashboardPageOptions): string
     <button type="submit" id="logout-button">Log out</button>
   </form>
 </header>
+${staffNavHtml('callbacks')}
 <main class="callback-dashboard">
   <ul class="callback-list" id="callback-list">
     ${rows}

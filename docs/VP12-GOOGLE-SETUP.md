@@ -93,5 +93,22 @@ It writes a test row and two tiny test files, then removes them. It specifically
 | HTTP 403 on Sheets | The Sheet isn't shared with the service-account email as Editor. |
 | "Did not return a refresh token" | Remove the app at https://myaccount.google.com/permissions and run `google:consent` again. |
 
+## Step 9 — Retries (so a slow or failed upload never loses a call)
+
+After each call the server saves the staff row first, then writes the transcript row to your Sheet, then uploads the audio and writes its Drive link back into that row. If Google is slow or down, the transcript row is already saved and the audio is retried automatically (up to 5 attempts, then it gives up and keeps the error).
+
+- **Vercel Cron** calls `/api/internal/archive-retry` once a day (`vercel.json`; the Hobby plan allows daily). It authenticates with `Authorization: Bearer <CRON_SECRET>`, so in Vercel set **`CRON_SECRET` to the same value as `ARCHIVE_RETRY_SECRET`**.
+- **By hand:** `npm run archive:retry` runs one pass from your machine and prints counts only.
+- **Check it works after deploy:** `curl -s -H "Authorization: Bearer <your ARCHIVE_RETRY_SECRET>" https://<your-domain>/api/internal/archive-retry` should answer `{"status":"ok","claimed":0,…}`. The Vapi webhook secret must NOT work there (it is a different secret on purpose).
+- The database needs the two new tables first: `npm run db:migrate` (migrations 0009 and 0010).
+
+## The Sheet's columns
+
+Rows are appended to the first tab. Put this header in row 1 yourself (the code never writes it):
+
+| A | B | C | D | E | F | G | H… |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Started at (UTC) | Client | Call ID | Language | Status | Ended reason | Audio (Drive link) | Transcript (continues in the next columns if very long) |
+
 ## What to send me
 1. The service-account **email**. 2. The **Sheet ID**. 3. The **Drive folder ID**. 4. The output of `npm run google:check` (it contains no secrets).
