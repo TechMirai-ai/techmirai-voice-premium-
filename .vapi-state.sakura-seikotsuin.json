@@ -26,5 +26,8 @@
   },
   "squads": {
     "sakura-seikotsuin--squad": "5cae2871-efe8-4c55-912c-92b7e3352d1c"
+  },
+  "structuredOutputs": {
+    "sakura-seikotsuin--call-outcome": "b3fcdf85-e370-4036-976c-1228d5d3b3df"
   }
 }
