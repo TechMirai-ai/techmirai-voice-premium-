@@ -111,10 +111,14 @@ export async function runGoogleCheck(
   const drive = createDriveClient(driveAuth, fetchFn);
   const stamp = new Date(realNow()).toISOString();
 
-  const uploadAndVerify = async (client: DriveClient, label: string): Promise<string> => {
+  const uploadAndVerify = async (
+    client: DriveClient,
+    label: string,
+    folderId: string = config.audioFolderId,
+  ): Promise<string> => {
     const bytes = new TextEncoder().encode(`google:check ${label} ${stamp}`);
     const uploaded = await client.uploadFile({
-      folderId: config.driveFolderId,
+      folderId,
       name: `google-check-${label}.txt`,
       mimeType: 'text/plain',
       bytes,
@@ -149,6 +153,12 @@ export async function runGoogleCheck(
     // 2. Drive, first upload with a freshly minted access token.
     const firstOk = await run('Drive: first upload with a fresh token', () =>
       uploadAndVerify(drive, '1'),
+    );
+
+    // 2b. The transcript folder is a separate folder, so it needs its own proof (VP-13). It reuses
+    // the cached access token, so it does not disturb the refresh-grant count below.
+    await run('Drive: upload to the transcript folder', () =>
+      uploadAndVerify(drive, 'transcript', config.transcriptFolderId),
     );
 
     // 3. Drive, forced renewal from the stored refresh token.

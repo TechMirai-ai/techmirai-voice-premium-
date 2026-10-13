@@ -18,6 +18,7 @@ const complete: NodeJS.ProcessEnv = {
   GOOGLE_SERVICE_ACCOUNT_JSON_B64: serviceAccount,
   GOOGLE_ARCHIVE_SHEET_ID: 'sheet-1',
   GOOGLE_ARCHIVE_DRIVE_FOLDER_ID: 'folder-1',
+  GOOGLE_ARCHIVE_TRANSCRIPT_FOLDER_ID: 'transcript-folder-1',
   GOOGLE_OAUTH_CLIENT_ID: 'cid',
   GOOGLE_OAUTH_CLIENT_SECRET: 'csecret',
   GOOGLE_OAUTH_REFRESH_TOKEN: 'rtoken',
@@ -33,7 +34,8 @@ describe('loadGoogleArchiveConfig', () => {
   test('parses a complete configuration', () => {
     const config = loadGoogleArchiveConfig(complete)!;
     expect(config.sheetId).toBe('sheet-1');
-    expect(config.driveFolderId).toBe('folder-1');
+    expect(config.audioFolderId).toBe('folder-1');
+    expect(config.transcriptFolderId).toBe('transcript-folder-1');
     expect(config.serviceAccount.clientEmail).toBe('w@p.iam.gserviceaccount.com');
     expect(config.oauth).toEqual({
       clientId: 'cid',

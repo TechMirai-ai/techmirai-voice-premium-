@@ -1,7 +1,7 @@
 /**
- * The developer-archive job queue (db/migrations/0009 + 0010). DEVELOPER-ONLY: no staff route may
- * read this table. It holds progress pointers (a Sheet range, a Drive link) and an error message —
- * never a transcript or audio.
+ * The developer-archive job queue (db/migrations/0009 + 0010 + 0011). DEVELOPER-ONLY: no staff
+ * route may read this table. It holds progress pointers (a Sheet range, Drive links, the reserved
+ * file name) and an error message — never a transcript or audio.
  *
  * Claiming is atomic and leased: `attempts` is incremented and `updated_at` touched in the same
  * statement, and a job only becomes claimable again once the lease has lapsed, so an inline attempt
@@ -9,6 +9,7 @@
  */
 import type { Queryable } from '../db/pool.js';
 import type { ArchiveJob, JobStore } from '../google/archive.js';
+import { withCollisionSuffix } from '../google/archiveFileName.js';
 
 export const MAX_ARCHIVE_ATTEMPTS = 5;
 /** How long a claim is held before another worker may take the job over. */
@@ -39,14 +40,27 @@ interface JobRow {
   drive_url: string | null;
   language: string | null;
   status: string | null;
+  text_file_url: string | null;
+  file_base_name: string | null;
+  topic: string | null;
+  named_at: Date | null;
+  duration_seconds: number | null;
 }
 
 const RUNNABLE = `state = 'pending' AND (attempts = 0 OR updated_at < now() - make_interval(secs => $LEASE))`;
 
-/** Runs `claimSql` (an UPDATE … RETURNING *) and joins the call's language/status for the sheet row. */
+/**
+ * Runs `claimSql` (an UPDATE … RETURNING *) and joins the call log for the sheet row and file names:
+ * language/status/topic, the start time (else when it was logged) and the call length in seconds.
+ */
 const withCallLog = (claimSql: string): string => `
   WITH claimed AS (${claimSql})
-  SELECT c.id, c.client_id, c.call_id, c.attempts, c.sheet_range, c.drive_url, l.language, l.status
+  SELECT c.id, c.client_id, c.call_id, c.attempts, c.sheet_range, c.drive_url,
+         c.text_file_url, c.file_base_name,
+         l.language, l.status, l.topic,
+         COALESCE(l.started_at, l.created_at) AS named_at,
+         CASE WHEN l.started_at IS NOT NULL AND l.ended_at >= l.started_at
+              THEN round(EXTRACT(EPOCH FROM (l.ended_at - l.started_at)))::int END AS duration_seconds
   FROM claimed c
   LEFT JOIN call_logs l ON l.client_id = c.client_id AND l.call_id = c.call_id
   ORDER BY c.created_at`;
@@ -61,8 +75,17 @@ function toJob(row: JobRow): ArchiveJob {
     status: row.status ?? undefined,
     sheetRange: row.sheet_range ?? undefined,
     driveUrl: row.drive_url ?? undefined,
+    transcriptUrl: row.text_file_url ?? undefined,
+    fileBaseName: row.file_base_name ?? undefined,
+    topic: row.topic ?? undefined,
+    startedAt: row.named_at ?? undefined,
+    durationSeconds: row.duration_seconds ?? undefined,
   };
 }
+
+const UNIQUE_VIOLATION = '23505';
+/** Far beyond any real same-minute/same-topic pile-up; stops a bug from looping forever. */
+const MAX_NAME_ATTEMPTS = 100;
 
 export class PgArchiveJobRepository implements ArchiveJobRepository {
   constructor(private readonly db: Queryable) {}
@@ -118,6 +141,33 @@ export class PgArchiveJobRepository implements ArchiveJobRepository {
       'UPDATE call_archive_jobs SET drive_url = $2, updated_at = now() WHERE id = $1',
       [jobId, driveUrl],
     );
+  }
+
+  async recordTranscriptLink(jobId: string, transcriptUrl: string): Promise<void> {
+    await this.db.query(
+      'UPDATE call_archive_jobs SET text_file_url = $2, updated_at = now() WHERE id = $1',
+      [jobId, transcriptUrl],
+    );
+  }
+
+  /**
+   * The unique index on (client_id, file_base_name) is the arbiter: whoever's UPDATE succeeds owns
+   * the name, so two same-minute/same-topic calls can never share one even when archived at once.
+   */
+  async reserveFileBaseName(job: ArchiveJob, base: string): Promise<string> {
+    for (let attempt = 1; attempt <= MAX_NAME_ATTEMPTS; attempt += 1) {
+      const candidate = withCollisionSuffix(base, attempt);
+      try {
+        await this.db.query(
+          'UPDATE call_archive_jobs SET file_base_name = $2, updated_at = now() WHERE id = $1',
+          [job.id, candidate],
+        );
+        return candidate;
+      } catch (error) {
+        if ((error as { code?: string }).code !== UNIQUE_VIOLATION) throw error;
+      }
+    }
+    throw new Error('could not find a free archive file name');
   }
 
   async markDone(jobId: string): Promise<void> {

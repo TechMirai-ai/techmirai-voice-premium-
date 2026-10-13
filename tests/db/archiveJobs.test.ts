@@ -83,6 +83,94 @@ describe.skipIf(!TEST_DATABASE_URL)('call_archive_jobs (real Postgres)', () => {
     expect((await stateOf('call-1')).attempts).toBe(1);
   });
 
+  test('claiming also returns what the file names and the Sheet need: topic, start time, duration', async () => {
+    await new PgCallLogRepository(pool).record({
+      clientId: 'c',
+      callId: 'call-1',
+      language: 'ja',
+      status: 'needs_callback',
+      topic: 'reservation',
+      startedAt: '2026-10-12T01:00:30.000Z',
+      endedAt: '2026-10-12T01:03:37.000Z',
+    });
+    await repo.enqueue('c', 'call-1');
+
+    const job = await repo.claimCall('c', 'call-1');
+
+    expect(job).toMatchObject({ topic: 'reservation', durationSeconds: 187 });
+    expect(job?.startedAt?.toISOString()).toBe('2026-10-12T01:00:30.000Z');
+  });
+
+  test('without a started_at the file name falls back to when the call was logged', async () => {
+    await new PgCallLogRepository(pool).record({
+      clientId: 'c',
+      callId: 'call-1',
+      language: 'ja',
+      status: 'unresolved',
+    });
+    await repo.enqueue('c', 'call-1');
+
+    const job = await repo.claimCall('c', 'call-1');
+
+    expect(job?.startedAt).toBeInstanceOf(Date);
+    expect(job?.durationSeconds).toBeUndefined();
+  });
+
+  describe('reserveFileBaseName', () => {
+    const base = '2026-10-12-0100-reservation';
+    const claim = async (clientId: string, callId: string) => {
+      await repo.enqueue(clientId, callId);
+      return (await repo.claimCall(clientId, callId))!;
+    };
+
+    test('the first call in a minute with a topic gets the plain name', async () => {
+      const job = await claim('c', 'call-1');
+
+      expect(await repo.reserveFileBaseName(job, base)).toBe(base);
+    });
+
+    test('a same-minute, same-topic collision gets -2, then -3', async () => {
+      const first = await claim('c', 'call-1');
+      const second = await claim('c', 'call-2');
+      const third = await claim('c', 'call-3');
+
+      expect(await repo.reserveFileBaseName(first, base)).toBe(base);
+      expect(await repo.reserveFileBaseName(second, base)).toBe(`${base}-2`);
+      expect(await repo.reserveFileBaseName(third, base)).toBe(`${base}-3`);
+    });
+
+    test('simultaneous reservations of the same name never share it', async () => {
+      const jobs = await Promise.all(['a', 'b', 'c2', 'd'].map((id) => claim('c', id)));
+
+      const names = await Promise.all(jobs.map((job) => repo.reserveFileBaseName(job, base)));
+
+      expect(new Set(names).size).toBe(4);
+      expect(names).toContain(base);
+    });
+
+    test('names are per client: the same name is free for another client', async () => {
+      const mine = await claim('c', 'call-1');
+      const theirs = await claim('other', 'call-1');
+
+      expect(await repo.reserveFileBaseName(mine, base)).toBe(base);
+      expect(await repo.reserveFileBaseName(theirs, base)).toBe(base);
+    });
+
+    test('the reserved name and the transcript link are remembered for a retry', async () => {
+      const job = await claim('c', 'call-1');
+      const name = await repo.reserveFileBaseName(job, base);
+      await repo.recordTranscriptLink(job.id, 'https://drive.example/t');
+      await pool.query("UPDATE call_archive_jobs SET updated_at = now() - interval '10 minutes'");
+
+      const [resumed] = await repo.claimRunnable(10);
+
+      expect(resumed).toMatchObject({
+        fileBaseName: name,
+        transcriptUrl: 'https://drive.example/t',
+      });
+    });
+  });
+
   test('a claimed job cannot be claimed again while its lease is held', async () => {
     await repo.enqueue('c', 'call-1');
 

@@ -72,6 +72,14 @@ class MemoryJobs implements ArchiveJobRepository {
     this.get(id).driveUrl = url;
     return Promise.resolve();
   }
+  recordTranscriptLink(id: string, url: string): Promise<void> {
+    this.get(id).transcriptUrl = url;
+    return Promise.resolve();
+  }
+  reserveFileBaseName(job: ArchiveJob, base: string): Promise<string> {
+    this.get(job.id).fileBaseName = base;
+    return Promise.resolve(base);
+  }
   markDone(id: string): Promise<void> {
     this.get(id).state = 'done';
     return Promise.resolve();
@@ -104,7 +112,9 @@ function setup(options: { vapiRoutes?: Record<string, () => Response>; budgetMs?
     updateCell: vi.fn((_range: string, _value: string) => Promise.resolve()),
   };
   const drive = {
-    uploadFile: vi.fn(() => Promise.resolve({ id: 'f', link: 'https://drive.example/f' })),
+    uploadFile: vi.fn((_request: { folderId: string; name: string; bytes: Uint8Array }) =>
+      Promise.resolve({ id: 'f', link: 'https://drive.example/f' }),
+    ),
   };
   const routes = options.vapiRoutes ?? {};
   const vapiFetch = vi.fn((input: string | URL | Request) => {
@@ -115,7 +125,9 @@ function setup(options: { vapiRoutes?: Record<string, () => Response>; budgetMs?
     jobs,
     sheets,
     drive,
-    folderId: 'folder-1',
+    audioFolderId: 'audio-folder',
+    transcriptFolderId: 'transcript-folder',
+    timeZoneFor: () => 'Asia/Tokyo',
     vapi: { apiKey: 'vapi-key', fetch: vapiFetch },
     ...(options.budgetMs !== undefined ? { inlineBudgetMs: options.budgetMs } : {}),
   });
@@ -133,16 +145,20 @@ describe('ArchiveService.archiveReport (inline, after the call)', () => {
     expect(await service.archiveReport(REPORT)).toBe('done');
 
     expect(sheets.appendRow).toHaveBeenCalledTimes(1);
-    expect(drive.uploadFile).toHaveBeenCalledTimes(1);
+    expect(drive.uploadFile).toHaveBeenCalledTimes(2); // the transcript file, then the audio
     expect(jobs.jobs.get('c/call-1')?.state).toBe('done');
   });
 
-  test('uses the transcript from the report itself — no Vapi lookup needed for the Sheet row', async () => {
-    const { service, sheets } = setup({ vapiRoutes: { [MONO]: WAV } });
+  test('uses the transcript from the report itself — no Vapi lookup needed — and puts it in a Drive file, not the Sheet', async () => {
+    const { service, sheets, drive } = setup({ vapiRoutes: { [MONO]: WAV } });
 
     await service.archiveReport(REPORT);
 
-    expect(sheets.appendRow.mock.calls[0]![1][7]).toBe('AI: hi');
+    const request = drive.uploadFile.mock.calls[0]![0];
+    expect(request).toMatchObject({ folderId: 'transcript-folder' });
+    expect(request.name).toMatch(/\.txt$/);
+    expect(new TextDecoder().decode(request.bytes)).toBe('AI: hi');
+    expect(JSON.stringify(sheets.appendRow.mock.calls)).not.toContain('AI: hi');
   });
 
   test('a Google failure is reported as failed, never thrown, and the job stays pending for a retry', async () => {
@@ -190,7 +206,7 @@ describe('ArchiveService.retryPending', () => {
     });
 
   test('re-fetches the call from Vapi and finishes jobs that never got archived', async () => {
-    const { service, jobs, sheets } = setup({
+    const { service, jobs, drive } = setup({
       vapiRoutes: { 'https://api.vapi.ai/call/call-1': callJson, [MONO]: WAV },
     });
     await jobs.enqueue('c', 'call-1');
@@ -198,11 +214,13 @@ describe('ArchiveService.retryPending', () => {
     const summary = await service.retryPending();
 
     expect(summary).toMatchObject({ claimed: 1, done: 1, failed: 0 });
-    expect(sheets.appendRow.mock.calls[0]![1][7]).toBe('AI: recovered');
+    expect(new TextDecoder().decode(drive.uploadFile.mock.calls[0]![0].bytes)).toBe(
+      'AI: recovered',
+    );
     expect(summary.queue).toEqual({ pending: 0, done: 1, failed: 0 });
   });
 
-  test('resumes a half-finished job: the transcript row is NOT appended a second time', async () => {
+  test('resumes a half-finished job: the row is NOT appended a second time, both files are still uploaded', async () => {
     const { service, jobs, sheets, drive } = setup({
       vapiRoutes: { 'https://api.vapi.ai/call/call-1': callJson, [MONO]: WAV },
     });
@@ -214,7 +232,8 @@ describe('ArchiveService.retryPending', () => {
     await service.retryPending();
 
     expect(sheets.appendRow).not.toHaveBeenCalled();
-    expect(drive.uploadFile).toHaveBeenCalledTimes(1);
+    expect(drive.uploadFile).toHaveBeenCalledTimes(2);
+    expect(sheets.updateCell).toHaveBeenCalledWith('Sheet1!H5', 'https://drive.example/f');
     expect(sheets.updateCell).toHaveBeenCalledWith('Sheet1!G5', 'https://drive.example/f');
   });
 

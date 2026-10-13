@@ -15,7 +15,8 @@ const { privateKey } = generateKeyPairSync('rsa', {
 const baseConfig: GoogleArchiveConfig = {
   serviceAccount: { clientEmail: 'w@p.iam.gserviceaccount.com', privateKey },
   sheetId: 'sheet-1',
-  driveFolderId: 'folder-1',
+  audioFolderId: 'folder-1',
+  transcriptFolderId: 'transcript-folder-1',
   oauth: { clientId: 'cid', clientSecret: 'csecret', refreshToken: 'rtoken' },
   retrySecret: 'x'.repeat(32),
 };
@@ -33,6 +34,7 @@ function fakeGoogle(options: FakeOptions = {}) {
   const stats = { refreshGrants: 0, serviceAccountGrants: 0, sheetRows: 0, sheetClears: 0 };
   let nextFile = 0;
   let pendingName = '';
+  const uploadedToFolders: string[] = [];
 
   const json = (value: unknown, status = 200, headers: Record<string, string> = {}) =>
     new Response(JSON.stringify(value), { status, headers });
@@ -65,7 +67,9 @@ function fakeGoogle(options: FakeOptions = {}) {
       if (options.uploadInitStatus && options.uploadInitStatus !== 200) {
         return json({}, options.uploadInitStatus);
       }
-      pendingName = (JSON.parse(requestBodyText(init)) as { name: string }).name;
+      const meta = JSON.parse(requestBodyText(init)) as { name: string; parents: string[] };
+      pendingName = meta.name;
+      uploadedToFolders.push(...meta.parents);
       return json({}, 200, { location: 'https://upload.example/s' });
     }
     if (url === 'https://upload.example/s' && method === 'PUT') {
@@ -94,7 +98,7 @@ function fakeGoogle(options: FakeOptions = {}) {
   const fetchFn = ((input: string | URL | Request, init?: RequestInit) =>
     Promise.resolve(handle(input, init))) as typeof fetch;
 
-  return { fetchFn, files, stats };
+  return { fetchFn, files, stats, uploadedToFolders };
 }
 
 const byName = (steps: CheckStep[], name: RegExp) => steps.find((step) => name.test(step.name));
@@ -111,6 +115,16 @@ describe('runGoogleCheck', () => {
     expect(google.stats.refreshGrants).toBe(3);
     expect(google.stats.sheetRows).toBe(1);
     expect(google.stats.sheetClears).toBe(1);
+  });
+
+  test('proves the transcript folder separately from the audio folder', async () => {
+    const google = fakeGoogle();
+
+    const result = await runGoogleCheck(baseConfig, { fetch: google.fetchFn });
+
+    expect(byName(result.steps, /transcript folder/i)?.status).toBe('pass');
+    expect(google.uploadedToFolders).toContain('folder-1');
+    expect(google.uploadedToFolders).toContain('transcript-folder-1');
   });
 
   test('forces the access token to expire and proves it is renewed from the refresh token', async () => {

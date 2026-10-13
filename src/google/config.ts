@@ -15,6 +15,7 @@ const REQUIRED = [
   'GOOGLE_SERVICE_ACCOUNT_JSON_B64',
   'GOOGLE_ARCHIVE_SHEET_ID',
   'GOOGLE_ARCHIVE_DRIVE_FOLDER_ID',
+  'GOOGLE_ARCHIVE_TRANSCRIPT_FOLDER_ID',
   'GOOGLE_OAUTH_CLIENT_ID',
   'GOOGLE_OAUTH_CLIENT_SECRET',
   'GOOGLE_OAUTH_REFRESH_TOKEN',
@@ -26,7 +27,10 @@ const OPTIONAL = ['GOOGLE_OAUTH_TOKEN_ISSUED_AT'] as const;
 export interface GoogleArchiveConfig {
   serviceAccount: { clientEmail: string; privateKey: string };
   sheetId: string;
-  driveFolderId: string;
+  /** Drive folder for call audio (GOOGLE_ARCHIVE_DRIVE_FOLDER_ID — name kept so nothing already deployed breaks). */
+  audioFolderId: string;
+  /** Drive folder for transcript .txt files. */
+  transcriptFolderId: string;
   oauth: {
     clientId: string;
     clientSecret: string;
@@ -70,7 +74,8 @@ export function loadGoogleArchiveConfig(
   return {
     serviceAccount: parseServiceAccountJson(get('GOOGLE_SERVICE_ACCOUNT_JSON_B64')),
     sheetId: get('GOOGLE_ARCHIVE_SHEET_ID'),
-    driveFolderId: get('GOOGLE_ARCHIVE_DRIVE_FOLDER_ID'),
+    audioFolderId: get('GOOGLE_ARCHIVE_DRIVE_FOLDER_ID'),
+    transcriptFolderId: get('GOOGLE_ARCHIVE_TRANSCRIPT_FOLDER_ID'),
     oauth: {
       clientId: get('GOOGLE_OAUTH_CLIENT_ID'),
       clientSecret: get('GOOGLE_OAUTH_CLIENT_SECRET'),

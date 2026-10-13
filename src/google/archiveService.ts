@@ -30,7 +30,9 @@ export interface ArchiveServiceDeps {
   jobs: ArchiveJobRepository;
   sheets: ArchiveSheets;
   drive: ArchiveDrive;
-  folderId: string;
+  audioFolderId: string;
+  transcriptFolderId: string;
+  timeZoneFor(clientId: string): string;
   vapi: VapiAccess;
   inlineBudgetMs?: number;
 }
@@ -66,7 +68,9 @@ export class ArchiveService {
       store: this.deps.jobs,
       sheets: this.deps.sheets,
       drive: this.deps.drive,
-      folderId: this.deps.folderId,
+      audioFolderId: this.deps.audioFolderId,
+      transcriptFolderId: this.deps.transcriptFolderId,
+      timeZoneFor: (clientId) => this.deps.timeZoneFor(clientId),
     };
   }
 

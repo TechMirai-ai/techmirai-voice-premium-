@@ -16,6 +16,7 @@ const configured: NodeJS.ProcessEnv = {
   ).toString('base64'),
   GOOGLE_ARCHIVE_SHEET_ID: 'sheet-1',
   GOOGLE_ARCHIVE_DRIVE_FOLDER_ID: 'folder-1',
+  GOOGLE_ARCHIVE_TRANSCRIPT_FOLDER_ID: 'transcript-folder-1',
   GOOGLE_OAUTH_CLIENT_ID: 'cid',
   GOOGLE_OAUTH_CLIENT_SECRET: 'csecret',
   GOOGLE_OAUTH_REFRESH_TOKEN: 'rtoken',

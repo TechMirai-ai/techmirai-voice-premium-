@@ -4,6 +4,7 @@
  * allow-listed `StaffCallSummary` / `StaffReservationSummary` shapes, and each dynamic value goes
  * through escapeHtml(): the summary and names are caller-influenced text.
  */
+import { formatDuration } from '../lib/callDuration.js';
 import { CALL_STATUSES, type CallStatus } from '../lib/callStatus.js';
 import { escapeHtml } from '../lib/htmlEscape.js';
 import type {
@@ -55,7 +56,9 @@ function summaryHtml(call: StaffCallSummary): string {
 
 function metaHtml(call: StaffCallSummary): string {
   const topic = call.topic ? ` · Topic: ${escapeHtml(call.topic)}` : '';
-  return `<p class="call-meta">${escapeHtml(whenOf(call))} · Language: ${escapeHtml(call.language)}${topic}</p>`;
+  const duration =
+    call.durationSeconds === null ? '' : ` · Duration: ${formatDuration(call.durationSeconds)}`;
+  return `<p class="call-meta">${escapeHtml(whenOf(call))} · Language: ${escapeHtml(call.language)}${duration}${topic}</p>`;
 }
 
 function callRowHtml(call: StaffCallSummary): string {

@@ -187,6 +187,7 @@ describe.skipIf(!TEST_DATABASE_URL)('call_logs (real Postgres)', () => {
         'callId',
         'callerName',
         'createdAt',
+        'durationSeconds',
         'id',
         'language',
         'matchedPatientName',
@@ -195,6 +196,43 @@ describe.skipIf(!TEST_DATABASE_URL)('call_logs (real Postgres)', () => {
         'summary',
         'topic',
       ]);
+    });
+
+    test('duration is the whole seconds between started_at and ended_at', async () => {
+      await log('a', {
+        startedAt: '2026-10-12T00:00:00.000Z',
+        endedAt: '2026-10-12T00:03:07.400Z',
+      });
+
+      const [row] = await new PgCallLogRepository(pool).listByClient('c');
+
+      expect(row?.durationSeconds).toBe(187);
+    });
+
+    test('duration is null when the call has no end time, no start time, or ends before it starts', async () => {
+      await log('no-end', { startedAt: '2026-10-12T00:00:00.000Z' });
+      await log('no-start', { endedAt: '2026-10-12T00:03:00.000Z' });
+      await log('backwards', {
+        startedAt: '2026-10-12T00:05:00.000Z',
+        endedAt: '2026-10-12T00:03:00.000Z',
+      });
+
+      const rows = await new PgCallLogRepository(pool).listByClient('c');
+
+      expect(rows).toHaveLength(3);
+      expect(rows.every((row) => row.durationSeconds === null)).toBe(true);
+    });
+
+    test('reservations carry the duration too', async () => {
+      await log('booked', {
+        status: 'reservation_made',
+        startedAt: '2026-10-12T00:00:00.000Z',
+        endedAt: '2026-10-12T00:01:05.000Z',
+      });
+
+      const [row] = await new PgCallLogRepository(pool).listReservations('c');
+
+      expect(row?.durationSeconds).toBe(65);
     });
 
     test('reservations: only reservation_made calls, joined with the booking details', async () => {

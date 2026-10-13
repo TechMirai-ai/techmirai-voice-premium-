@@ -151,6 +151,7 @@ export function sampleCall(overrides: Partial<SeededCall> = {}): SeededCall {
     topic: 'parking',
     status: 'resolved_by_ai',
     summary: 'Caller asked about parking.',
+    durationSeconds: null,
     reservationNumber: null,
     appointmentDate: null,
     appointmentTime: null,

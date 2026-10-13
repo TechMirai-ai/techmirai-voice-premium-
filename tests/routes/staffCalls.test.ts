@@ -63,6 +63,28 @@ describe('GET /staff/calls — All Calls', () => {
     expect(response.text).toContain('class="status-badge status-needs_callback"');
   });
 
+  test('shows how long each call lasted, as minutes:seconds', async () => {
+    const reader = new MemoryCallLogReader();
+    reader.seed(sampleCall({ id: 'short', durationSeconds: 187 }));
+    reader.seed(sampleCall({ id: 'long', durationSeconds: 3725 }));
+    const { agent } = await loggedIn(reader);
+
+    const response = await agent.get(CALLS);
+
+    expect(response.text).toContain('Duration: 3:07');
+    expect(response.text).toContain('Duration: 1:02:05');
+  });
+
+  test('says nothing about duration when the call has none recorded, rather than inventing 0:00', async () => {
+    const reader = new MemoryCallLogReader();
+    reader.seed(sampleCall({ durationSeconds: null }));
+    const { agent } = await loggedIn(reader);
+
+    const response = await agent.get(CALLS);
+
+    expect(response.text).not.toContain('Duration:');
+  });
+
   test('shows all four status labels exactly as the work order names them', async () => {
     const reader = new MemoryCallLogReader();
     (['reservation_made', 'needs_callback', 'resolved_by_ai', 'unresolved'] as const).forEach(

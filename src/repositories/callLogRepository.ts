@@ -42,6 +42,8 @@ export interface StaffCallSummary {
   topic: string | null;
   status: CallStatus;
   summary: string | null;
+  /** Whole seconds from started_at to ended_at; null when either is missing or they are out of order. */
+  durationSeconds: number | null;
 }
 
 /** A reservation_made call with its booking details (null if the appointment row is missing). */
@@ -79,7 +81,13 @@ interface StaffCallRow {
   topic: string | null;
   status: CallStatus;
   summary: string | null;
+  duration_seconds: number | null;
 }
+
+/** SQL for StaffCallRow.duration_seconds, given the table alias that owns started_at/ended_at. */
+const durationSql = (alias: string): string =>
+  `CASE WHEN ${alias}.started_at IS NOT NULL AND ${alias}.ended_at >= ${alias}.started_at
+        THEN round(EXTRACT(EPOCH FROM (${alias}.ended_at - ${alias}.started_at)))::int END`;
 
 interface StaffReservationRow extends StaffCallRow {
   reservation_number: string | null;
@@ -100,6 +108,7 @@ function toStaffCall(row: StaffCallRow): StaffCallSummary {
     topic: row.topic,
     status: row.status,
     summary: row.summary,
+    durationSeconds: row.duration_seconds,
   };
 }
 
@@ -112,7 +121,8 @@ export class PgCallLogRepository implements CallLogRepository, CallLogReader {
   ): Promise<StaffCallSummary[]> {
     const { rows } = await this.db.query(
       `SELECT id, call_id, started_at, created_at, language, caller_name,
-              matched_patient_name, topic, status, summary
+              matched_patient_name, topic, status, summary,
+              ${durationSql('call_logs')} AS duration_seconds
        FROM call_logs
        WHERE client_id = $1 AND ($2::text IS NULL OR status = $2)
        ORDER BY COALESCE(started_at, created_at) DESC
@@ -129,6 +139,7 @@ export class PgCallLogRepository implements CallLogRepository, CallLogReader {
     const { rows } = await this.db.query(
       `SELECT l.id, l.call_id, l.started_at, l.created_at, l.language, l.caller_name,
               l.matched_patient_name, l.topic, l.status, l.summary,
+              ${durationSql('l')} AS duration_seconds,
               a.reservation_number, a.appointment_date, a.appointment_time, a.service_name
        FROM call_logs l
        LEFT JOIN appointments a ON a.client_id = l.client_id AND a.call_id = l.call_id
