@@ -125,7 +125,7 @@ body {
 
 /* Section navigation and the call / reservation lists */
 .staff-nav {
-  max-width: 1400px;
+  max-width: none;
   margin: 1.25rem auto 0;
   padding: 0 1.5rem;
   display: flex;
@@ -148,7 +148,7 @@ body {
 }
 
 .call-dashboard {
-  max-width: 1400px;
+  max-width: none;
   margin: 1.5rem auto 2.5rem;
   padding: 0 1.5rem;
 }
@@ -216,10 +216,22 @@ body {
 .data-table tbody tr:nth-child(even) { background: var(--bg-canvas); }
 .data-table tbody tr:hover { background: var(--bg-subtle); }
 
+/* Only short, fixed-shape values (time, duration, ids) stay on one line. Everything else wraps, and
+   text with no break points (a long URL, a string of kana) is broken rather than widening the table. */
 .col-nowrap { white-space: nowrap; }
-.col-caller, .col-reason, .col-summary { min-width: 14rem; white-space: pre-wrap; word-break: break-word; }
-.col-summary { min-width: 20rem; color: var(--text-sub); }
+.col-caller, .col-details, .col-summary { white-space: pre-wrap; overflow-wrap: anywhere; }
+.col-caller { width: 14%; }
+.col-summary { width: 34%; color: var(--text-sub); }
+.col-details { width: 20%; }
+.col-action { width: 1%; }
+.mark-handled-button { white-space: nowrap; }
 .cell-empty { color: var(--text-muted); }
+
+/* Smaller screens: tighter cells so the nine-column Needs Callback table still fits. */
+@media (max-width: 1100px) {
+  .data-table { font-size: 0.8rem; }
+  .data-table th, .data-table td { padding: 0.45rem 0.45rem; }
+}
 
 .table-empty td {
   padding: 3rem 1.5rem;
@@ -245,7 +257,6 @@ body {
 .handled-label {
   display: inline-flex;
   align-items: center;
-  white-space: nowrap;
   font-size: 0.8rem;
   font-weight: 500;
   color: var(--text-sub);

@@ -75,14 +75,26 @@ function callerCellHtml(call: StaffCallSummary): string {
     : `<td class="cell-empty">${EMPTY_CELL}</td>`;
 }
 
-/** Flags the demo placeholder so staff never mistake it for a real callback number. */
-function callbackPhoneCellHtml(callback: StaffCallbackInfo | null): string {
-  if (!callback?.callerPhone) return `<td class="cell-empty">${EMPTY_CELL}</td>`;
-  // TODO(SV-5): remove the placeholder label once real caller-ID numbers are stored.
-  const phone = escapeHtml(callback.callerPhone);
-  return callback.callerPhone === DEMO_PLACEHOLDER_PHONE
-    ? `<td>${phone} (demo placeholder — no caller ID)</td>`
-    : `<td class="col-nowrap">${phone}</td>`;
+/**
+ * Phone and reason share one lowest-priority "Details" cell so the table fits a laptop screen
+ * without a horizontal scrollbar. The demo placeholder is flagged so staff never mistake it for a
+ * real callback number.
+ */
+function callbackDetailsCellHtml(callback: StaffCallbackInfo | null): string {
+  const lines: string[] = [];
+  if (callback?.callerPhone) {
+    // TODO(SV-5): remove the placeholder label once real caller-ID numbers are stored.
+    const phone = escapeHtml(callback.callerPhone);
+    lines.push(
+      callback.callerPhone === DEMO_PLACEHOLDER_PHONE
+        ? `${phone} (demo placeholder — no caller ID)`
+        : `<strong>${phone}</strong>`,
+    );
+  }
+  if (callback?.reason) lines.push(escapeHtml(callback.reason));
+  return lines.length > 0
+    ? `<td class="col-details">${lines.join('<br>')}</td>`
+    : `<td class="cell-empty">${EMPTY_CELL}</td>`;
 }
 
 function callbackActionHtml(callback: StaffCallbackInfo | null, timeZone: string): string {
@@ -97,14 +109,13 @@ function callbackActionHtml(callback: StaffCallbackInfo | null, timeZone: string
 }
 
 const CALL_HEADERS = ['Language', 'Duration', 'Topic', 'Status', 'Caller', 'Summary'] as const;
-const CALLBACK_HEADERS = ['Phone', 'Reason', 'Action'] as const;
+const CALLBACK_HEADERS = ['Details', 'Action'] as const;
 
 function callRowHtml(call: StaffCallSummary, timeZone: string, showCallback: boolean): string {
   const when = formatClinicDateTime(call.startedAt ?? call.createdAt, timeZone);
   const duration = call.durationSeconds === null ? null : formatDuration(call.durationSeconds);
   const callbackCells = showCallback
-    ? `${callbackPhoneCellHtml(call.callback)}
-      ${cellHtml(call.callback?.reason, 'col-reason')}
+    ? `${callbackDetailsCellHtml(call.callback)}
       ${callbackActionHtml(call.callback, timeZone)}`
     : '';
   return `<tr class="call-row status-${escapeHtml(call.status)}" id="call-${escapeHtml(call.id)}">

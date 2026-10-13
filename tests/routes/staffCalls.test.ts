@@ -90,6 +90,19 @@ describe('GET /staff/calls — All Calls', () => {
     expect(text).not.toContain('<ul');
   });
 
+  test('the table is fluid: full width, wrapping cells, and no fixed minimum column widths that force a sideways scroll', async () => {
+    const { agent } = await loggedIn(new MemoryCallLogReader());
+
+    const { text } = await agent.get(CALLS);
+    const css = /<style>([\s\S]*?)<\/style>/.exec(text)?.[1] ?? '';
+
+    expect(css).toMatch(/\.data-table\s*\{[^}]*width:\s*100%/);
+    expect(css).toMatch(/\.col-summary[^{]*\{[^}]*overflow-wrap:\s*anywhere/);
+    for (const rule of css.match(/\.(?:col-|data-table|table-wrap)[^{]*\{[^}]*\}/g) ?? []) {
+      expect(rule).not.toMatch(/(?<!max-)min-width/);
+    }
+  });
+
   test('lists the client’s calls with a readable status badge and the AI summary', async () => {
     const reader = new MemoryCallLogReader();
     reader.seed(sampleCall({ id: 'r1', status: 'needs_callback', summary: 'Wants a callback.' }));
@@ -257,7 +270,7 @@ describe('Needs Callback filter — mark as handled (moved here from the old Cal
       ...overrides,
     });
 
-  test('adds Phone, Reason and Action columns, and a Mark as handled form for a pending callback', async () => {
+  test('adds Details (phone + reason) and Action columns, and a Mark as handled form for a pending callback', async () => {
     const reader = new MemoryCallLogReader();
     reader.seed(callbackCall());
     const { agent } = await loggedIn(reader);
@@ -272,12 +285,11 @@ describe('Needs Callback filter — mark as handled (moved here from the old Cal
       'Status',
       'Caller',
       'Summary',
-      'Phone',
-      'Reason',
+      'Details',
       'Action',
     ]);
-    expect(text).toContain('090-1234-5678');
-    expect(text).toContain('Asked about a treatment');
+    // Phone and reason share one Details cell (phone first), so the table needs no sideways scroll.
+    expect(firstRowCells(text).at(-2)).toBe('090-1234-5678 Asked about a treatment');
     expect(text).toContain('action="/staff/dashboard/callbacks/cb-1/handled"');
     expect(text).toContain('Mark as handled');
   });
@@ -334,7 +346,7 @@ describe('Needs Callback filter — mark as handled (moved here from the old Cal
     const { text } = await agent.get(NEEDS_CALLBACK);
 
     expect(text).not.toContain('Mark as handled');
-    expect(firstRowCells(text).slice(-3)).toEqual(['—', '—', '—']);
+    expect(firstRowCells(text).slice(-2)).toEqual(['—', '—']);
   });
 
   test('labels the demo placeholder number so staff never mistake it for a real one', async () => {
