@@ -1,18 +1,22 @@
 /**
- * Server-rendered pages for the call list and the reservation list (VP-12). Staff see a short AI
- * summary and a fixed status for each call — nothing else. Every field rendered here comes from the
- * allow-listed `StaffCallSummary` / `StaffReservationSummary` shapes, and each dynamic value goes
- * through escapeHtml(): the summary and names are caller-influenced text.
+ * Server-rendered pages for the call list and the reservation list (VP-12, tables in VP-14).
+ * Staff see a short AI summary and a fixed status for each call — nothing else. Every field
+ * rendered here comes from the allow-listed `StaffCallSummary` / `StaffReservationSummary` shapes,
+ * and each dynamic value goes through escapeHtml(): the summary and names are caller-influenced
+ * text. Timestamps are stored in UTC and shown in the clinic's timezone (see lib/clinicTime.ts).
  */
 import { formatDuration } from '../lib/callDuration.js';
 import { CALL_STATUSES, type CallStatus } from '../lib/callStatus.js';
+import { formatClinicDateTime, timeZoneLabel } from '../lib/clinicTime.js';
+import { DEMO_PLACEHOLDER_PHONE } from '../lib/demoCallerPhone.js';
 import { escapeHtml } from '../lib/htmlEscape.js';
 import type {
+  StaffCallbackInfo,
   StaffCallSummary,
   StaffReservationSummary,
 } from '../repositories/callLogRepository.js';
 import { staffNavHtml } from './staffNav.js';
-import { STAFF_CALLS_PATH, STAFF_LOGOUT_PATH } from './staffPaths.js';
+import { STAFF_CALLS_PATH, STAFF_LOGOUT_PATH, staffCallbackHandledPath } from './staffPaths.js';
 import { pageShell } from './staffViews.js';
 
 export const STATUS_LABELS: Readonly<Record<CallStatus, string>> = {
@@ -21,6 +25,9 @@ export const STATUS_LABELS: Readonly<Record<CallStatus, string>> = {
   resolved_by_ai: 'Resolved by AI',
   unresolved: 'Unresolved',
 };
+
+/** Shown where a value is missing — e.g. no summary for a call that dropped before anything was said. */
+const EMPTY_CELL = '—';
 
 function statusBadgeHtml(status: CallStatus): string {
   const label = STATUS_LABELS[status] ?? escapeHtml(status);
@@ -36,38 +43,80 @@ function headerHtml(title: string): string {
 </header>`;
 }
 
-function whenOf(call: StaffCallSummary): string {
-  return (call.startedAt ?? call.createdAt).toISOString();
+function cellHtml(value: string | null | undefined, className = ''): string {
+  const classes = [className, value ? '' : 'cell-empty'].filter(Boolean).join(' ');
+  const classAttr = classes ? ` class="${classes}"` : '';
+  return `<td${classAttr}>${value ? escapeHtml(value) : EMPTY_CELL}</td>`;
 }
 
-function peopleHtml(call: StaffCallSummary): string {
+function tableHtml(id: string, headers: readonly string[], rows: readonly string[]): string {
+  const head = headers.map((header) => `<th scope="col">${escapeHtml(header)}</th>`).join('');
+  return `<div class="table-wrap">
+  <table class="data-table" id="${escapeHtml(id)}">
+    <thead><tr>${head}</tr></thead>
+    <tbody>
+    ${rows.join('\n    ')}
+    </tbody>
+  </table>
+</div>`;
+}
+
+function emptyRowHtml(columns: number, message: string): string {
+  return `<tr class="table-empty"><td colspan="${columns}">${escapeHtml(message)}</td></tr>`;
+}
+
+function callerCellHtml(call: StaffCallSummary): string {
   const parts = [
-    call.callerName ? `Caller: ${escapeHtml(call.callerName)}` : '',
+    call.callerName ? escapeHtml(call.callerName) : '',
     call.matchedPatientName ? `Patient on file: ${escapeHtml(call.matchedPatientName)}` : '',
   ].filter((part) => part.length > 0);
-  return parts.length > 0 ? `<p class="call-people">${parts.join(' · ')}</p>` : '';
+  return parts.length > 0
+    ? `<td class="col-caller">${parts.join('<br>')}</td>`
+    : `<td class="cell-empty">${EMPTY_CELL}</td>`;
 }
 
-function summaryHtml(call: StaffCallSummary): string {
-  return call.summary
-    ? `<p class="call-summary">${escapeHtml(call.summary)}</p>`
-    : '<p class="call-summary call-summary-empty">(no summary)</p>';
+/** Flags the demo placeholder so staff never mistake it for a real callback number. */
+function callbackPhoneCellHtml(callback: StaffCallbackInfo | null): string {
+  if (!callback?.callerPhone) return `<td class="cell-empty">${EMPTY_CELL}</td>`;
+  // TODO(SV-5): remove the placeholder label once real caller-ID numbers are stored.
+  const phone = escapeHtml(callback.callerPhone);
+  return callback.callerPhone === DEMO_PLACEHOLDER_PHONE
+    ? `<td>${phone} (demo placeholder — no caller ID)</td>`
+    : `<td class="col-nowrap">${phone}</td>`;
 }
 
-function metaHtml(call: StaffCallSummary): string {
-  const topic = call.topic ? ` · Topic: ${escapeHtml(call.topic)}` : '';
-  const duration =
-    call.durationSeconds === null ? '' : ` · Duration: ${formatDuration(call.durationSeconds)}`;
-  return `<p class="call-meta">${escapeHtml(whenOf(call))} · Language: ${escapeHtml(call.language)}${duration}${topic}</p>`;
+function callbackActionHtml(callback: StaffCallbackInfo | null, timeZone: string): string {
+  if (!callback) return `<td class="cell-empty">${EMPTY_CELL}</td>`;
+  if (callback.status === 'pending') {
+    return `<td class="col-action"><form method="post" action="${staffCallbackHandledPath(callback.id)}" class="mark-handled-form">
+      <button type="submit" class="mark-handled-button">Mark as handled</button>
+    </form></td>`;
+  }
+  const handledAt = callback.handledAt ? formatClinicDateTime(callback.handledAt, timeZone) : '';
+  return `<td class="col-action"><span class="handled-label">Handled ${escapeHtml(handledAt)}</span></td>`;
 }
 
-function callRowHtml(call: StaffCallSummary): string {
-  return `<li class="call-row status-${escapeHtml(call.status)}" id="call-${escapeHtml(call.id)}">
-    ${statusBadgeHtml(call.status)}
-    ${peopleHtml(call)}
-    ${metaHtml(call)}
-    ${summaryHtml(call)}
-  </li>`;
+const CALL_HEADERS = ['Language', 'Duration', 'Topic', 'Status', 'Caller', 'Summary'] as const;
+const CALLBACK_HEADERS = ['Phone', 'Reason', 'Action'] as const;
+
+function callRowHtml(call: StaffCallSummary, timeZone: string, showCallback: boolean): string {
+  const when = formatClinicDateTime(call.startedAt ?? call.createdAt, timeZone);
+  const duration = call.durationSeconds === null ? null : formatDuration(call.durationSeconds);
+  const callbackCells = showCallback
+    ? `${callbackPhoneCellHtml(call.callback)}
+      ${cellHtml(call.callback?.reason, 'col-reason')}
+      ${callbackActionHtml(call.callback, timeZone)}`
+    : '';
+  return `<tr class="call-row status-${escapeHtml(call.status)}" id="call-${escapeHtml(call.id)}">
+      <td class="col-nowrap">${escapeHtml(when)}</td>
+      ${cellHtml(call.language)}
+      ${cellHtml(duration, 'col-nowrap')}
+      ${cellHtml(call.topic)}
+      <td>${statusBadgeHtml(call.status)}</td>
+      ${callerCellHtml(call)}
+      ${cellHtml(call.summary, 'col-summary')}
+      ${callbackCells}
+    </tr>`;
 }
 
 function filterLinksHtml(active: CallStatus | undefined): string {
@@ -84,12 +133,22 @@ function filterLinksHtml(active: CallStatus | undefined): string {
 export interface RenderCallsPageOptions {
   calls: StaffCallSummary[];
   statusFilter?: CallStatus | undefined;
+  /** The clinic's IANA timezone; timestamps are shown in it. */
+  timeZone: string;
 }
 
 export function renderCallsPage(options: RenderCallsPageOptions): string {
+  const { timeZone } = options;
+  // Mark-as-handled lives here, on the Needs Callback filter, and nowhere else (VP-14).
+  const showCallback = options.statusFilter === 'needs_callback';
+  const headers = [
+    `Date / Time (${timeZoneLabel(timeZone)})`,
+    ...CALL_HEADERS,
+    ...(showCallback ? CALLBACK_HEADERS : []),
+  ];
   const rows = options.calls.length
-    ? options.calls.map(callRowHtml).join('\n')
-    : '<li class="call-row-empty">No calls yet.</li>';
+    ? options.calls.map((call) => callRowHtml(call, timeZone, showCallback))
+    : [emptyRowHtml(headers.length, 'No calls yet.')];
 
   return pageShell(
     'All Calls',
@@ -97,52 +156,54 @@ export function renderCallsPage(options: RenderCallsPageOptions): string {
 ${staffNavHtml('calls')}
 <main class="call-dashboard">
   ${filterLinksHtml(options.statusFilter)}
-  <ul class="call-list" id="call-list">
-    ${rows}
-  </ul>
+  ${tableHtml('call-table', headers, rows)}
 </main>`,
   );
 }
 
-function reservationDetailsHtml(reservation: StaffReservationSummary): string {
-  if (!reservation.reservationNumber) {
-    return '<p class="reservation-details reservation-details-missing">Booking details unavailable.</p>';
-  }
-  const when = [reservation.appointmentDate, reservation.appointmentTime]
-    .filter((part): part is string => part !== null)
-    .map(escapeHtml)
-    .join(' ');
-  const service = reservation.serviceName ? ` · ${escapeHtml(reservation.serviceName)}` : '';
-  return `<p class="reservation-details"><strong>Reservation ${escapeHtml(reservation.reservationNumber)}</strong> — ${when}${service}</p>`;
-}
-
-function reservationRowHtml(reservation: StaffReservationSummary): string {
-  return `<li class="call-row status-${escapeHtml(reservation.status)}" id="reservation-${escapeHtml(reservation.id)}">
-    ${statusBadgeHtml(reservation.status)}
-    ${reservationDetailsHtml(reservation)}
-    ${peopleHtml(reservation)}
-    ${metaHtml(reservation)}
-    ${summaryHtml(reservation)}
-  </li>`;
+function reservationRowHtml(reservation: StaffReservationSummary, timeZone: string): string {
+  const appointment = `${reservation.appointmentDate} ${reservation.appointmentTime}`;
+  const booked = formatClinicDateTime(reservation.bookedAt, timeZone);
+  return `<tr class="reservation-row" id="reservation-${escapeHtml(reservation.id)}">
+      <td class="col-nowrap">${escapeHtml(reservation.reservationNumber)}</td>
+      <td class="col-nowrap">${escapeHtml(appointment)}</td>
+      ${cellHtml(reservation.serviceName)}
+      ${cellHtml(reservation.patientName)}
+      ${cellHtml(reservation.isReturningPatient ? 'Returning' : 'New')}
+      ${cellHtml(reservation.language)}
+      <td class="col-nowrap">${escapeHtml(booked)}</td>
+      ${cellHtml(reservation.summary, 'col-summary')}
+    </tr>`;
 }
 
 export interface RenderReservationsPageOptions {
   reservations: StaffReservationSummary[];
+  /** The clinic's IANA timezone; the booking time is shown in it. */
+  timeZone: string;
 }
 
 export function renderReservationsPage(options: RenderReservationsPageOptions): string {
+  const { timeZone } = options;
+  const headers = [
+    'Reservation #',
+    'Appointment',
+    'Service',
+    'Patient',
+    'Patient type',
+    'Language',
+    `Booked (${timeZoneLabel(timeZone)})`,
+    'Summary',
+  ];
   const rows = options.reservations.length
-    ? options.reservations.map(reservationRowHtml).join('\n')
-    : '<li class="call-row-empty">No reservations yet.</li>';
+    ? options.reservations.map((reservation) => reservationRowHtml(reservation, timeZone))
+    : [emptyRowHtml(headers.length, 'No reservations yet.')];
 
   return pageShell(
     'Reservations',
     `${headerHtml('Reservations')}
 ${staffNavHtml('reservations')}
 <main class="call-dashboard">
-  <ul class="call-list" id="reservation-list">
-    ${rows}
-  </ul>
+  ${tableHtml('reservation-table', headers, rows)}
 </main>`,
   );
 }

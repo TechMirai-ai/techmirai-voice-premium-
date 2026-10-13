@@ -9,17 +9,8 @@
  * Semantic class names/ids throughout (§4.4) — no CSS exists yet, but the
  * owner's later styling pass should need no HTML restructuring.
  */
-import { DEMO_PLACEHOLDER_PHONE } from '../lib/demoCallerPhone.js';
 import { escapeHtml } from '../lib/htmlEscape.js';
-import type { CallbackRequestSummary } from '../repositories/callbackRequestRepository.js';
-import type { StaffUser } from '../repositories/staffUserRepository.js';
-import { staffNavHtml } from './staffNav.js';
-import {
-  STAFF_CHANGE_PASSWORD_PATH,
-  STAFF_DASHBOARD_PATH,
-  STAFF_LOGIN_PATH,
-  STAFF_LOGOUT_PATH,
-} from './staffPaths.js';
+import { STAFF_CHANGE_PASSWORD_PATH, STAFF_LOGIN_PATH } from './staffPaths.js';
 
 export function pageShell(title: string, bodyHtml: string): string {
   return `<!doctype html>
@@ -110,97 +101,8 @@ body {
   border-color: var(--text-muted);
 }
 
-/* Dashboard Container */
-.callback-dashboard {
-  max-width: 860px;
-  margin: 2.5rem auto;
-  padding: 0 1.5rem;
-}
-
-.callback-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.callback-row-empty {
-  background: var(--bg-surface);
-  border: 1px dashed var(--border-medium);
-  border-radius: 6px;
-  padding: 3.5rem 1.5rem;
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 0.95rem;
-  letter-spacing: 0.03em;
-}
-
-/* Callback Card */
-.callback-row {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-light);
-  border-radius: 6px;
-  padding: 1.25rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
-}
-
-.callback-row:hover {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-}
-
-.callback-row.status-pending {
-  border-left: 4px solid var(--pending-border);
-  background: var(--pending-bg);
-}
-
-.callback-row.status-handled {
-  border-left: 4px solid var(--handled-border);
-  background: var(--handled-bg);
-  opacity: 0.88;
-}
-
-.callback-caller {
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--brand-navy);
-  letter-spacing: 0.01em;
-}
-
-.callback-meta {
-  font-size: 0.825rem;
-  color: var(--text-muted);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.01em;
-}
-
-.callback-reason {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-light);
-  border-radius: 4px;
-  padding: 0.75rem 1rem;
-  font-size: 0.925rem;
-  color: var(--text-sub);
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.callback-reason.callback-reason-empty {
-  background: transparent;
-  border: none;
-  padding: 0;
-  color: var(--text-muted);
-  font-style: italic;
-}
-
 .mark-handled-form {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 0.25rem;
 }
 
 .mark-handled-button {
@@ -223,7 +125,7 @@ body {
 
 /* Section navigation and the call / reservation lists */
 .staff-nav {
-  max-width: 860px;
+  max-width: 1400px;
   margin: 1.25rem auto 0;
   padding: 0 1.5rem;
   display: flex;
@@ -246,7 +148,7 @@ body {
 }
 
 .call-dashboard {
-  max-width: 860px;
+  max-width: 1400px;
   margin: 1.5rem auto 2.5rem;
   padding: 0 1.5rem;
 }
@@ -273,34 +175,61 @@ body {
   color: #ffffff;
 }
 
-.call-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.call-row {
+/* Spreadsheet-style tables (VP-14): scrolls sideways on narrow screens rather than squashing. */
+.table-wrap {
+  overflow-x: auto;
   background: var(--bg-surface);
   border: 1px solid var(--border-light);
   border-radius: 6px;
-  padding: 1.1rem 1.4rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
 }
 
-.call-row-empty {
-  background: var(--bg-surface);
-  border: 1px dashed var(--border-medium);
-  border-radius: 6px;
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.data-table th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-subtle);
+  color: var(--text-sub);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+  border-right: 1px solid var(--border-light);
+  vertical-align: top;
+}
+
+.data-table th:last-child,
+.data-table td:last-child { border-right: none; }
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr:nth-child(even) { background: var(--bg-canvas); }
+.data-table tbody tr:hover { background: var(--bg-subtle); }
+
+.col-nowrap { white-space: nowrap; }
+.col-caller, .col-reason, .col-summary { min-width: 14rem; white-space: pre-wrap; word-break: break-word; }
+.col-summary { min-width: 20rem; color: var(--text-sub); }
+.cell-empty { color: var(--text-muted); }
+
+.table-empty td {
   padding: 3rem 1.5rem;
   text-align: center;
   color: var(--text-muted);
 }
 
 .status-badge {
-  align-self: flex-start;
+  display: inline-block;
+  white-space: nowrap;
   padding: 0.15rem 0.65rem;
   border-radius: 999px;
   border: 1px solid var(--border-medium);
@@ -313,16 +242,10 @@ body {
 .status-badge.status-resolved_by_ai { color: #1e40af; background: #eff6ff; border-color: #bfdbfe; }
 .status-badge.status-unresolved { color: var(--danger-text); background: var(--danger-bg); border-color: var(--danger-border); }
 
-.call-people { font-weight: 600; color: var(--brand-navy); }
-.call-meta { font-size: 0.8rem; color: var(--text-muted); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
-.call-summary { color: var(--text-sub); white-space: pre-wrap; word-break: break-word; }
-.call-summary-empty, .reservation-details-missing { color: var(--text-muted); font-style: italic; }
-.reservation-details { color: var(--brand-navy); }
-
 .handled-label {
   display: inline-flex;
   align-items: center;
-  align-self: flex-start;
+  white-space: nowrap;
   font-size: 0.8rem;
   font-weight: 500;
   color: var(--text-sub);
@@ -434,9 +357,9 @@ body {
   .staff-header {
     padding: 1rem;
   }
-  .callback-dashboard {
+  .call-dashboard,
+  .staff-nav {
     padding: 0 1rem;
-    margin: 1.5rem auto;
   }
   .staff-login,
   .staff-change-password {
@@ -502,65 +425,6 @@ export function renderChangePasswordPage(options: RenderChangePasswordPageOption
     <input type="password" name="confirmPassword" id="confirm-password" required autocomplete="new-password" minlength="12" />
     <button type="submit" id="change-password-submit">Set password</button>
   </form>
-</main>`,
-  );
-}
-
-export interface RenderDashboardPageOptions {
-  staffUser: StaffUser;
-  callbacks: CallbackRequestSummary[];
-}
-
-function callbackActionHtml(callback: CallbackRequestSummary): string {
-  if (callback.status === 'pending') {
-    return `<form method="post" action="${STAFF_DASHBOARD_PATH}/callbacks/${escapeHtml(callback.id)}/handled" class="mark-handled-form">
-      <button type="submit" class="mark-handled-button">Mark as handled</button>
-    </form>`;
-  }
-  const handledAt = callback.handledAt ? escapeHtml(callback.handledAt.toISOString()) : '';
-  return `<span class="handled-label">Handled ${handledAt}</span>`;
-}
-
-/** Flags the demo placeholder so staff never mistake it for a real callback number. */
-function callerPhoneHtml(phone: string): string {
-  // TODO(SV-5): remove once real caller-ID numbers are stored.
-  return phone === DEMO_PLACEHOLDER_PHONE
-    ? `${escapeHtml(phone)} (demo placeholder — no caller ID)`
-    : escapeHtml(phone);
-}
-
-function callbackRowHtml(callback: CallbackRequestSummary): string {
-  const statusClass = callback.status === 'pending' ? 'status-pending' : 'status-handled';
-  const reasonHtml = callback.reason
-    ? `<p class="callback-reason">${escapeHtml(callback.reason)}</p>`
-    : '<p class="callback-reason callback-reason-empty">(no reason given)</p>';
-
-  return `<li class="callback-row ${statusClass}" id="callback-${escapeHtml(callback.id)}">
-    <p class="callback-caller">${escapeHtml(callback.callerName)} — ${callerPhoneHtml(callback.callerPhone)}</p>
-    <p class="callback-meta">Language: ${escapeHtml(callback.language)} · Received: ${escapeHtml(callback.createdAt.toISOString())}</p>
-    ${reasonHtml}
-    ${callbackActionHtml(callback)}
-  </li>`;
-}
-
-export function renderDashboardPage(options: RenderDashboardPageOptions): string {
-  const rows = options.callbacks.length
-    ? options.callbacks.map(callbackRowHtml).join('\n')
-    : '<li class="callback-row-empty">No callback requests yet.</li>';
-
-  return pageShell(
-    'Callback requests',
-    `<header class="staff-header">
-  <h1>Callback requests</h1>
-  <form method="post" action="${STAFF_LOGOUT_PATH}" class="logout-form">
-    <button type="submit" id="logout-button">Log out</button>
-  </form>
-</header>
-${staffNavHtml('callbacks')}
-<main class="callback-dashboard">
-  <ul class="callback-list" id="callback-list">
-    ${rows}
-  </ul>
 </main>`,
   );
 }

@@ -3,6 +3,7 @@ import connectPgSimple from 'connect-pg-simple';
 import session from 'express-session';
 
 import { createApp } from './app.js';
+import { clinicTimeZoneLookup } from './config/clinicTimeZone.js';
 import { createPool } from './db/pool.js';
 import { createArchive } from './google/createArchive.js';
 import { EnvError, isProduction, loadEnv } from './env.js';
@@ -64,6 +65,7 @@ const app = createApp({
     staffUsers: new PgStaffUserRepository(pool),
     callbacks,
     callLogs: new PgCallLogRepository(pool),
+    timeZoneFor: clinicTimeZoneLookup(),
   },
   talk: {
     publicKey: env.VAPI_PUBLIC_KEY,

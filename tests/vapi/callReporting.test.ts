@@ -30,7 +30,14 @@ describe('renderCallOutcomeOutput', () => {
       'unresolved',
     ]);
     expect(output.schema.properties.resolved.type).toBe('boolean');
-    expect(output.schema.required).toEqual(['topic', 'resolved']);
+    expect(output.schema.required).toEqual(['topic', 'resolved', 'summary']);
+  });
+
+  test('also extracts a required staff-facing summary string (replaces the deprecated analysisPlan summary)', () => {
+    const { summary } = renderCallOutcomeOutput(config, faq).schema.properties;
+    expect(summary.type).toBe('string');
+    expect(summary.description).toMatch(/language the caller spoke/i);
+    expect(summary.description).toMatch(/ended before anything was said/i);
   });
 
   test('the resolved description says a callback or booking is not "resolved"', () => {

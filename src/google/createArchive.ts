@@ -6,6 +6,7 @@
  * Returns `undefined` when no Google variable is set, so deploying before the Google setup is done
  * changes nothing; throws (naming the missing variables) when it is only partly configured.
  */
+import { clinicTimeZoneLookup } from '../config/clinicTimeZone.js';
 import { loadClient } from '../config/loadClient.js';
 import type { ClientConfig } from '../config/schema.js';
 import type { Queryable } from '../db/pool.js';
@@ -19,18 +20,6 @@ import { createDriveClient } from './drive.js';
 import { createSheetsClient } from './sheets.js';
 
 const SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
-
-/** Each client's `business.hours.timezone`, read from its client.yaml once and remembered. */
-function clinicTimeZones(load: (clientId: string) => ClientConfig): (clientId: string) => string {
-  const cache = new Map<string, string>();
-  return (clientId) => {
-    const cached = cache.get(clientId);
-    if (cached) return cached;
-    const timeZone = load(clientId).business.hours.timezone;
-    cache.set(clientId, timeZone);
-    return timeZone;
-  };
-}
 
 export interface CreateArchiveOptions {
   /** For tests; defaults to reading `clients/<id>/client.yaml`. */
@@ -68,7 +57,7 @@ export function createArchive(options: CreateArchiveOptions): Archive | undefine
     drive,
     audioFolderId: config.audioFolderId,
     transcriptFolderId: config.transcriptFolderId,
-    timeZoneFor: clinicTimeZones(options.loadClientConfig ?? loadClient),
+    timeZoneFor: clinicTimeZoneLookup(options.loadClientConfig ?? loadClient),
     vapi: { apiKey: options.vapiApiKey },
   });
 

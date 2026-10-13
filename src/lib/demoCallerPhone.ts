@@ -7,6 +7,6 @@
  * a saved row for a real callback number.
  *
  * TODO(SV-5): once real phone calls exist, replace this with the caller-ID from the Vapi webhook
- * (`message.call.customer.number`), and drop the placeholder-label in src/routes/staffViews.ts.
+ * (`message.call.customer.number`), and drop the placeholder-label in src/routes/staffCallViews.ts.
  */
 export const DEMO_PLACEHOLDER_PHONE = '000-0000-0000';

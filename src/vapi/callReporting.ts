@@ -9,8 +9,9 @@
  *    carried across a handoff (VAPI-FACTS.md VP-6 R3). A report arriving twice is harmless — the
  *    `call_logs` write is idempotent per (client, call).
  *  - `renderCallOutcomeOutput` — the per-client structured output Vapi runs after each call. It is the
- *    only source of "was this resolved by the AI?"; the model-called `log_call_topic` tool is not
- *    (VAPI-FACTS.md VP-7 R8).
+ *    only source of "was this resolved by the AI?" (the model-called `log_call_topic` tool is not —
+ *    VAPI-FACTS.md VP-7 R8) and of the staff-facing call summary: Vapi's own `analysis.summary` is
+ *    off on our assistants and `analysisPlan` is deprecated (VAPI-FACTS.md VP-14).
  */
 import type { ClientConfig } from '../config/schema.js';
 import type { FaqEntry } from '../knowledge/KnowledgeSource.js';
@@ -69,8 +70,16 @@ export function renderCallOutcomeOutput(
             'False if the caller asked for a callback, wanted staff, booked an appointment, hung up ' +
             'before getting an answer, or the question was not answered.',
         },
+        summary: {
+          type: 'string',
+          description:
+            'A short summary of the call for clinic staff, in 1-3 plain sentences, written in the ' +
+            'language the caller spoke: what the caller wanted and what happened (answered, booked, ' +
+            'callback requested, or not resolved). If the call ended before anything was said, say ' +
+            'so in one short sentence. Do not invent details.',
+        },
       },
-      required: ['topic', 'resolved'],
+      required: ['topic', 'resolved', 'summary'],
     },
   };
 }

@@ -113,13 +113,21 @@ export class MemoryCallbackAdmin implements CallbackRequestAdminRepository {
 }
 
 /** A call as the staff reader returns it, plus the client it belongs to (the real reader filters by it). */
-export type SeededCall = StaffReservationSummary & { clientId: string };
+export type SeededCall = StaffCallSummary & { clientId: string };
+
+/** A reservation as the staff reader returns it, plus its client. */
+export type SeededReservation = StaffReservationSummary & { clientId: string };
 
 export class MemoryCallLogReader implements CallLogReader {
   readonly rows: SeededCall[] = [];
+  readonly reservations: SeededReservation[] = [];
 
   seed(row: SeededCall): void {
     this.rows.push(row);
+  }
+
+  seedReservation(row: SeededReservation): void {
+    this.reservations.push(row);
   }
 
   listByClient(clientId: string, options: StaffCallListOptions = {}): Promise<StaffCallSummary[]> {
@@ -131,9 +139,20 @@ export class MemoryCallLogReader implements CallLogReader {
     );
   }
 
+  listNeedsCallback(clientId: string): Promise<StaffCallSummary[]> {
+    return Promise.resolve(
+      this.rows
+        .filter((row) => row.clientId === clientId)
+        .filter((row) => row.status === 'needs_callback' || row.callback !== null)
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+    );
+  }
+
   listReservations(clientId: string): Promise<StaffReservationSummary[]> {
     return Promise.resolve(
-      this.rows.filter((row) => row.clientId === clientId && row.status === 'reservation_made'),
+      this.reservations
+        .filter((row) => row.clientId === clientId)
+        .sort((a, b) => b.bookedAt.getTime() - a.bookedAt.getTime()),
     );
   }
 }
@@ -152,10 +171,24 @@ export function sampleCall(overrides: Partial<SeededCall> = {}): SeededCall {
     status: 'resolved_by_ai',
     summary: 'Caller asked about parking.',
     durationSeconds: null,
-    reservationNumber: null,
-    appointmentDate: null,
-    appointmentTime: null,
-    serviceName: null,
+    callback: null,
+    ...overrides,
+  };
+}
+
+export function sampleReservation(overrides: Partial<SeededReservation> = {}): SeededReservation {
+  return {
+    id: 'reservation-row-1',
+    clientId: STAFF_CLIENT_ID,
+    reservationNumber: 'R123456',
+    appointmentDate: '2026-10-20',
+    appointmentTime: '09:00',
+    serviceName: 'General Consultation',
+    patientName: 'Taro Sample',
+    isReturningPatient: false,
+    language: 'ja',
+    bookedAt: new Date('2026-10-12T01:00:00.000Z'),
+    summary: 'Caller booked a general consultation.',
     ...overrides,
   };
 }
@@ -192,6 +225,7 @@ export function buildStaffOptions(
     staffUsers: overrides.staffUsers ?? new MemoryStaffUsers(),
     callbacks: overrides.callbacks ?? new MemoryCallbackAdmin(),
     callLogs: overrides.callLogs ?? new MemoryCallLogReader(),
+    timeZoneFor: () => 'Asia/Tokyo',
   };
 }
 

@@ -13,6 +13,8 @@ const LOGIN = '/staff/login';
 const LOGOUT = '/staff/logout';
 const CHANGE_PASSWORD = '/staff/change-password';
 const DASHBOARD = '/staff/dashboard';
+/** The page the dashboard URL lands on: a real 200 page, unlike DASHBOARD itself (a redirect). */
+const HOME = '/staff/calls';
 
 async function seededStaffUsers(password = 'a-real-password-123', mustChangePassword = true) {
   const staffUsers = new MemoryStaffUsers();
@@ -102,7 +104,7 @@ describe('session', () => {
     const agent = request.agent(app);
     await agent.post(LOGIN).send({ email: 'owner@example.com', password: 'a-real-password-123' });
 
-    const response = await agent.get(DASHBOARD);
+    const response = await agent.get(HOME);
 
     expect(response.status).toBe(200);
   });
@@ -121,11 +123,11 @@ describe('session', () => {
     const { app } = buildStaffApp({ staffUsers });
     const agent = request.agent(app);
     await agent.post(LOGIN).send({ email: 'owner@example.com', password: 'a-real-password-123' });
-    expect((await agent.get(DASHBOARD)).status).toBe(200);
+    expect((await agent.get(HOME)).status).toBe(200);
 
     staffUsers.users.delete(user.id);
 
-    const response = await agent.get(DASHBOARD);
+    const response = await agent.get(HOME);
     expect(response.status).toBe(303);
     expect(response.headers.location).toBe(LOGIN);
   });
@@ -135,13 +137,13 @@ describe('session', () => {
     const { app } = buildStaffApp({ staffUsers });
     const agent = request.agent(app);
     await agent.post(LOGIN).send({ email: 'owner@example.com', password: 'a-real-password-123' });
-    expect((await agent.get(DASHBOARD)).status).toBe(200);
+    expect((await agent.get(HOME)).status).toBe(200);
 
     const logoutResponse = await agent.post(LOGOUT);
     expect(logoutResponse.status).toBe(303);
     expect(logoutResponse.headers.location).toBe(LOGIN);
 
-    const afterLogout = await agent.get(DASHBOARD);
+    const afterLogout = await agent.get(HOME);
     expect(afterLogout.status).toBe(303);
     expect(afterLogout.headers.location).toBe(LOGIN);
   });
@@ -180,7 +182,7 @@ describe('forced password change (§4.7)', () => {
     const updated = await staffUsers.findById(user.id);
     expect(updated?.mustChangePassword).toBe(false);
 
-    const dashboardResponse = await agent.get(DASHBOARD);
+    const dashboardResponse = await agent.get(HOME);
     expect(dashboardResponse.status).toBe(200);
   });
 

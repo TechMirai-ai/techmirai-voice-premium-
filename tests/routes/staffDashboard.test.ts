@@ -1,4 +1,3 @@
-import { DEMO_PLACEHOLDER_PHONE } from '../../src/lib/demoCallerPhone.js';
 import request from 'supertest';
 import { describe, expect, test } from 'vitest';
 
@@ -34,83 +33,16 @@ async function buildLoggedInApp(callbacks: MemoryCallbackAdmin) {
   return { app, agent };
 }
 
-describe('GET /staff/dashboard', () => {
-  test('lists the logged-in client’s callbacks', async () => {
-    const callbacks = new MemoryCallbackAdmin();
-    callbacks.seed(sampleCallback({ id: 'cb-1', callerName: 'Hanako Yamada' }));
-    const { agent } = await buildLoggedInApp(callbacks);
-
-    const response = await agent.get(DASHBOARD);
-
-    expect(response.status).toBe(200);
-    expect(response.text).toContain('Hanako Yamada');
-    expect(response.text).toContain('class="callback-row');
-    expect(response.text).toContain('id="callback-cb-1"');
-  });
-
-  test('labels the demo placeholder number so staff never mistake it for a real one', async () => {
-    const callbacks = new MemoryCallbackAdmin();
-    callbacks.seed(sampleCallback({ id: 'cb-1', callerPhone: DEMO_PLACEHOLDER_PHONE }));
-    callbacks.seed(sampleCallback({ id: 'cb-2', callerPhone: '090-1234-5678' }));
-    const { agent } = await buildLoggedInApp(callbacks);
-
-    const response = await agent.get(DASHBOARD);
-
-    expect(response.text).toContain(`${DEMO_PLACEHOLDER_PHONE} (demo placeholder — no caller ID)`);
-    expect(response.text).toContain('090-1234-5678</p>');
-  });
-
-  test('shows an empty state with no callbacks', async () => {
+// The Callbacks page is gone (VP-14): its list/escaping/placeholder-phone behaviour is covered by
+// the "Needs Callback filter" tests in staffCalls.test.ts. Only the legacy URL and the POST remain.
+describe('GET /staff/dashboard (retired Callbacks page)', () => {
+  test('redirects to the call list so old bookmarks and the post-login landing keep working', async () => {
     const { agent } = await buildLoggedInApp(new MemoryCallbackAdmin());
 
     const response = await agent.get(DASHBOARD);
 
-    expect(response.status).toBe(200);
-    expect(response.text).toContain('No callback requests yet.');
-  });
-
-  test('never shows another client’s callback', async () => {
-    const callbacks = new MemoryCallbackAdmin();
-    callbacks.seed(
-      sampleCallback({ id: 'cb-mine', clientId: STAFF_CLIENT_ID, callerName: 'Hanako Yamada' }),
-    );
-    callbacks.seed(
-      sampleCallback({ id: 'cb-theirs', clientId: OTHER_CLIENT_ID, callerName: 'Someone Else' }),
-    );
-    const { agent } = await buildLoggedInApp(callbacks);
-
-    const response = await agent.get(DASHBOARD);
-
-    expect(response.text).toContain('Hanako Yamada');
-    expect(response.text).not.toContain('Someone Else');
-    expect(response.text).not.toContain('cb-theirs');
-  });
-
-  test('escapes an HTML-like reason so it renders as inert text, not markup (§3, §6.5)', async () => {
-    const callbacks = new MemoryCallbackAdmin();
-    callbacks.seed(
-      sampleCallback({ id: 'cb-1', reason: '<script>alert(document.cookie)</script>' }),
-    );
-    const { agent } = await buildLoggedInApp(callbacks);
-
-    const response = await agent.get(DASHBOARD);
-
-    expect(response.text).not.toContain('<script>alert(document.cookie)</script>');
-    expect(response.text).toContain('&lt;script&gt;alert(document.cookie)&lt;/script&gt;');
-    // A real assertion on the rendered output: no executable <script> tag
-    // exists anywhere in the page — this page ships no inline script at all.
-    expect(response.text.match(/<script\b/g)).toBeNull();
-  });
-
-  test('escapes an HTML-like caller name too', async () => {
-    const callbacks = new MemoryCallbackAdmin();
-    callbacks.seed(sampleCallback({ id: 'cb-1', callerName: '<img src=x onerror=alert(1)>' }));
-    const { agent } = await buildLoggedInApp(callbacks);
-
-    const response = await agent.get(DASHBOARD);
-
-    expect(response.text).not.toContain('<img src=x onerror=alert(1)>');
-    expect(response.text).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    expect(response.status).toBe(302);
+    expect(response.headers.location).toBe('/staff/calls');
   });
 });
 
@@ -123,7 +55,7 @@ describe('POST /staff/dashboard/callbacks/:id/handled', () => {
     const response = await agent.post(`${DASHBOARD}/callbacks/cb-1/handled`);
 
     expect(response.status).toBe(303);
-    expect(response.headers.location).toBe(DASHBOARD);
+    expect(response.headers.location).toBe('/staff/calls?status=needs_callback');
     const row = callbacks.rows.get('cb-1');
     expect(row?.status).toBe('handled');
     expect(row?.handledAt).toBeInstanceOf(Date);

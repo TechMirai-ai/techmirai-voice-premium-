@@ -11,6 +11,7 @@ import session from 'express-session';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import { createApp } from '../src/app.js';
+import { clinicTimeZoneLookup } from '../src/config/clinicTimeZone.js';
 import { createPool } from '../src/db/pool.js';
 import { createArchive } from '../src/google/createArchive.js';
 import { isProduction, loadEnv } from '../src/env.js';
@@ -65,6 +66,7 @@ const app = createApp({
     staffUsers: new PgStaffUserRepository(pool),
     callbacks,
     callLogs: new PgCallLogRepository(pool),
+    timeZoneFor: clinicTimeZoneLookup(),
   },
   talk: {
     publicKey: env.VAPI_PUBLIC_KEY,

@@ -78,7 +78,15 @@ export interface EndOfCallReport {
   recordingUrlExpiresAt?: string;
 }
 
-const outcomeSchema = z.object({ topic: z.string().optional(), resolved: z.boolean().optional() });
+const outcomeSchema = z.object({
+  topic: z.string().optional(),
+  resolved: z.boolean().optional(),
+  // `nullish`: a model that can't fill the field may send null, which must not discard topic/resolved.
+  summary: z.string().nullish(),
+});
+
+/** Bound on the stored summary: it is model output shown to staff, so never unbounded. */
+const MAX_SUMMARY_CHARS = 2000;
 
 function firstOutcome(
   outputs: Record<string, { result?: unknown } | null> | undefined,
@@ -139,6 +147,13 @@ export function parseEndOfCallReport(body: unknown): EndOfCallReport | undefined
   const assistant = message.assistant ?? {};
   const callerName = callerNameOf(messages);
   const matchedPatientName = matchedPatientOf(messages);
+  // The structured output is the primary source (VAPI-FACTS.md VP-14); `analysis.summary` is only
+  // there if someone re-enables Vapi's deprecated analysisPlan.
+  const summary = (
+    outcome.summary?.trim() ||
+    message.analysis?.summary?.trim() ||
+    undefined
+  )?.slice(0, MAX_SUMMARY_CHARS);
 
   return {
     callId: message.call.id,
@@ -149,7 +164,7 @@ export function parseEndOfCallReport(body: unknown): EndOfCallReport | undefined
     ...(message.endedReason ? { endedReason: message.endedReason } : {}),
     ...(message.startedAt ? { startedAt: message.startedAt } : {}),
     ...(message.endedAt ? { endedAt: message.endedAt } : {}),
-    ...(message.analysis?.summary ? { summary: message.analysis.summary } : {}),
+    ...(summary ? { summary } : {}),
     transcript: artifact?.transcript ?? '',
     toolResults: messages
       .filter((entry) => entry.role === 'tool_call_result' && entry.name)

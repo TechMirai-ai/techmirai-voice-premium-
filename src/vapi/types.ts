@@ -225,6 +225,7 @@ export interface VapiStructuredOutputPayload {
     properties: {
       topic: { type: 'string'; description: string; enum: string[] };
       resolved: { type: 'boolean'; description: string };
+      summary: { type: 'string'; description: string };
     };
     required: string[];
   };

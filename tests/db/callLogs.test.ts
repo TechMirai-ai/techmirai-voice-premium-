@@ -64,6 +64,7 @@ describe.skipIf(!TEST_DATABASE_URL)('call_logs (real Postgres)', () => {
   beforeEach(async () => {
     await pool.query('DELETE FROM call_logs');
     await pool.query('DELETE FROM appointments');
+    await pool.query('DELETE FROM callback_requests');
   });
 
   test('has exactly the expected columns — no transcript or audio column', async () => {
@@ -185,6 +186,7 @@ describe.skipIf(!TEST_DATABASE_URL)('call_logs (real Postgres)', () => {
 
       expect(Object.keys(row!).sort()).toEqual([
         'callId',
+        'callback',
         'callerName',
         'createdAt',
         'durationSeconds',
@@ -223,46 +225,186 @@ describe.skipIf(!TEST_DATABASE_URL)('call_logs (real Postgres)', () => {
       expect(rows.every((row) => row.durationSeconds === null)).toBe(true);
     });
 
-    test('reservations carry the duration too', async () => {
-      await log('booked', {
-        status: 'reservation_made',
-        startedAt: '2026-10-12T00:00:00.000Z',
-        endedAt: '2026-10-12T00:01:05.000Z',
+    const appointment = (callId: string, number: string, createdAt = 'now()'): Promise<unknown> =>
+      pool.query(
+        `INSERT INTO appointments
+           (client_id, call_id, language, reservation_number, patient_name, patient_phone,
+            appointment_date, appointment_time, service_name, created_at)
+         VALUES ('c', $1, 'ja', $2, 'ヤマダ タロウ', '000', '2026-10-20', '10:30', 'General',
+                 ${createdAt === 'now()' ? 'now()' : '$3::timestamptz'})`,
+        createdAt === 'now()' ? [callId, number] : [callId, number, createdAt],
+      );
+
+    test('callback: a needs_callback call carries its callback request, so it can be marked handled', async () => {
+      await log('cb-call', { status: 'needs_callback' });
+      await log('plain', { status: 'resolved_by_ai' });
+      await pool.query(
+        `INSERT INTO callback_requests (client_id, call_id, language, caller_name, caller_phone, reason)
+         VALUES ('c', 'cb-call', 'ja', 'Hanako', '000-0000-0000', 'Asked about a treatment')`,
+      );
+
+      const rows = await new PgCallLogRepository(pool).listByClient('c');
+      const withCallback = rows.find((row) => row.callId === 'cb-call');
+      const without = rows.find((row) => row.callId === 'plain');
+
+      expect(withCallback?.callback).toMatchObject({
+        callerPhone: '000-0000-0000',
+        reason: 'Asked about a treatment',
+        status: 'pending',
+        handledAt: null,
       });
+      expect(withCallback?.callback?.id).toEqual(expect.any(String));
+      expect(without?.callback).toBeNull();
+    });
+
+    test('callback: two requests for one call never turn it into two rows', async () => {
+      await log('cb-call', { status: 'needs_callback' });
+      await pool.query(
+        `INSERT INTO callback_requests (client_id, call_id, language, caller_name, caller_phone, status, handled_at)
+         VALUES ('c', 'cb-call', 'ja', 'Hanako', '000', 'handled', now()),
+                ('c', 'cb-call', 'ja', 'Hanako', '000', 'pending', NULL)`,
+      );
+
+      const rows = await new PgCallLogRepository(pool).listByClient('c');
+
+      expect(rows).toHaveLength(1);
+    });
+
+    test('callback: another client’s callback for the same call id is never joined', async () => {
+      await log('shared-id', { status: 'needs_callback' });
+      await pool.query(
+        `INSERT INTO callback_requests (client_id, call_id, language, caller_name, caller_phone)
+         VALUES ('other', 'shared-id', 'ja', 'Someone Else', '999')`,
+      );
+
+      const [row] = await new PgCallLogRepository(pool).listByClient('c');
+
+      expect(row?.callback).toBeNull();
+    });
+
+    const callbackRow = (callId: string, extra = ''): Promise<unknown> =>
+      pool.query(
+        `INSERT INTO callback_requests (client_id, call_id, language, caller_name, caller_phone ${extra ? ', status, handled_at' : ''})
+         VALUES ('c', $1, 'ja', 'Hanako', '000' ${extra})`,
+        [callId],
+      );
+
+    test('needs-callback view: a callback with NO call_logs row (older than call logging, or its report never arrived) still appears and can be marked handled', async () => {
+      await callbackRow('orphan');
+
+      const rows = await new PgCallLogRepository(pool).listNeedsCallback('c');
+
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        callId: 'orphan',
+        status: 'needs_callback',
+        language: 'ja',
+        callerName: 'Hanako',
+        summary: null,
+        durationSeconds: null,
+        callback: { callerPhone: '000', status: 'pending' },
+      });
+      expect(rows[0]?.createdAt).toBeInstanceOf(Date);
+    });
+
+    test('needs-callback view: a callback on a call whose derived status is NOT needs_callback (booked, then asked for a callback) still appears', async () => {
+      await log('booked-and-callback', { status: 'reservation_made' });
+      await callbackRow('booked-and-callback');
+
+      const rows = await new PgCallLogRepository(pool).listNeedsCallback('c');
+
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        status: 'reservation_made',
+        callback: { status: 'pending' },
+      });
+    });
+
+    test('needs-callback view: one row per callback request (two on one call both show, each with its own id), and a needs_callback call with no request shows too', async () => {
+      await log('twice', { status: 'needs_callback' });
+      await callbackRow('twice');
+      await callbackRow('twice', ", 'handled', now()");
+      await log('no-request', { status: 'needs_callback' });
+      await log('plain', { status: 'resolved_by_ai' });
+
+      const rows = await new PgCallLogRepository(pool).listNeedsCallback('c');
+
+      expect(rows.map((row) => row.callId).sort()).toEqual(['no-request', 'twice', 'twice']);
+      const ids = rows.map((row) => row.id);
+      expect(new Set(ids).size).toBe(3);
+      expect(rows.find((row) => row.callId === 'no-request')?.callback).toBeNull();
+    });
+
+    test('needs-callback view: scoped to the client, and capped', async () => {
+      await callbackRow('a');
+      await callbackRow('b');
+      await pool.query(
+        `INSERT INTO callback_requests (client_id, call_id, language, caller_name, caller_phone)
+         VALUES ('other', 'x', 'ja', 'n', '0')`,
+      );
+
+      const repo = new PgCallLogRepository(pool);
+
+      expect(await repo.listNeedsCallback('c')).toHaveLength(2);
+      expect(await repo.listNeedsCallback('c', 1)).toHaveLength(1);
+    });
+
+    test('reservations: a booking with no patient name (made before names were collected) still lists', async () => {
+      await pool.query(
+        `INSERT INTO appointments
+           (client_id, call_id, language, reservation_number, patient_phone, appointment_date, appointment_time)
+         VALUES ('c', 'nameless', 'ja', 'R000009', '000', '2026-10-20', '10:30')`,
+      );
 
       const [row] = await new PgCallLogRepository(pool).listReservations('c');
 
-      expect(row?.durationSeconds).toBe(65);
+      expect(row).toMatchObject({ reservationNumber: 'R000009', patientName: null });
     });
 
-    test('reservations: only reservation_made calls, joined with the booking details', async () => {
-      await log('booked', { status: 'reservation_made', startedAt: '2026-10-12T00:00:00.000Z' });
+    test('reservations: every appointment appears, with the booking details and the call summary', async () => {
+      await log('booked', { status: 'reservation_made', summary: 'Booked a visit.' });
       await log('callback', { status: 'needs_callback' });
-      await pool.query(
-        `INSERT INTO appointments
-           (client_id, call_id, language, reservation_number, patient_name, patient_phone,
-            appointment_date, appointment_time, service_name)
-         VALUES ('c', 'booked', 'ja', 'R000001', 'ヤマダ タロウ', '000', '2026-10-20', '10:30', 'General')`,
-      );
+      await appointment('booked', 'R000001');
 
       const rows = await new PgCallLogRepository(pool).listReservations('c');
 
       expect(rows).toHaveLength(1);
       expect(rows[0]).toMatchObject({
-        callId: 'booked',
         reservationNumber: 'R000001',
         appointmentDate: '2026-10-20',
         appointmentTime: '10:30',
         serviceName: 'General',
+        patientName: 'ヤマダ タロウ',
+        isReturningPatient: false,
+        language: 'ja',
+        summary: 'Booked a visit.',
       });
+      expect(rows[0]?.bookedAt).toBeInstanceOf(Date);
     });
 
-    test('reservations: a reservation_made call with no appointment row still appears', async () => {
-      await log('booked', { status: 'reservation_made' });
+    test('reservations: an appointment with no call_logs row (made before call logging existed, or by another source) still appears', async () => {
+      await appointment('no-log-row', 'R000002');
 
       const [row] = await new PgCallLogRepository(pool).listReservations('c');
 
-      expect(row).toMatchObject({ callId: 'booked', reservationNumber: null });
+      expect(row).toMatchObject({ reservationNumber: 'R000002', summary: null });
+    });
+
+    test('reservations: newest booking first, scoped to the client, and capped', async () => {
+      await appointment('a', 'R-OLD', '2026-10-01T00:00:00Z');
+      await appointment('b', 'R-NEW', '2026-10-05T00:00:00Z');
+      await pool.query(
+        `INSERT INTO appointments
+           (client_id, call_id, language, reservation_number, patient_name, patient_phone,
+            appointment_date, appointment_time)
+         VALUES ('other', 'x', 'ja', 'R-OTHER', 'n', '0', '2026-10-20', '10:30')`,
+      );
+
+      const repo = new PgCallLogRepository(pool);
+      const rows = await repo.listReservations('c');
+
+      expect(rows.map((row) => row.reservationNumber)).toEqual(['R-NEW', 'R-OLD']);
+      expect(await repo.listReservations('c', 1)).toHaveLength(1);
     });
   });
 

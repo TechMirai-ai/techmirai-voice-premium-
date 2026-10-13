@@ -64,6 +64,83 @@ describe('parseEndOfCallReport', () => {
     expect(parsed.resolved).toBe(true);
   });
 
+  test('takes the summary from the structured output, ahead of Vapi’s analysis.summary', () => {
+    const parsed = parseEndOfCallReport(
+      report(
+        { analysis: { summary: 'From the deprecated analysisPlan.' } },
+        {
+          structuredOutputs: {
+            [OUTPUT_ID]: {
+              name: 'outcome',
+              result: { topic: 'parking', resolved: true, summary: 'Asked where to park.' },
+            },
+          },
+        },
+      ),
+    )!;
+    expect(parsed.summary).toBe('Asked where to park.');
+  });
+
+  test('with Vapi’s analysis off (the live default), the summary still comes from the structured output', () => {
+    const parsed = parseEndOfCallReport(
+      report(
+        { analysis: {} },
+        {
+          structuredOutputs: {
+            [OUTPUT_ID]: {
+              name: 'outcome',
+              result: { topic: 'hours', summary: 'Asked the hours.' },
+            },
+          },
+        },
+      ),
+    )!;
+    expect(parsed.summary).toBe('Asked the hours.');
+  });
+
+  test('a blank structured summary falls back to analysis.summary, and to nothing if both are blank', () => {
+    const blank = {
+      structuredOutputs: {
+        [OUTPUT_ID]: { name: 'outcome', result: { topic: 'x', summary: '  ' } },
+      },
+    };
+    expect(parseEndOfCallReport(report({}, blank))!.summary).toBe('Caller asked about parking.');
+    expect(parseEndOfCallReport(report({ analysis: {} }, blank))!.summary).toBeUndefined();
+  });
+
+  test('a null summary does not throw away topic and resolved', () => {
+    const parsed = parseEndOfCallReport(
+      report(
+        { analysis: {} },
+        {
+          structuredOutputs: {
+            [OUTPUT_ID]: {
+              name: 'outcome',
+              result: { topic: 'parking', resolved: true, summary: null },
+            },
+          },
+        },
+      ),
+    )!;
+    expect(parsed.topic).toBe('parking');
+    expect(parsed.resolved).toBe(true);
+    expect(parsed.summary).toBeUndefined();
+  });
+
+  test('caps an oversized summary so model output can never be stored unbounded', () => {
+    const parsed = parseEndOfCallReport(
+      report(
+        {},
+        {
+          structuredOutputs: {
+            [OUTPUT_ID]: { name: 'outcome', result: { topic: 'x', summary: 'a'.repeat(50_000) } },
+          },
+        },
+      ),
+    )!;
+    expect(parsed.summary).toHaveLength(2000);
+  });
+
   test('a null structured-output result leaves topic and resolved undefined', () => {
     const parsed = parseEndOfCallReport(
       report({}, { structuredOutputs: { [OUTPUT_ID]: { name: 'outcome', result: null } } }),
