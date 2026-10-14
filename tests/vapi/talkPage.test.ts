@@ -3,6 +3,19 @@ import { describe, expect, test } from 'vitest';
 import { renderTalkBootstrapScript, renderTalkPage } from '../../src/vapi/talkPage.js';
 
 describe('renderTalkPage', () => {
+  test('puts a required phone-number field before the Talk button', () => {
+    const html = renderTalkPage({
+      clinicName: 'Sakura Seikotsuin',
+      language: 'en',
+      switchLinks: [],
+      scriptSrc: '/talk/sakura-seikotsuin/en/bootstrap.js',
+    });
+
+    expect(html).toMatch(/<input[^>]*id="caller-phone"[^>]*type="tel"[^>]*required/);
+    expect(html).toContain('autocomplete="tel"');
+    expect(html.indexOf('id="caller-phone"')).toBeLessThan(html.indexOf('id="talk-button"'));
+  });
+
   test('shows the clinic name and a single Talk button', () => {
     const html = renderTalkPage({
       clinicName: 'Sakura Seikotsuin',
@@ -166,5 +179,21 @@ describe('renderTalkBootstrapScript', () => {
     );
     expect(playRingbackBody).toContain('try {');
     expect(playRingbackBody).toMatch(/catch[\s\S]*resolve\(\);/);
+  });
+
+  test('sends the entered number with the call-session request and hands the returned variables to Vapi', () => {
+    const script = renderTalkBootstrapScript({ publicKey: 'pk', callsUrl: '/talk/x/ja/calls' });
+
+    expect(script).toContain("getElementById('caller-phone')");
+    expect(script).toContain('callerPhone');
+    expect(script).toContain('JSON.stringify');
+    expect(script).toMatch(/vapi\.start\([^)]*variableValues/);
+  });
+
+  test('refuses to start a call with an empty number, and explains a server-side rejection', () => {
+    const script = renderTalkBootstrapScript({ publicKey: 'pk', callsUrl: '/talk/x/ja/calls' });
+
+    expect(script).toContain('res.status === 400');
+    expect(script).toMatch(/phoneInput\.value\.trim\(\)/);
   });
 });

@@ -349,6 +349,37 @@ describe('Needs Callback filter — mark as handled (moved here from the old Cal
     expect(firstRowCells(text).slice(-2)).toEqual(['—', '—']);
   });
 
+  test('All Calls shows the number the caller entered in the Caller cell (VP-15)', async () => {
+    const reader = new MemoryCallLogReader();
+    reader.seed(sampleCall({ callerName: 'Hanako', callerPhone: '09012345678' }));
+    const { agent } = await loggedIn(reader);
+
+    const { text } = await agent.get(CALLS);
+
+    expect(firstRowCells(text)).toContain('Hanako 09012345678');
+  });
+
+  test('a historical row with no number still renders its Caller cell without a phone', async () => {
+    const reader = new MemoryCallLogReader();
+    reader.seed(sampleCall({ callerName: 'Hanako', callerPhone: null }));
+    const { agent } = await loggedIn(reader);
+
+    const { text } = await agent.get(CALLS);
+
+    expect(firstRowCells(text)).toContain('Hanako');
+    expect(text).not.toContain('class="caller-phone"');
+  });
+
+  test('a call with only a number (no name) shows the number alone', async () => {
+    const reader = new MemoryCallLogReader();
+    reader.seed(sampleCall({ callerName: null, callerPhone: '09012345678' }));
+    const { agent } = await loggedIn(reader);
+
+    const { text } = await agent.get(CALLS);
+
+    expect(firstRowCells(text)).toContain('09012345678');
+  });
+
   test('labels the demo placeholder number so staff never mistake it for a real one', async () => {
     const reader = new MemoryCallLogReader();
     reader.seed(

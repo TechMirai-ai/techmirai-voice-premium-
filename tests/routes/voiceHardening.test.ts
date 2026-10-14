@@ -13,6 +13,7 @@ import {
   WEBHOOK_SECRET,
 } from '../helpers/voiceFixtures.js';
 import { buildStaffOptions } from '../helpers/staffFixtures.js';
+import { MemoryPriorCalls } from '../helpers/priorCallFixtures.js';
 
 const CALLBACK = '/api/voice/callback-request';
 const args = { callerName: CALLER_NAME };
@@ -82,6 +83,7 @@ describe('voice route hardening (security review)', () => {
         rateLimitSecret: 'test-talk-rate-limit-secret-0123456789',
         bypassKey: 'test-talk-bypass-key',
         isProduction: false,
+        callLogs: new MemoryPriorCalls(),
       },
     });
 

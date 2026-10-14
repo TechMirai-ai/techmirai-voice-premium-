@@ -27,6 +27,8 @@ import {
 
 export interface WebhookContext extends ResolvedAssistant {
   callId: string;
+  /** The caller's number for this call (VP-15), or undefined when the call carried none. */
+  callerPhone?: string;
 }
 
 export interface ToolWebhookOptions {
@@ -67,7 +69,15 @@ export function toolWebhook(options: ToolWebhookOptions): RequestHandler {
     for (const call of calls) {
       results.push(
         resolved
-          ? await runHandler(options, { ...resolved, callId: message.callId }, call)
+          ? await runHandler(
+              options,
+              {
+                ...resolved,
+                callId: message.callId,
+                ...(message.callerPhone ? { callerPhone: message.callerPhone } : {}),
+              },
+              call,
+            )
           : errorResult(call, UNKNOWN_ASSISTANT),
       );
     }

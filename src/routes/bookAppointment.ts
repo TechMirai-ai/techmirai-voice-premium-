@@ -95,8 +95,8 @@ export function bookAppointmentRouter(deps: BookAppointmentRouteDeps): Router {
           serviceId: parsed.data.serviceId ?? null,
           serviceName,
           patientName: parsed.data.patientName,
-          // TODO(SV-5): replace with the real caller-ID number once phone calls exist.
-          patientPhone: DEMO_PLACEHOLDER_PHONE,
+          // The number typed on the demo page (VP-15); the placeholder only when a call has none.
+          patientPhone: context.callerPhone ?? DEMO_PLACEHOLDER_PHONE,
           isReturningPatient: parsed.data.isReturningPatient,
           appointmentDate: date,
           appointmentTime: time,

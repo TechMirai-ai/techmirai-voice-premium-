@@ -10,6 +10,7 @@ import { z } from 'zod';
 
 import type { ToolOutcome } from '../lib/callStatus.js';
 import type { AssistantRef } from './assistantResolver.js';
+import { callerPhoneFromCall } from './callVariables.js';
 
 const LOOKUP_TOOL = 'lookup_patient';
 const CALLBACK_TOOL = 'request_callback';
@@ -59,6 +60,8 @@ const envelopeSchema = z.looseObject({
 
 export interface EndOfCallReport {
   callId: string;
+  /** Normalised caller number for this call, when the call carries one (VP-15). */
+  callerPhone?: string;
   assistant: AssistantRef;
   endedReason?: string;
   startedAt?: string;
@@ -147,6 +150,7 @@ export function parseEndOfCallReport(body: unknown): EndOfCallReport | undefined
   const assistant = message.assistant ?? {};
   const callerName = callerNameOf(messages);
   const matchedPatientName = matchedPatientOf(messages);
+  const callerPhone = callerPhoneFromCall(message.call);
   // The structured output is the primary source (VAPI-FACTS.md VP-14); `analysis.summary` is only
   // there if someone re-enables Vapi's deprecated analysisPlan.
   const summary = (
@@ -157,6 +161,7 @@ export function parseEndOfCallReport(body: unknown): EndOfCallReport | undefined
 
   return {
     callId: message.call.id,
+    ...(callerPhone ? { callerPhone } : {}),
     assistant: {
       ...(assistant.id ? { id: assistant.id } : {}),
       ...(assistant.name ? { name: assistant.name } : {}),

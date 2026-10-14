@@ -21,6 +21,7 @@ import type {
   StaffUserRepository,
 } from '../../src/repositories/staffUserRepository.js';
 import type { StaffRouterOptions } from '../../src/routes/staffRouter.js';
+import { MemoryPriorCalls } from './priorCallFixtures.js';
 
 export const SESSION_SECRET = 'test-session-secret-0123456789-0123456789';
 export const STAFF_CLIENT_ID = 'sakura-seikotsuin';
@@ -166,6 +167,7 @@ export function sampleCall(overrides: Partial<SeededCall> = {}): SeededCall {
     createdAt: new Date('2026-10-12T01:02:00.000Z'),
     language: 'ja',
     callerName: null,
+    callerPhone: null,
     matchedPatientName: null,
     topic: 'parking',
     status: 'resolved_by_ai',
@@ -276,6 +278,7 @@ export function buildStaffApp(
       rateLimitSecret: 'test-talk-rate-limit-secret-0123456789',
       bypassKey: 'test-talk-bypass-key',
       isProduction: false,
+      callLogs: new MemoryPriorCalls(),
     },
   });
   return { app, staffUsers, callbacks, callLogs };

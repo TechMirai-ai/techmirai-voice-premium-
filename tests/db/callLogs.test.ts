@@ -19,6 +19,7 @@ const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL;
 const CALL_LOGS_COLUMNS = [
   'call_id',
   'caller_name',
+  'caller_phone',
   'client_id',
   'created_at',
   'ended_at',
@@ -130,6 +131,62 @@ describe.skipIf(!TEST_DATABASE_URL)('call_logs (real Postgres)', () => {
     ]);
   });
 
+  describe('returning-caller lookup (VP-15)', () => {
+    const repo = () => new PgCallLogRepository(pool);
+    const log = (
+      callId: string,
+      overrides: Partial<Parameters<PgCallLogRepository['record']>[0]>,
+    ) =>
+      repo().record({ clientId: 'c', callId, language: 'ja', status: 'unresolved', ...overrides });
+
+    test('stores the number and shows it in the staff list', async () => {
+      await log('a', { callerPhone: '09012345678' });
+      await log('old', {});
+
+      const rows = await repo().listByClient('c');
+
+      expect(rows.find((row) => row.callId === 'a')?.callerPhone).toBe('09012345678');
+      expect(rows.find((row) => row.callId === 'old')?.callerPhone).toBeNull();
+    });
+
+    test("returns the number's most recent call with its status and summary", async () => {
+      await log('first', {
+        callerPhone: '09012345678',
+        status: 'resolved_by_ai',
+        summary: 'old summary',
+        startedAt: '2026-10-09T00:00:00.000Z',
+      });
+      await log('second', {
+        callerPhone: '09012345678',
+        status: 'needs_callback',
+        summary: 'asked about hours, requested staff follow-up',
+        startedAt: '2026-10-10T03:00:00.000Z',
+      });
+
+      const prior = await repo().findLatestByPhone('c', '09012345678');
+
+      expect(prior).toEqual({
+        status: 'needs_callback',
+        summary: 'asked about hours, requested staff follow-up',
+        occurredAt: new Date('2026-10-10T03:00:00.000Z'),
+      });
+    });
+
+    test('is undefined for an unknown number, and never crosses clients', async () => {
+      await log('a', { callerPhone: '09012345678' });
+      await log('b', { clientId: 'other', callerPhone: '08000001111' });
+
+      expect(await repo().findLatestByPhone('c', '08000001111')).toBeUndefined();
+      expect(await repo().findLatestByPhone('c', '07000000000')).toBeUndefined();
+    });
+
+    test('calls logged without a number are never matched', async () => {
+      await log('a', {});
+
+      expect(await repo().findLatestByPhone('c', '')).toBeUndefined();
+    });
+  });
+
   describe('staff reads (CallLogReader)', () => {
     const log = (
       callId: string,
@@ -188,6 +245,7 @@ describe.skipIf(!TEST_DATABASE_URL)('call_logs (real Postgres)', () => {
         'callId',
         'callback',
         'callerName',
+        'callerPhone',
         'createdAt',
         'durationSeconds',
         'id',

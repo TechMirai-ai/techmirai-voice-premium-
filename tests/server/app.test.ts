@@ -11,6 +11,7 @@ import { generateTestPage } from '../../src/vapi/generateTestPage.js';
 import { writeState } from '../../src/vapi/stateStore.js';
 import { buildVoiceApp } from '../helpers/voiceFixtures.js';
 import { buildStaffOptions } from '../helpers/staffFixtures.js';
+import { MemoryPriorCalls } from '../helpers/priorCallFixtures.js';
 
 const healthyDb: Queryable = { query: () => Promise.resolve({ rows: [{ '?column?': 1 }] }) };
 const brokenDb: Queryable = {
@@ -30,6 +31,7 @@ const app = (db: Queryable = healthyDb, isProduction = false, vapiTestPageDir?: 
       rateLimitSecret: 'test-talk-rate-limit-secret-0123456789',
       bypassKey: 'test-talk-bypass-key',
       isProduction,
+      callLogs: new MemoryPriorCalls(),
     },
     ...(vapiTestPageDir ? { vapiTestPageDir } : {}),
   });

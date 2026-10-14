@@ -6,7 +6,10 @@
  * deliberately not a dialable number (no valid Japanese number starts 000), so nobody can mistake
  * a saved row for a real callback number.
  *
- * TODO(SV-5): once real phone calls exist, replace this with the caller-ID from the Vapi webhook
- * (`message.call.customer.number`), and drop the placeholder-label in src/routes/staffCallViews.ts.
+ * Since VP-15 the /talk page collects a caller-typed number and the tool routes use that; this
+ * placeholder remains only for calls that carry no number (older rows, the internal test pages).
+ * TODO(SV-5): once real phone calls exist, make `callerPhoneFromCall` (src/vapi/callVariables.ts)
+ * read the caller-ID (`call.customer.number`), and drop the placeholder-label in
+ * src/routes/staffCallViews.ts.
  */
 export const DEMO_PLACEHOLDER_PHONE = '000-0000-0000';

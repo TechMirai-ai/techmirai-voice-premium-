@@ -12,6 +12,8 @@ export interface NewCallLog {
   language: string;
   status: CallStatus;
   callerName?: string;
+  /** Normalised (src/lib/callerPhone.ts); absent when the call carried no number. */
+  callerPhone?: string;
   matchedPatientName?: string;
   topic?: string;
   summary?: string;
@@ -26,6 +28,19 @@ export interface CallLogRepository {
   record(log: NewCallLog): Promise<void>;
 }
 
+/** What the AI is told about a caller's most recent earlier call: status and summary, never the transcript. */
+export interface PriorCall {
+  status: CallStatus;
+  summary: string | null;
+  occurredAt: Date;
+}
+
+/** Returning-caller lookup (VP-15). Always scoped to one client. */
+export interface PriorCallReader {
+  /** The client's most recent logged call from this (already normalised) number, if any. */
+  findLatestByPhone(clientId: string, callerPhone: string): Promise<PriorCall | undefined>;
+}
+
 /**
  * What staff are allowed to see of a call (VP-12 decision 2): summary and status only.
  * The shape is an explicit allow-list — there is no transcript, audio, recording, ended-reason or
@@ -38,6 +53,8 @@ export interface StaffCallSummary {
   createdAt: Date;
   language: string;
   callerName: string | null;
+  /** The number entered on the demo page; null for calls logged before VP-15. */
+  callerPhone: string | null;
   matchedPatientName: string | null;
   topic: string | null;
   status: CallStatus;
@@ -108,6 +125,7 @@ interface StaffCallRow {
   created_at: Date;
   language: string;
   caller_name: string | null;
+  caller_phone: string | null;
   matched_patient_name: string | null;
   topic: string | null;
   status: CallStatus;
@@ -146,6 +164,7 @@ function toStaffCall(row: StaffCallRow): StaffCallSummary {
     createdAt: row.created_at,
     language: row.language,
     callerName: row.caller_name,
+    callerPhone: row.caller_phone,
     matchedPatientName: row.matched_patient_name,
     topic: row.topic,
     status: row.status,
@@ -164,7 +183,7 @@ function toStaffCall(row: StaffCallRow): StaffCallSummary {
   };
 }
 
-export class PgCallLogRepository implements CallLogRepository, CallLogReader {
+export class PgCallLogRepository implements CallLogRepository, CallLogReader, PriorCallReader {
   constructor(private readonly db: Queryable) {}
 
   async listByClient(
@@ -173,7 +192,7 @@ export class PgCallLogRepository implements CallLogRepository, CallLogReader {
   ): Promise<StaffCallSummary[]> {
     const { rows } = await this.db.query(
       `SELECT l.id, l.call_id, l.started_at, l.created_at, l.language, l.caller_name,
-              l.matched_patient_name, l.topic, l.status, l.summary,
+              l.caller_phone, l.matched_patient_name, l.topic, l.status, l.summary,
               ${durationSql('l')} AS duration_seconds,
               cb.id AS callback_id, cb.caller_phone AS callback_phone,
               cb.reason AS callback_reason, cb.status AS callback_status,
@@ -203,7 +222,7 @@ export class PgCallLogRepository implements CallLogRepository, CallLogReader {
          SELECT c.id, c.call_id, l.started_at, COALESCE(l.created_at, c.created_at) AS created_at,
                 COALESCE(l.language, c.language) AS language,
                 COALESCE(l.caller_name, c.caller_name) AS caller_name,
-                l.matched_patient_name, l.topic, COALESCE(l.status, 'needs_callback') AS status,
+                l.caller_phone, l.matched_patient_name, l.topic, COALESCE(l.status, 'needs_callback') AS status,
                 l.summary, ${durationSql('l')} AS duration_seconds,
                 c.id AS callback_id, c.caller_phone AS callback_phone, c.reason AS callback_reason,
                 c.status AS callback_status, c.handled_at AS callback_handled_at
@@ -212,7 +231,7 @@ export class PgCallLogRepository implements CallLogRepository, CallLogReader {
          WHERE c.client_id = $1
          UNION ALL
          SELECT l.id, l.call_id, l.started_at, l.created_at, l.language, l.caller_name,
-                l.matched_patient_name, l.topic, l.status, l.summary,
+                l.caller_phone, l.matched_patient_name, l.topic, l.status, l.summary,
                 ${durationSql('l')} AS duration_seconds,
                 NULL, NULL, NULL, NULL, NULL
          FROM call_logs l
@@ -259,9 +278,9 @@ export class PgCallLogRepository implements CallLogRepository, CallLogReader {
   async record(log: NewCallLog): Promise<void> {
     await this.db.query(
       `INSERT INTO call_logs
-         (client_id, call_id, language, status, caller_name, matched_patient_name,
+         (client_id, call_id, language, status, caller_name, caller_phone, matched_patient_name,
           topic, summary, ended_reason, started_at, ended_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        ON CONFLICT (client_id, call_id) DO NOTHING`,
       [
         log.clientId,
@@ -269,6 +288,7 @@ export class PgCallLogRepository implements CallLogRepository, CallLogReader {
         log.language,
         log.status,
         log.callerName ?? null,
+        log.callerPhone ?? null,
         log.matchedPatientName ?? null,
         log.topic ?? null,
         log.summary ?? null,
@@ -277,5 +297,20 @@ export class PgCallLogRepository implements CallLogRepository, CallLogReader {
         log.endedAt ?? null,
       ],
     );
+  }
+
+  async findLatestByPhone(clientId: string, callerPhone: string): Promise<PriorCall | undefined> {
+    const { rows } = await this.db.query(
+      `SELECT status, summary, COALESCE(started_at, created_at) AS occurred_at
+       FROM call_logs
+       WHERE client_id = $1 AND caller_phone = $2
+       ORDER BY COALESCE(started_at, created_at) DESC
+       LIMIT 1`,
+      [clientId, callerPhone],
+    );
+    const row = (rows as { status: CallStatus; summary: string | null; occurred_at: Date }[])[0];
+    return row
+      ? { status: row.status, summary: row.summary, occurredAt: row.occurred_at }
+      : undefined;
   }
 }

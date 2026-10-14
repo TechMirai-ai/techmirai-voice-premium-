@@ -32,6 +32,7 @@ import type { AssistantResolver } from '../../src/vapi/assistantResolver.js';
 import type { VoiceRouterOptions } from '../../src/routes/voiceRouter.js';
 import type { RateLimitOptions } from '../../src/middleware/rateLimit.js';
 import { buildStaffOptions } from './staffFixtures.js';
+import { MemoryPriorCalls } from './priorCallFixtures.js';
 
 export const WEBHOOK_SECRET = 'test-webhook-secret-0123456789';
 export const CLIENT_ID = 'sakura-seikotsuin';
@@ -184,6 +185,7 @@ export function buildVoiceApp(
       rateLimitSecret: 'test-talk-rate-limit-secret-0123456789',
       bypassKey: 'test-talk-bypass-key',
       isProduction: false,
+      callLogs: new MemoryPriorCalls(),
     },
   });
   return {
@@ -230,4 +232,9 @@ export function toolCallsBody(
       toolWithToolCallList: [{ type: 'function', toolCall }],
     },
   };
+}
+
+/** The `call` fields Vapi echoes when the /talk page started the call with a phone number (VP-15). */
+export function callWithEnteredPhone(callerPhone: string) {
+  return { assistantOverrides: { variableValues: { callerPhone } } };
 }

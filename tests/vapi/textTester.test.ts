@@ -113,6 +113,12 @@ describe('resolveNowPlaceholders', () => {
     expect(resolveNowPlaceholders(prompt, now)).toBe('Saturday, November 14, 2026, 20:30');
   });
 
+  test('resolves the returning-caller variable to "none": the tester has no call history (VP-15)', () => {
+    expect(resolveNowPlaceholders('Earlier call:\n{{priorCall}}\nEnd.')).toBe(
+      'Earlier call:\nnone\nEnd.',
+    );
+  });
+
   test('leaves a prompt with no placeholder unchanged', () => {
     expect(resolveNowPlaceholders('No date here.')).toBe('No date here.');
   });

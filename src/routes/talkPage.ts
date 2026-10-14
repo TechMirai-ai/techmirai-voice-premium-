@@ -9,16 +9,25 @@
  * dynamically per request straight from the current Vapi state file, so it
  * can never go stale.
  */
-import { Router, type Request, type Response } from 'express';
+import { Router, json, type Request, type Response } from 'express';
+import { z } from 'zod';
 
 import { ClientConfigError, loadClient } from '../config/loadClient.js';
 import type { ClientConfig } from '../config/schema.js';
+import { logger } from '../lib/logger.js';
+import { normalizeCallerPhone } from '../lib/callerPhone.js';
+import type { PriorCallReader } from '../repositories/callLogRepository.js';
 import {
   decideTalkCall,
   talkCallCookieName,
   TALK_CALL_COOKIE_MAX_AGE_MS,
   TALK_MAX_CALL_DURATION_SECONDS,
 } from '../middleware/talkCallLimit.js';
+import {
+  CALLER_PHONE_VARIABLE,
+  PRIOR_CALL_VARIABLE,
+  formatPriorCall,
+} from '../vapi/callVariables.js';
 import { assistantResourceName } from '../vapi/squad.js';
 import { readState } from '../vapi/stateStore.js';
 import { renderTalkBootstrapScript, renderTalkPage } from '../vapi/talkPage.js';
@@ -34,6 +43,8 @@ export interface TalkRouterOptions {
   bypassKey: string;
   /** Mirrors the staff session cookie's `secure` flag (VP-9). */
   isProduction: boolean;
+  /** Returning-caller lookup (VP-15): the caller's most recent earlier call, by phone number. */
+  callLogs: PriorCallReader;
   /** Overrides for tests: where the client configs / Vapi state files are resolved from. */
   clientsDir?: string;
   repoRoot?: string;
@@ -79,6 +90,9 @@ function clinicNameOf(config: ClientConfig, language: string): string {
 function pagePath(clientId: string, language: string): string {
   return `${TALK_URL_PREFIX}/${clientId}/${language}`;
 }
+
+/** The demo page's phone field (VP-15). Validation of the number itself is normalizeCallerPhone. */
+const callBodySchema = z.object({ callerPhone: z.string().max(40) });
 
 export function talkRouter(options: TalkRouterOptions): Router {
   const router = Router();
@@ -129,40 +143,71 @@ export function talkRouter(options: TalkRouterOptions): Router {
   // Checked server-side on EVERY call attempt (not just hidden client-side, CLAUDE.md-style
   // reasoning applied to the work order's own instruction) — see talkCallLimit.ts for the
   // cookie-cap + bypass-key logic. Hands back the real assistant id only when allowed.
-  router.post('/:clientId/:language/calls', (req: Request, res: Response, next) => {
-    const { clientId, language } = req.params as { clientId: string; language: string };
-    const resolved = resolveTarget(clientId, language, options);
-    if (!resolved) {
-      next();
-      return;
-    }
+  router.post(
+    '/:clientId/:language/calls',
+    json({ limit: '2kb' }),
+    async (req: Request, res: Response, next) => {
+      const { clientId, language } = req.params as { clientId: string; language: string };
+      const resolved = resolveTarget(clientId, language, options);
+      if (!resolved) {
+        next();
+        return;
+      }
 
-    const providedKey = typeof req.query.key === 'string' ? req.query.key : undefined;
-    const decision = decideTalkCall(clientId, req.headers.cookie, providedKey, {
-      rateLimitSecret: options.rateLimitSecret,
-      bypassKey: options.bypassKey,
-    });
+      // Checked before the call cap so a typo never uses up one of the visitor's calls.
+      const body = callBodySchema.safeParse(req.body);
+      const callerPhone = body.success ? normalizeCallerPhone(body.data.callerPhone) : undefined;
+      if (!callerPhone) {
+        res.status(400).json({ status: 'error', error: 'invalid_phone' });
+        return;
+      }
 
-    if (!decision.allowed) {
-      res.status(429).json({ status: 'error', error: 'rate_limited' });
-      return;
-    }
-
-    if (decision.newCookieValue) {
-      res.cookie(talkCallCookieName(clientId), decision.newCookieValue, {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: options.isProduction,
-        maxAge: TALK_CALL_COOKIE_MAX_AGE_MS,
-        path: TALK_URL_PREFIX,
+      const providedKey = typeof req.query.key === 'string' ? req.query.key : undefined;
+      const decision = decideTalkCall(clientId, req.headers.cookie, providedKey, {
+        rateLimitSecret: options.rateLimitSecret,
+        bypassKey: options.bypassKey,
       });
-    }
 
-    res.json({
-      assistantId: resolved.assistantId,
-      maxDurationSeconds: TALK_MAX_CALL_DURATION_SECONDS,
-    });
-  });
+      if (!decision.allowed) {
+        res.status(429).json({ status: 'error', error: 'rate_limited' });
+        return;
+      }
+
+      if (decision.newCookieValue) {
+        res.cookie(talkCallCookieName(clientId), decision.newCookieValue, {
+          httpOnly: true,
+          sameSite: 'lax',
+          secure: options.isProduction,
+          maxAge: TALK_CALL_COOKIE_MAX_AGE_MS,
+          path: TALK_URL_PREFIX,
+        });
+      }
+
+      // A failed lookup must never block the call: the caller is simply treated as new.
+      let priorCall;
+      try {
+        priorCall = await options.callLogs.findLatestByPhone(clientId, callerPhone);
+      } catch (error) {
+        logger.error('returning-caller lookup failed', {
+          clientId,
+          detail: error instanceof Error ? error.message : String(error),
+        });
+      }
+      logger.info('returning-caller lookup', { clientId, isReturning: priorCall !== undefined });
+
+      res.json({
+        assistantId: resolved.assistantId,
+        maxDurationSeconds: TALK_MAX_CALL_DURATION_SECONDS,
+        variableValues: {
+          [CALLER_PHONE_VARIABLE]: callerPhone,
+          [PRIOR_CALL_VARIABLE]: formatPriorCall(
+            priorCall,
+            resolved.config.business.hours.timezone,
+          ),
+        },
+      });
+    },
+  );
 
   return router;
 }

@@ -67,8 +67,8 @@ export function callbackRequestRouter(deps: CallbackRequestRouteDeps): Router {
           callId: context.callId,
           language: context.language,
           callerName: parsed.data.callerName,
-          // TODO(SV-5): replace with the real caller-ID number once phone calls exist.
-          callerPhone: DEMO_PLACEHOLDER_PHONE,
+          // The number typed on the demo page (VP-15); the placeholder only when a call has none.
+          callerPhone: context.callerPhone ?? DEMO_PLACEHOLDER_PHONE,
           reason: parsed.data.reason ?? null,
         });
 

@@ -512,3 +512,35 @@ describe('buildSystemPrompt — no repeated acknowledgement after a split uttera
     expect(buildSystemPrompt(config, 'ja', faq)).not.toContain('Caller still finishing a thought');
   });
 });
+
+describe('buildSystemPrompt — returning-caller section (VP-15)', () => {
+  test('references the per-call priorCall variable exactly once, after the Today section', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'ja', faq);
+
+    expect(prompt.match(/\{\{priorCall\}\}/g)).toHaveLength(1);
+    expect(prompt.indexOf('{{priorCall}}')).toBeGreaterThan(prompt.indexOf('Today:'));
+  });
+
+  test('tells the model to ignore the section for "none", never recite details, and not volunteer them', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'ja', faq);
+
+    expect(prompt).toContain('says "none"');
+    expect(prompt).toContain('Never read it out');
+    expect(prompt).toContain('do not volunteer specifics');
+    expect(prompt).toContain('needs_callback');
+  });
+
+  test('works for a differently-configured client (no clinic data hard-coded in the section)', () => {
+    const config = buildMinimalConfig({ language: 'fr' });
+
+    const prompt = buildSystemPrompt(config, 'fr', config.faq);
+
+    expect(prompt).toContain('{{priorCall}}');
+  });
+});

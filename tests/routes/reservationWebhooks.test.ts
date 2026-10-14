@@ -8,6 +8,7 @@ import {
   CALL_ID,
   CLIENT_ID,
   toolCallsBody,
+  callWithEnteredPhone,
 } from '../helpers/voiceFixtures.js';
 
 const CHECK_AVAILABILITY = '/api/voice/check-availability';
@@ -162,6 +163,16 @@ describe('POST /api/voice/book-appointment', () => {
         appointmentTime: '10:00',
       }),
     ]);
+  });
+
+  test('books with the number typed on the demo page (VP-15)', async () => {
+    const { app, appointments } = buildVoiceApp();
+    const body = toolCallsBody('book_appointment', firstVisitArgs);
+    Object.assign(body.message.call, callWithEnteredPhone('09012345678'));
+
+    await request(app).post(BOOK_APPOINTMENT).set(AUTH).send(body).expect(200);
+
+    expect(appointments.booked[0]?.patientPhone).toBe('09012345678');
   });
 
   test('books a returning patient with no service', async () => {

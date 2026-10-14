@@ -2,7 +2,7 @@ import request from 'supertest';
 import { describe, expect, test, vi } from 'vitest';
 
 import type { ArchiveReportInput, InlineOutcome } from '../../src/google/archiveService.js';
-import { AUTH, buildVoiceApp, CALL_ID } from '../helpers/voiceFixtures.js';
+import { AUTH, buildVoiceApp, CALL_ID, callWithEnteredPhone } from '../helpers/voiceFixtures.js';
 
 const PATH = '/api/voice/end-of-call-report';
 
@@ -34,6 +34,26 @@ describe('POST /api/voice/end-of-call-report', () => {
     const { app, callLogs } = buildVoiceApp();
     await request(app).post(PATH).send(reportBody()).expect(401);
     expect(callLogs.recorded).toEqual([]);
+  });
+
+  test('logs the number typed on the demo page, normalised (VP-15)', async () => {
+    const { app, callLogs } = buildVoiceApp();
+    const body = reportBody(
+      {},
+      { call: { id: CALL_ID, ...callWithEnteredPhone('090-1234-5678') } },
+    );
+
+    await request(app).post(PATH).set(AUTH).send(body).expect(200);
+
+    expect(callLogs.recorded[0]?.callerPhone).toBe('09012345678');
+  });
+
+  test('a call with no entered number is logged without one (no placeholder in call_logs)', async () => {
+    const { app, callLogs } = buildVoiceApp();
+
+    await request(app).post(PATH).set(AUTH).send(reportBody()).expect(200);
+
+    expect(callLogs.recorded[0]).not.toHaveProperty('callerPhone');
   });
 
   test('rejects a body that is not an end-of-call-report', async () => {

@@ -78,6 +78,7 @@ function toCallLog(
     language,
     status,
     ...(report.callerName ? { callerName: report.callerName } : {}),
+    ...(report.callerPhone ? { callerPhone: report.callerPhone } : {}),
     ...(report.matchedPatientName ? { matchedPatientName: report.matchedPatientName } : {}),
     ...(report.topic ? { topic: report.topic } : {}),
     ...(report.summary ? { summary: report.summary } : {}),

@@ -8,6 +8,8 @@
  */
 import { z } from 'zod';
 
+import { callerPhoneFromCall } from './callVariables.js';
+
 const argumentsSchema = z.union([z.string(), z.record(z.string(), z.unknown())]);
 
 const toolCallSchema = z.looseObject({
@@ -46,6 +48,8 @@ export interface ToolCallRequest {
 
 export interface ToolCallsMessage {
   callId: string;
+  /** Normalised caller number for this call, when the call carries one (VP-15). */
+  callerPhone?: string;
   assistant: { id?: string; name?: string };
   toolCalls: ToolCallRequest[];
 }
@@ -82,8 +86,11 @@ export function parseToolCallsMessage(body: unknown): ToolCallsMessage | undefin
     (message.toolWithToolCallList ?? []).flatMap((item) => (item.toolCall ? [item.toolCall] : []));
   const assistant = message.assistant ?? {};
 
+  const callerPhone = callerPhoneFromCall(message.call);
+
   return {
     callId: message.call.id,
+    ...(callerPhone ? { callerPhone } : {}),
     assistant: {
       ...(assistant.id ? { id: assistant.id } : {}),
       ...(assistant.name ? { name: assistant.name } : {}),

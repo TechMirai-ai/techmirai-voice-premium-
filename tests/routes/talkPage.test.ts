@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { createApp } from '../../src/app.js';
 import type { Queryable } from '../../src/db/pool.js';
 import { writeState } from '../../src/vapi/stateStore.js';
+import { MemoryPriorCalls } from '../helpers/priorCallFixtures.js';
 import { buildStaffOptions } from '../helpers/staffFixtures.js';
 import { buildVoiceApp } from '../helpers/voiceFixtures.js';
 import { readSakuraDocument, withChanges, writeClientFixture } from '../helpers/clientFixtures.js';
@@ -18,13 +19,17 @@ const JA_ASSISTANT_ID = 'ja-assistant-uuid';
 const EN_ASSISTANT_ID = 'en-assistant-uuid';
 const RATE_LIMIT_SECRET = 'test-talk-rate-limit-secret-0123456789';
 const BYPASS_KEY = 'test-talk-bypass-key';
+const PHONE_BODY = { callerPhone: '090-1234-5678' };
+const NORMALISED_PHONE = '09012345678';
 
 describe('GET /talk', () => {
   let clientsDir: string;
   let cleanupClient: () => void;
   let repoRoot: string;
+  let priorCalls: MemoryPriorCalls;
 
   beforeEach(() => {
+    priorCalls = new MemoryPriorCalls();
     const document = withChanges(readSakuraDocument(), (draft) => {
       draft.clientId = 'demo-clinic';
       draft.business.name = { ja: 'テスト整骨院', en: 'Test Clinic' };
@@ -65,10 +70,20 @@ describe('GET /talk', () => {
         rateLimitSecret: RATE_LIMIT_SECRET,
         bypassKey: BYPASS_KEY,
         isProduction,
+        callLogs: priorCalls,
         clientsDir,
         repoRoot: stateRepoRoot,
       },
     });
+
+  test('renders a required phone field before the Talk button, on the public and the key link', async () => {
+    for (const url of ['/talk/demo-clinic/ja', `/talk/demo-clinic/ja?key=${BYPASS_KEY}`]) {
+      const { text } = await request(app()).get(url);
+      expect(text).toContain('id="caller-phone"');
+      expect(text).toMatch(/<input[^>]*id="caller-phone"[^>]*type="tel"/);
+      expect(text.indexOf('id="caller-phone"')).toBeLessThan(text.indexOf('id="talk-button"'));
+    }
+  });
 
   test("renders the clinic's own name and a Talk button", async () => {
     const response = await request(app()).get('/talk/demo-clinic/ja');
@@ -171,21 +186,25 @@ describe('GET /talk', () => {
 
   describe('POST /talk/:clientId/:language/calls', () => {
     test('a fresh visitor is allowed and gets the real assistant id plus the maximum Vapi call duration (no 5-minute cap)', async () => {
-      const response = await request(app()).post('/talk/demo-clinic/ja/calls');
+      const response = await request(app()).post('/talk/demo-clinic/ja/calls').send(PHONE_BODY);
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual({ assistantId: JA_ASSISTANT_ID, maxDurationSeconds: 43200 });
+      expect(response.body).toEqual({
+        assistantId: JA_ASSISTANT_ID,
+        maxDurationSeconds: 43200,
+        variableValues: { callerPhone: NORMALISED_PHONE, priorCall: 'none' },
+      });
       expect(response.headers['set-cookie']?.[0]).toContain('tmvp_talk_calls_demo-clinic=');
     });
 
     test('blocks the 5th call once the cookie shows the cap already reached, with no cookie set', async () => {
       const agent = request.agent(app());
       for (let i = 0; i < 4; i++) {
-        const ok = await agent.post('/talk/demo-clinic/ja/calls');
+        const ok = await agent.post('/talk/demo-clinic/ja/calls').send(PHONE_BODY);
         expect(ok.status).toBe(200);
       }
 
-      const blocked = await agent.post('/talk/demo-clinic/ja/calls');
+      const blocked = await agent.post('/talk/demo-clinic/ja/calls').send(PHONE_BODY);
 
       expect(blocked.status).toBe(429);
       expect(blocked.body).toEqual({ status: 'error', error: 'rate_limited' });
@@ -194,12 +213,12 @@ describe('GET /talk', () => {
 
     test('the cap is shared across languages for the same clinic (switching ja/en does not reset it)', async () => {
       const agent = request.agent(app());
-      await agent.post('/talk/demo-clinic/ja/calls');
-      await agent.post('/talk/demo-clinic/en/calls');
-      await agent.post('/talk/demo-clinic/ja/calls');
-      await agent.post('/talk/demo-clinic/en/calls');
+      await agent.post('/talk/demo-clinic/ja/calls').send(PHONE_BODY);
+      await agent.post('/talk/demo-clinic/en/calls').send(PHONE_BODY);
+      await agent.post('/talk/demo-clinic/ja/calls').send(PHONE_BODY);
+      await agent.post('/talk/demo-clinic/en/calls').send(PHONE_BODY);
 
-      const blocked = await agent.post('/talk/demo-clinic/ja/calls');
+      const blocked = await agent.post('/talk/demo-clinic/ja/calls').send(PHONE_BODY);
 
       expect(blocked.status).toBe(429);
     });
@@ -207,24 +226,100 @@ describe('GET /talk', () => {
     test('the owner/staff bypass key skips the cap entirely, even after it has been reached', async () => {
       const agent = request.agent(app());
       for (let i = 0; i < 4; i++) {
-        await agent.post('/talk/demo-clinic/ja/calls');
+        await agent.post('/talk/demo-clinic/ja/calls').send(PHONE_BODY);
       }
 
-      const bypassed = await agent.post(`/talk/demo-clinic/ja/calls?key=${BYPASS_KEY}`);
+      const bypassed = await agent
+        .post(`/talk/demo-clinic/ja/calls?key=${BYPASS_KEY}`)
+        .send(PHONE_BODY);
 
       expect(bypassed.status).toBe(200);
       expect(bypassed.body.assistantId).toBe(JA_ASSISTANT_ID);
     });
 
     test('a wrong key is rejected and falls back to the normal cap check', async () => {
-      const response = await request(app()).post('/talk/demo-clinic/ja/calls?key=not-the-real-key');
+      const response = await request(app())
+        .post('/talk/demo-clinic/ja/calls?key=not-the-real-key')
+        .send(PHONE_BODY);
 
       expect(response.status).toBe(200);
       expect(response.headers['set-cookie']?.[0]).toContain('tmvp_talk_calls_demo-clinic=');
     });
 
+    describe('caller phone and returning-caller lookup (VP-15)', () => {
+      test('rejects a missing or malformed number with 400 and does NOT use up a call', async () => {
+        const agent = request.agent(app());
+        for (const body of [
+          undefined,
+          {},
+          { callerPhone: '' },
+          { callerPhone: 'abc' },
+          { callerPhone: 123 },
+        ]) {
+          const response = await agent.post('/talk/demo-clinic/ja/calls').send(body);
+          expect(response.status).toBe(400);
+          expect(response.body).toEqual({ status: 'error', error: 'invalid_phone' });
+          expect(response.headers['set-cookie']).toBeUndefined();
+        }
+        for (let i = 0; i < 4; i++) {
+          expect((await agent.post('/talk/demo-clinic/ja/calls').send(PHONE_BODY)).status).toBe(
+            200,
+          );
+        }
+      });
+
+      test('a number with an earlier call gets its status and summary as the priorCall variable', async () => {
+        priorCalls.seed('demo-clinic', NORMALISED_PHONE, {
+          status: 'needs_callback',
+          summary: 'asked about hours, requested staff follow-up',
+          occurredAt: new Date('2026-10-10T03:00:00Z'),
+        });
+
+        const response = await request(app()).post('/talk/demo-clinic/ja/calls').send(PHONE_BODY);
+
+        expect(response.body.variableValues).toEqual({
+          callerPhone: NORMALISED_PHONE,
+          priorCall:
+            'Last call: 2026-10-10, status: needs_callback, summary: asked about hours, requested staff follow-up',
+        });
+        expect(priorCalls.lookups).toEqual([
+          { clientId: 'demo-clinic', callerPhone: NORMALISED_PHONE },
+        ]);
+      });
+
+      test("a different number does not see someone else's call", async () => {
+        priorCalls.seed('demo-clinic', NORMALISED_PHONE, {
+          status: 'resolved_by_ai',
+          summary: 'x',
+          occurredAt: new Date(),
+        });
+
+        const response = await request(app())
+          .post('/talk/demo-clinic/ja/calls')
+          .send({ callerPhone: '080-0000-1111' });
+
+        expect(response.body.variableValues.priorCall).toBe('none');
+      });
+
+      test('the bypass-key link collects and looks up the number the same way', async () => {
+        const response = await request(app())
+          .post(`/talk/demo-clinic/ja/calls?key=${BYPASS_KEY}`)
+          .send(PHONE_BODY);
+        expect(response.body.variableValues.callerPhone).toBe(NORMALISED_PHONE);
+      });
+
+      test('a failing lookup never blocks the call: the caller is treated as new', async () => {
+        priorCalls.failWith = new Error('db down');
+
+        const response = await request(app()).post('/talk/demo-clinic/ja/calls').send(PHONE_BODY);
+
+        expect(response.status).toBe(200);
+        expect(response.body.variableValues.priorCall).toBe('none');
+      });
+    });
+
     test('returns the JSON 404 for an unknown clientId', async () => {
-      const response = await request(app()).post('/talk/no-such-clinic/ja/calls');
+      const response = await request(app()).post('/talk/no-such-clinic/ja/calls').send(PHONE_BODY);
 
       expect(response.status).toBe(404);
     });

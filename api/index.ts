@@ -73,6 +73,7 @@ const app = createApp({
     rateLimitSecret: env.TALK_RATE_LIMIT_SECRET,
     bypassKey: env.TALK_BYPASS_KEY,
     isProduction: isProduction(env),
+    callLogs: new PgCallLogRepository(pool),
   },
 });
 

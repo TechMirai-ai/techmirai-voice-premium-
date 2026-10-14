@@ -68,6 +68,8 @@ function emptyRowHtml(columns: number, message: string): string {
 function callerCellHtml(call: StaffCallSummary): string {
   const parts = [
     call.callerName ? escapeHtml(call.callerName) : '',
+    // The number typed on the demo page (VP-15); null for calls logged before it existed.
+    call.callerPhone ? `<span class="caller-phone">${escapeHtml(call.callerPhone)}</span>` : '',
     call.matchedPatientName ? `Patient on file: ${escapeHtml(call.matchedPatientName)}` : '',
   ].filter((part) => part.length > 0);
   return parts.length > 0

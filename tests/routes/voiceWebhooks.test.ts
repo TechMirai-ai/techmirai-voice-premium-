@@ -12,6 +12,7 @@ import {
   toolCallsBody,
   TOOL_CALL_ID,
   WEBHOOK_SECRET,
+  callWithEnteredPhone,
 } from '../helpers/voiceFixtures.js';
 
 const CALLBACK = '/api/voice/callback-request';
@@ -136,6 +137,26 @@ describe('POST /api/voice/callback-request', () => {
       ]);
     },
   );
+
+  test('stores the number typed on the demo page instead of the placeholder (VP-15)', async () => {
+    const { app, callbacks } = buildVoiceApp();
+    const body = toolCallsBody('request_callback', callbackArgs);
+    Object.assign(body.message.call, callWithEnteredPhone('09012345678'));
+
+    await request(app).post(CALLBACK).set(AUTH).send(body).expect(200);
+
+    expect(callbacks.saved[0]?.callerPhone).toBe('09012345678');
+  });
+
+  test('a tampered number in the call falls back to the placeholder, never raw into the database', async () => {
+    const { app, callbacks } = buildVoiceApp();
+    const body = toolCallsBody('request_callback', callbackArgs);
+    Object.assign(body.message.call, callWithEnteredPhone("1'; --x"));
+
+    await request(app).post(CALLBACK).set(AUTH).send(body).expect(200);
+
+    expect(callbacks.saved[0]?.callerPhone).toBe(DEMO_PLACEHOLDER_PHONE);
+  });
 
   test('derives client, language and call id from the webhook, ignoring any model-supplied ones', async () => {
     const { app, callbacks } = buildVoiceApp();

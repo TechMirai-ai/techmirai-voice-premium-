@@ -59,6 +59,7 @@ import { createPool } from '../db/pool.js';
 import { loadEnv } from '../env.js';
 import { FileKnowledgeSource } from '../knowledge/KnowledgeSource.js';
 import { DEMO_PLACEHOLDER_PHONE } from '../lib/demoCallerPhone.js';
+import { NO_PRIOR_CALL, PRIOR_CALL_VARIABLE } from './callVariables.js';
 import { checkAvailability } from '../reservation/availability.js';
 import {
   PgCallbackRequestRepository,
@@ -207,23 +208,26 @@ export interface ChatMessage {
 const NOW_PLACEHOLDER_PATTERN = /\{\{"now" \| date: "[^"]+", "([^"]+)"\}\}/g;
 
 export function resolveNowPlaceholders(prompt: string, now: Date = new Date()): string {
-  return prompt.replace(NOW_PLACEHOLDER_PATTERN, (_match, timeZone: string) => {
-    const parts = Object.fromEntries(
-      new Intl.DateTimeFormat('en-US', {
-        timeZone,
-        weekday: 'long',
-        month: 'long',
-        day: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hourCycle: 'h23',
-      })
-        .formatToParts(now)
-        .map((part) => [part.type, part.value]),
-    );
-    return `${parts.weekday}, ${parts.month} ${parts.day}, ${parts.year}, ${parts.hour}:${parts.minute}`;
-  });
+  // The tester has no caller history, so it behaves like a first-time caller (VP-15).
+  return prompt
+    .replaceAll(`{{${PRIOR_CALL_VARIABLE}}}`, NO_PRIOR_CALL)
+    .replace(NOW_PLACEHOLDER_PATTERN, (_match, timeZone: string) => {
+      const parts = Object.fromEntries(
+        new Intl.DateTimeFormat('en-US', {
+          timeZone,
+          weekday: 'long',
+          month: 'long',
+          day: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hourCycle: 'h23',
+        })
+          .formatToParts(now)
+          .map((part) => [part.type, part.value]),
+      );
+      return `${parts.weekday}, ${parts.month} ${parts.day}, ${parts.year}, ${parts.hour}:${parts.minute}`;
+    });
 }
 
 /** System prompt + the member's own firstMessage, seeded as its first spoken turn. */

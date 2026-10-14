@@ -111,6 +111,25 @@ h1 {
   text-decoration: underline;
 }
 
+#caller-phone-label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-sub);
+  margin-bottom: 0.4rem;
+}
+
+#caller-phone {
+  font-family: inherit;
+  font-size: 1rem;
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  margin-bottom: 1.1rem;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  text-align: center;
+  color: var(--text-main);
+}
+
 #talk-button {
   font-family: inherit;
   font-size: 1.05rem;
@@ -146,6 +165,8 @@ h1 {
 <body>
 <h1>${clinicName}</h1>
 ${switcher ? `<p class="switch">${switcher}</p>` : ''}
+<label id="caller-phone-label" for="caller-phone">Your phone number (demo only)</label>
+<input id="caller-phone" name="callerPhone" type="tel" inputmode="tel" autocomplete="tel" maxlength="40" placeholder="090-1234-5678" required />
 <button type="button" id="talk-button">Talk</button>
 <p id="call-status" aria-live="polite">Tap to start.</p>
 ${bypassKeyScript}<script type="module" src="${scriptSrc}"></script>
@@ -185,6 +206,7 @@ var vapi = new Vapi(${safeJsonForScript(options.publicKey)});
 var callsUrl = ${safeJsonForScript(options.callsUrl)};
 var bypassKey = window.__TALK_BYPASS_KEY__;
 var button = document.getElementById('talk-button');
+var phoneInput = document.getElementById('caller-phone');
 var statusEl = document.getElementById('call-status');
 var inCall = false;
 
@@ -246,11 +268,27 @@ button.addEventListener('click', function () {
     vapi.stop();
     return;
   }
+  // Demo-only stand-in for caller ID (VP-15): the server validates and normalises it again.
+  var callerPhone = phoneInput.value.trim();
+  if (!callerPhone) {
+    if (statusEl) statusEl.textContent = 'Please enter your phone number first.';
+    phoneInput.focus();
+    return;
+  }
   if (statusEl) statusEl.textContent = 'Calling…';
   var url = callsUrl + (bypassKey ? '?key=' + encodeURIComponent(bypassKey) : '');
   var ringbackDone = playRingback();
-  var sessionDone = fetch(url, { method: 'POST', credentials: 'same-origin' })
+  var sessionDone = fetch(url, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ callerPhone: callerPhone }),
+  })
     .then(function (res) {
+      if (res.status === 400) {
+        if (statusEl) statusEl.textContent = 'That phone number does not look right — please check it.';
+        return null;
+      }
       if (res.status === 429) {
         if (statusEl) statusEl.textContent = "You've reached the demo call limit. Please get in touch to try it live.";
         return null;
@@ -265,7 +303,10 @@ button.addEventListener('click', function () {
       var data = results[1];
       if (!data) return;
       if (statusEl) statusEl.textContent = 'Connecting…';
-      vapi.start(data.assistantId, { maxDurationSeconds: data.maxDurationSeconds });
+      vapi.start(data.assistantId, {
+        maxDurationSeconds: data.maxDurationSeconds,
+        variableValues: data.variableValues,
+      });
     })
     .catch(function (e) {
       console.error('Call session error:', e);
