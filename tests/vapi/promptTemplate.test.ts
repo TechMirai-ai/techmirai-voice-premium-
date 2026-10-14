@@ -532,7 +532,7 @@ describe('buildSystemPrompt — returning-caller section (VP-15)', () => {
 
     expect(prompt).toContain('says "none"');
     expect(prompt).toContain('Never read it out');
-    expect(prompt).toContain('do not volunteer specifics');
+    expect(prompt).toContain('no names, health details or reservation details');
     expect(prompt).toContain('needs_callback');
   });
 
@@ -543,9 +543,7 @@ describe('buildSystemPrompt — returning-caller section (VP-15)', () => {
     const prompt = buildSystemPrompt(config, 'ja', faq);
     const section = prompt.slice(prompt.indexOf('Earlier call from this caller'));
 
-    expect(section).toContain(
-      'When the line above holds a real earlier call, you will already have opened',
-    );
+    expect(section).toContain('you will already have opened with a short welcome-back greeting');
     expect(section).toContain('welcome-back greeting');
     expect(section).toContain('do not ask whether they are calling to make an appointment');
     // The new-caller sections are untouched by the returning-caller rule.
@@ -575,7 +573,49 @@ describe('buildSystemPrompt — returning-caller section (VP-15)', () => {
     expect(section).toContain('no record of an earlier call');
     // The existing privacy rules stay.
     expect(section).toContain('Never read it out');
-    expect(section).toContain('do not volunteer specifics');
+    expect(section).toContain('Never read it out');
+  });
+
+  test('mentions a completed earlier call by topic gist on the first reply, never verbatim', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'ja', faq);
+    const section = prompt.slice(prompt.indexOf('Earlier call from this caller'));
+
+    expect(section).toContain('If the earlier call was completed');
+    expect(section).toContain('On your first reply');
+    expect(section).toContain('last time we talked about');
+    expect(section).toContain('gist');
+    expect(section).toContain('never quote or read out the summary');
+  });
+
+  test('offers to continue an interrupted earlier call, judged from status and summary only', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'ja', faq);
+    const section = prompt.slice(prompt.indexOf('Earlier call from this caller'));
+
+    expect(section).toContain('If the earlier call looks interrupted');
+    expect(section).toContain('needs_callback');
+    expect(section).toContain('unresolved');
+    expect(section).toContain('would you like to continue with that');
+    expect(section).toContain('If you cannot tell, treat it as completed');
+    // A callback that was already taken is not "interrupted": no restarting it.
+    expect(section).toContain('already taken');
+  });
+
+  test('keeps the mention generic: topic only, no names, health or booking details from the earlier call', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'ja', faq);
+    const section = prompt.slice(prompt.indexOf('Earlier call from this caller'));
+
+    expect(section).toContain('topic only');
+    expect(section).toContain('names, health details or reservation details');
+    expect(section).not.toContain('do not volunteer specifics from the earlier call unprompted');
   });
 
   test('works for a differently-configured client (no clinic data hard-coded in the section)', () => {
