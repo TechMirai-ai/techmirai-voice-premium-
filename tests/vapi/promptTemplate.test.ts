@@ -543,12 +543,39 @@ describe('buildSystemPrompt — returning-caller section (VP-15)', () => {
     const prompt = buildSystemPrompt(config, 'ja', faq);
     const section = prompt.slice(prompt.indexOf('Earlier call from this caller'));
 
+    expect(section).toContain(
+      'When the line above holds a real earlier call, you will already have opened',
+    );
     expect(section).toContain('welcome-back greeting');
     expect(section).toContain('do not ask whether they are calling to make an appointment');
     // The new-caller sections are untouched by the returning-caller rule.
     expect(prompt.slice(0, prompt.indexOf('Earlier call from this caller'))).not.toContain(
       'welcome-back greeting',
     );
+  });
+
+  test('has the model confirm a note of the earlier call when asked, only for a real earlier call', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'ja', faq);
+    const section = prompt.slice(prompt.indexOf('Earlier call from this caller'));
+    const confirm = section.indexOf('asks whether you remember them');
+    const none = section.indexOf('If that line says "none"');
+    const noRecord = section.indexOf('do not claim to remember');
+
+    expect(confirm).toBeGreaterThan(-1);
+    expect(section).toContain('you can see a note of their earlier call');
+    expect(section).toContain('one short phrase');
+    expect(section).toContain('never say you have no access to previous calls');
+    // The "no access" ban sits inside the real-earlier-call branch, after the "none" branch...
+    expect(confirm).toBeGreaterThan(none);
+    // ...and a caller with no record is told not to claim memory.
+    expect(noRecord).toBeGreaterThan(-1);
+    expect(section).toContain('no record of an earlier call');
+    // The existing privacy rules stay.
+    expect(section).toContain('Never read it out');
+    expect(section).toContain('do not volunteer specifics');
   });
 
   test('works for a differently-configured client (no clinic data hard-coded in the section)', () => {
