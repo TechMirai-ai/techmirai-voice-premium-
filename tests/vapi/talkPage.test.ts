@@ -187,7 +187,15 @@ describe('renderTalkBootstrapScript', () => {
     expect(script).toContain("getElementById('caller-phone')");
     expect(script).toContain('callerPhone');
     expect(script).toContain('JSON.stringify');
-    expect(script).toMatch(/vapi\.start\([^)]*variableValues/);
+    expect(script).toContain('variableValues: data.variableValues');
+    expect(script).toContain('vapi.start(data.assistantId, overrides)');
+  });
+
+  test('passes a returning-caller firstMessage override to Vapi only when the server sent one', () => {
+    const script = renderTalkBootstrapScript({ publicKey: 'pk', callsUrl: '/talk/x/ja/calls' });
+
+    expect(script).toContain('data.firstMessage');
+    expect(script).toMatch(/if \(data\.firstMessage\)/);
   });
 
   test('refuses to start a call with an empty number, and explains a server-side rejection', () => {

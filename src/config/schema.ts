@@ -147,6 +147,12 @@ const safetySchema = z.strictObject({
 const scriptsSchema = z.strictObject({
   greeting: localizedTextSchema,
   englishGreeting: localizedTextSchema,
+  /**
+   * Opening line for a caller whose phone number has called before (VP-15), sent per call as a
+   * `firstMessage` override by the /talk page. Spoken in the assistant's own language. A plain
+   * welcome-back only: it must never mention the earlier call's topic or details.
+   */
+  returningGreeting: localizedTextSchema,
   /** Spoken (in `ja`) when a caller is handed back to the Japanese assistant — VP-3. */
   handoffToJapanese: localizedTextSchema,
   anythingElse: localizedTextSchema,

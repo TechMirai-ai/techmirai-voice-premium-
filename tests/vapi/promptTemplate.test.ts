@@ -536,6 +536,21 @@ describe('buildSystemPrompt — returning-caller section (VP-15)', () => {
     expect(prompt).toContain('needs_callback');
   });
 
+  test('skips the opening booking question only when there is an earlier call, as a two-line conditional', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const prompt = buildSystemPrompt(config, 'ja', faq);
+    const section = prompt.slice(prompt.indexOf('Earlier call from this caller'));
+
+    expect(section).toContain('welcome-back greeting');
+    expect(section).toContain('do not ask whether they are calling to make an appointment');
+    // The new-caller sections are untouched by the returning-caller rule.
+    expect(prompt.slice(0, prompt.indexOf('Earlier call from this caller'))).not.toContain(
+      'welcome-back greeting',
+    );
+  });
+
   test('works for a differently-configured client (no clinic data hard-coded in the section)', () => {
     const config = buildMinimalConfig({ language: 'fr' });
 

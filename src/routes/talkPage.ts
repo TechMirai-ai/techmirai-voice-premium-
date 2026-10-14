@@ -15,6 +15,7 @@ import { z } from 'zod';
 import { ClientConfigError, loadClient } from '../config/loadClient.js';
 import type { ClientConfig } from '../config/schema.js';
 import { logger } from '../lib/logger.js';
+import { fillClinicPlaceholders, pick } from '../vapi/promptTemplate.js';
 import { normalizeCallerPhone } from '../lib/callerPhone.js';
 import type { PriorCallReader } from '../repositories/callLogRepository.js';
 import {
@@ -205,6 +206,17 @@ export function talkRouter(options: TalkRouterOptions): Router {
             resolved.config.business.hours.timezone,
           ),
         },
+        // A returning caller hears a plain welcome-back instead of the saved greeting. The saved
+        // greeting is spoken before the model runs, so only a firstMessage override can change it.
+        ...(priorCall
+          ? {
+              firstMessage: fillClinicPlaceholders(
+                resolved.config,
+                language,
+                pick(resolved.config.scripts.returningGreeting, language),
+              ),
+            }
+          : {}),
       });
     },
   );

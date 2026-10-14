@@ -287,6 +287,30 @@ describe('GET /talk', () => {
         ]);
       });
 
+      test('a returning caller gets the welcome-back greeting as a per-call firstMessage override, clinic name filled, no topic', async () => {
+        priorCalls.seed('demo-clinic', NORMALISED_PHONE, {
+          status: 'needs_callback',
+          summary: 'asked about opening hours',
+          occurredAt: new Date('2026-10-10T03:00:00Z'),
+        });
+
+        const ja = await request(app()).post('/talk/demo-clinic/ja/calls').send(PHONE_BODY);
+        const en = await request(app()).post('/talk/demo-clinic/en/calls').send(PHONE_BODY);
+
+        expect(ja.body.firstMessage).toContain('再度のお電話ありがとうございます');
+        expect(ja.body.firstMessage).toContain('テスト整骨院');
+        expect(en.body.firstMessage).toContain('Welcome back to');
+        expect(en.body.firstMessage).toContain('This call is recorded');
+        for (const body of [ja.body, en.body]) {
+          expect(body.firstMessage).not.toMatch(/\[\[|opening hours|callback/i);
+        }
+      });
+
+      test('a new caller gets no firstMessage override (the saved greeting plays unchanged)', async () => {
+        const response = await request(app()).post('/talk/demo-clinic/ja/calls').send(PHONE_BODY);
+        expect(response.body).not.toHaveProperty('firstMessage');
+      });
+
       test("a different number does not see someone else's call", async () => {
         priorCalls.seed('demo-clinic', NORMALISED_PHONE, {
           status: 'resolved_by_ai',

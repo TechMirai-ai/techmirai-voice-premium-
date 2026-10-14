@@ -390,3 +390,18 @@ trigger-phrase the model matches against, never spoken by the AI itself, so it d
 same warmth/formality review as the items above — just a sanity check that イングリッシュ is in
 fact how "English" would typically transliterate in this context (it is the standard katakana
 rendering), so this is low priority.
+
+---
+
+## VP-15 — returning-caller greeting (`scripts.returningGreeting.ja`)
+
+Spoken instead of the normal greeting when the caller's phone number has called before.
+
+> 再度のお電話ありがとうございます。[[clinicName]]のAI受付、ハルカでございます。この通話は録音されます。本日はどのようなご用件でしょうか？
+
+English meaning: "Thank you for calling again. This is Haruka, the AI receptionist of [clinic name]. This call is recorded. What can I help you with today?"
+
+Notes for the reviewer: "welcome back" has no natural Japanese equivalent for a clinic phone line;
+おかえりなさい ("welcome home") would sound like a café, so 再度のお電話ありがとうございます ("thank you
+for calling again") is used. The recording notice is kept but shortened (no "to improve our service")
+and it deliberately does NOT ask whether they want to book. **Status:** open, not yet reviewed.

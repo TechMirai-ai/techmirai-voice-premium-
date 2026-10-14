@@ -303,10 +303,13 @@ button.addEventListener('click', function () {
       var data = results[1];
       if (!data) return;
       if (statusEl) statusEl.textContent = 'Connecting…';
-      vapi.start(data.assistantId, {
+      var overrides = {
         maxDurationSeconds: data.maxDurationSeconds,
         variableValues: data.variableValues,
-      });
+      };
+      // Only a returning caller (VP-15) gets a different greeting; a new caller hears the saved one.
+      if (data.firstMessage) overrides.firstMessage = data.firstMessage;
+      vapi.start(data.assistantId, overrides);
     })
     .catch(function (e) {
       console.error('Call session error:', e);

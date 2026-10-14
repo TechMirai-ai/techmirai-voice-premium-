@@ -114,6 +114,15 @@ scripts:
     en: Thank you for calling [[clinicName]]. I am your AI receptionist, Jenny. This call is recorded to improve our service. How may I assist you today? Are you calling to make an appointment?
     ja: >-
       こんにちは。[[clinicName]]です。こちらは英語でご案内するAI受付でございます。ご用件をお聞かせください。
+  # Opening line when the caller's phone number has called before (VP-15). Sent per call as a
+  # firstMessage override; spoken in the assistant's own language, so BOTH `ja` and `en` are spoken
+  # (unlike the glosses above). A plain welcome-back only — never mentions the last call's topic.
+  # Keeps the recording notice. NEEDS NATIVE-SPEAKER REVIEW (see docs/JAPANESE-REVIEW.md).
+  # ja: 再度のお電話ありがとうございます = "Thank you for calling again" (the natural Japanese
+  # clinic phrasing for "welcome back"; おかえりなさい would sound like a café, so it is not used).
+  returningGreeting:
+    en: Welcome back to [[clinicName]]. This is Jenny, the AI receptionist. This call is recorded. How can I help you today?
+    ja: 再度のお電話ありがとうございます。[[clinicName]]のAI受付、ハルカでございます。この通話は録音されます。本日はどのようなご用件でしょうか？
   # Japanese assistant's first message when a caller is handed BACK to it from
   # the English assistant (VP-3). Only the assistant's own language is spoken
   # (.ja); .en is a gloss for the project owner's review, never spoken.
