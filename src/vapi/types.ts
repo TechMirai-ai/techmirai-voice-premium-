@@ -116,7 +116,20 @@ export interface VapiSilenceHangupHook {
 export type VapiSilenceHookAction =
   | { type: 'say'; exact: string }
   | { type: 'say'; prompt: string }
-  | { type: 'tool'; tool: VapiEndCallToolPayload };
+  | { type: 'tool'; tool: VapiEndCallToolPayload | VapiSilenceEndToolPayload };
+
+/** The VP-16 tool that speaks the ending announcement and hangs up through our server. */
+export interface VapiSilenceEndToolPayload {
+  type: 'function';
+  /** The assistant must not wait on, or answer, this tool: the server ends the call itself. */
+  async: true;
+  function: {
+    name: string;
+    description: string;
+    parameters: { type: 'object'; properties: Record<string, never> };
+  };
+  server: VapiServerConfig;
+}
 
 export interface VapiServerConfig {
   url: string;

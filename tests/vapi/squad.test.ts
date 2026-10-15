@@ -15,13 +15,13 @@ import {
 } from '../../src/vapi/squad.js';
 import { UnsupportedLanguageError } from '../../src/vapi/promptTemplate.js';
 import { SAKURA_ID } from '../helpers/clientFixtures.js';
-import { buildMinimalConfig } from '../helpers/vapiFixtures.js';
+import { buildMinimalConfig, SILENCE_END_SERVER } from '../helpers/vapiFixtures.js';
 
 const config = loadClient(SAKURA_ID);
 
 describe('renderHandoffTool — Sakura', () => {
   test('ja → en targets the English assistant by name, with the English switchKeywords', () => {
-    const tool = renderHandoffTool(config, 'ja', 'en');
+    const tool = renderHandoffTool(config, 'ja', 'en', SILENCE_END_SERVER);
 
     expect(tool.type).toBe('handoff');
     expect(tool.destinations).toHaveLength(1);
@@ -34,7 +34,7 @@ describe('renderHandoffTool — Sakura', () => {
   });
 
   test('en → ja targets the ja-return assistant by name (VP-7 R1), not the call-starting ja assistant, with the Japanese switchKeywords', () => {
-    const [destination] = renderHandoffTool(config, 'en', 'ja').destinations;
+    const [destination] = renderHandoffTool(config, 'en', 'ja', SILENCE_END_SERVER).destinations;
 
     expect(destination?.type).toBe('assistant');
     expect(destination?.assistantName).toBe('sakura-seikotsuin--ja-return');
@@ -46,16 +46,16 @@ describe('renderHandoffTool — Sakura', () => {
   });
 
   test('ja → en targets en directly; en → ja is redirected to ja-return, so the two are not symmetric', () => {
-    const toEn = renderHandoffTool(config, 'ja', 'en').destinations[0]?.assistantName;
-    const toJa = renderHandoffTool(config, 'en', 'ja').destinations[0]?.assistantName;
+    const toEn = renderHandoffTool(config, 'ja', 'en', SILENCE_END_SERVER).destinations[0]?.assistantName;
+    const toJa = renderHandoffTool(config, 'en', 'ja', SILENCE_END_SERVER).destinations[0]?.assistantName;
 
     expect(toEn).toBe('sakura-seikotsuin--en');
     expect(toJa).toBe('sakura-seikotsuin--ja-return');
   });
 
   test("overrides the destination's firstMessage with its arrival script (placeholders filled)", () => {
-    const toEn = renderHandoffTool(config, 'ja', 'en').destinations[0];
-    const toJa = renderHandoffTool(config, 'en', 'ja').destinations[0];
+    const toEn = renderHandoffTool(config, 'ja', 'en', SILENCE_END_SERVER).destinations[0];
+    const toJa = renderHandoffTool(config, 'en', 'ja', SILENCE_END_SERVER).destinations[0];
 
     // Spoken text uses the VP-6 D phonetic override (namePronunciation.en), not the written name.
     expect(toEn?.assistantOverrides.firstMessage).toContain('Sakura Say-koh-tsoo-in');
@@ -66,8 +66,8 @@ describe('renderHandoffTool — Sakura', () => {
   });
 
   test("overrides the destination's endCallMessage with its own goodbye script (placeholders filled)", () => {
-    const toEn = renderHandoffTool(config, 'ja', 'en').destinations[0];
-    const toJa = renderHandoffTool(config, 'en', 'ja').destinations[0];
+    const toEn = renderHandoffTool(config, 'ja', 'en', SILENCE_END_SERVER).destinations[0];
+    const toJa = renderHandoffTool(config, 'en', 'ja', SILENCE_END_SERVER).destinations[0];
 
     // Spoken text uses the VP-6 D phonetic override (namePronunciation.en), not the written name.
     expect(toEn?.assistantOverrides.endCallMessage).toBe(
@@ -80,16 +80,16 @@ describe('renderHandoffTool — Sakura', () => {
   });
 
   test('silences the default English filler with an empty request-start message, both directions', () => {
-    expect(renderHandoffTool(config, 'ja', 'en').messages).toEqual([
+    expect(renderHandoffTool(config, 'ja', 'en', SILENCE_END_SERVER).messages).toEqual([
       { type: 'request-start', content: '' },
     ]);
-    expect(renderHandoffTool(config, 'en', 'ja').messages).toEqual([
+    expect(renderHandoffTool(config, 'en', 'ja', SILENCE_END_SERVER).messages).toEqual([
       { type: 'request-start', content: '' },
     ]);
   });
 
   test('rejects a language that is not supported', () => {
-    expect(() => renderHandoffTool(config, 'ja', 'fr')).toThrow(UnsupportedLanguageError);
+    expect(() => renderHandoffTool(config, 'ja', 'fr', SILENCE_END_SERVER)).toThrow(UnsupportedLanguageError);
   });
 });
 

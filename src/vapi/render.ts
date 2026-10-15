@@ -379,6 +379,11 @@ export function renderAssistant(
   const baseUrl = stripTrailingSlash(options.baseUrl);
   const callbackUrl = `${baseUrl}/api/voice/callback-request`;
   const topicUrl = `${baseUrl}/api/voice/call-topic`;
+  // VP-16: the silence-escalation hook's tool; same Custom Credential as every other voice webhook.
+  const silenceEndServer = {
+    url: `${baseUrl}/api/voice/silence-end`,
+    credentialId: options.credentialId,
+  };
   const services = options.services ?? [];
   const systemPrompt = buildSystemPrompt(config, language, faq, services);
   const failureMessage = fillClinicPlaceholders(
@@ -487,14 +492,14 @@ export function renderAssistant(
     // R8) — the same values squad.ts threads through each handoff leg's overrides.
     ...(endCallPhrases ? { endCallPhrases } : {}),
     backgroundSound: BACKGROUND_SOUND,
-    hooks: silenceHooks(config, language),
+    hooks: silenceHooks(config, language, silenceEndServer),
     // VP-12: route the end-of-call-report to us, record the call, run the outcome extraction.
     ...reporting,
   };
 
   const handoffTools = handoffTargets(config, language).map((toLanguage) => ({
     toLanguage,
-    payload: renderHandoffTool(config, language, toLanguage, reporting),
+    payload: renderHandoffTool(config, language, toLanguage, silenceEndServer, reporting),
   }));
 
   return { assistant, tool, topicTool, handoffTools, reservationTools };

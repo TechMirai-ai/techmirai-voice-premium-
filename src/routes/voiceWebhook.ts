@@ -29,6 +29,8 @@ export interface WebhookContext extends ResolvedAssistant {
   callId: string;
   /** The caller's number for this call (VP-15), or undefined when the call carried none. */
   callerPhone?: string;
+  /** Live Call Control address for this call (VP-16), when Vapi sent one. */
+  controlUrl?: string;
 }
 
 export interface ToolWebhookOptions {
@@ -75,6 +77,7 @@ export function toolWebhook(options: ToolWebhookOptions): RequestHandler {
                 ...resolved,
                 callId: message.callId,
                 ...(message.callerPhone ? { callerPhone: message.callerPhone } : {}),
+                ...(message.controlUrl ? { controlUrl: message.controlUrl } : {}),
               },
               call,
             )

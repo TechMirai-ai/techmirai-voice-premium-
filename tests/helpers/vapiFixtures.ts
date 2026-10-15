@@ -31,6 +31,12 @@ export interface MinimalConfigOptions {
   transcriber?: { provider: string; model?: string; language?: string; languages?: string[] };
 }
 
+/** The server the silence-escalation hook's `silence_end_call` tool points at (VP-16). */
+export const SILENCE_END_SERVER = {
+  url: 'https://example.test/api/voice/silence-end',
+  credentialId: 'cred-test',
+};
+
 /** A minimal but fully valid ClientConfig, supporting exactly one language. */
 export function buildMinimalConfig(options: MinimalConfigOptions = {}): ClientConfig {
   const clientId = options.clientId ?? 'test-clinic';

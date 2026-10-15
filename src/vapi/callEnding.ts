@@ -18,7 +18,8 @@
  */
 import type { ClientConfig } from '../config/schema.js';
 import { fillClinicPlaceholders, pick } from './promptTemplate.js';
-import type { VapiSilenceHangupHook } from './types.js';
+import { SILENCE_END_CALL_FUNCTION_NAME } from './toolNames.js';
+import type { VapiServerConfig, VapiSilenceHangupHook, VapiSilenceHookAction } from './types.js';
 
 /**
  * Graduated caller-silence flow (VP-16), replacing the flat 20s hang-up (VP-7 R10, itself a
@@ -39,13 +40,11 @@ const SILENCE_GAP_SECONDS = {
    */
   announceEnd: 5,
   /**
-   * BACKSTOP ONLY. The announcement ends with a configured `endCallPhrases` phrase, so Vapi hangs
-   * up as soon as it is spoken and the standard `endCallMessage` goodbye is not stacked on top
-   * (VAPI-FACTS.md VP-16 R2). This `endCall` fires only if that phrase hang-up does not happen —
-   * and would then play the standard goodbye, which is how a real call would show the phrase path
-   * isn't working.
+   * BACKSTOP ONLY, counted from the announcement hook. `silence_end_call` normally ends the call
+   * itself (VAPI-FACTS.md VP-16 R3); this built-in `endCall` fires only if it did not, and would
+   * then play the standard goodbye. Long enough that the announcement (~4–6s) finishes first.
    */
-  hangUp: 3,
+  hangUp: 12,
 } as const;
 
 /**
@@ -83,12 +82,43 @@ function exactLine(config: ClientConfig, language: string, line: Record<string, 
   } as const;
 }
 
+/** The announcement text for `language`, shared by the hook config and the silence-end route. */
+export function silenceEndingLine(config: ClientConfig, language: string): string {
+  return fillClinicPlaceholders(config, language, pick(config.scripts.silenceEnding, language));
+}
+
 /**
- * The five escalating hooks, in order: repeat the last question, two "are you there?" checks, an
- * announcement that the call is ending, then the built-in `endCall` (so call-end bookkeeping is
- * the same path as any other ending). Each fires once and only while the caller stays silent.
+ * The server-driven announcement + hang-up (VP-16 R3). A hook's own `say` neither counts as
+ * assistant speech for `endCallPhrases` nor suppresses the standard `endCallMessage` goodbye on the
+ * following `endCall` (real calls, VP-16 R2), so the last step is a tool call to our server, which
+ * uses Vapi's Live Call Control to speak the line and hang up in one platform operation.
  */
-export function silenceHooks(config: ClientConfig, language: string): VapiSilenceHangupHook[] {
+function silenceEndAction(server: VapiServerConfig): VapiSilenceHookAction {
+  return {
+    type: 'tool',
+    tool: {
+      type: 'function',
+      async: true,
+      function: {
+        name: SILENCE_END_CALL_FUNCTION_NAME,
+        description: 'Announces that the call is ending because the caller is silent, then hangs up.',
+        parameters: { type: 'object', properties: {} },
+      },
+      server,
+    },
+  };
+}
+
+/**
+ * The five escalating hooks, in order: repeat the last question, two "are you there?" checks, the
+ * server-driven announcement + hang-up (`silence_end_call`), then the built-in `endCall` as a
+ * backstop if that did not end the call. Each fires once and only while the caller stays silent.
+ */
+export function silenceHooks(
+  config: ClientConfig,
+  language: string,
+  silenceEndServer: VapiServerConfig,
+): VapiSilenceHangupHook[] {
   const gap = SILENCE_GAP_SECONDS;
   const at1 = gap.repeatQuestion;
   const at2 = at1 + gap.check1;
@@ -103,11 +133,7 @@ export function silenceHooks(config: ClientConfig, language: string): VapiSilenc
     }),
     silenceHook('silence-check-1', at2, exactLine(config, language, config.scripts.silenceCheck1)),
     silenceHook('silence-check-2', at3, exactLine(config, language, config.scripts.silenceCheck2)),
-    silenceHook(
-      'silence-announce-end',
-      at4,
-      exactLine(config, language, config.scripts.silenceEnding),
-    ),
+    silenceHook('silence-announce-end', at4, silenceEndAction(silenceEndServer)),
     silenceHook('silence-hangup', at5, { type: 'tool', tool: { type: 'endCall' } }),
   ];
 }

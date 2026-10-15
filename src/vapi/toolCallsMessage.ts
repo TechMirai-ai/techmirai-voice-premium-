@@ -30,7 +30,11 @@ const assistantRefSchema = z.looseObject({
 const envelopeSchema = z.looseObject({
   message: z.looseObject({
     type: z.literal('tool-calls'),
-    call: z.looseObject({ id: z.string().min(1) }),
+    call: z.looseObject({
+      id: z.string().min(1),
+      // Live Call Control address (VP-16); absent on calls with monitoring disabled.
+      monitor: z.looseObject({ controlUrl: z.string().optional() }).optional(),
+    }),
     assistant: assistantRefSchema.optional(),
     toolCallList: z.array(toolCallSchema).optional(),
     toolWithToolCallList: z
@@ -50,6 +54,8 @@ export interface ToolCallsMessage {
   callId: string;
   /** Normalised caller number for this call, when the call carries one (VP-15). */
   callerPhone?: string;
+  /** `call.monitor.controlUrl` — where Live Call Control commands for this call are POSTed. */
+  controlUrl?: string;
   assistant: { id?: string; name?: string };
   toolCalls: ToolCallRequest[];
 }
@@ -91,6 +97,7 @@ export function parseToolCallsMessage(body: unknown): ToolCallsMessage | undefin
   return {
     callId: message.call.id,
     ...(callerPhone ? { callerPhone } : {}),
+    ...(message.call.monitor?.controlUrl ? { controlUrl: message.call.monitor.controlUrl } : {}),
     assistant: {
       ...(assistant.id ? { id: assistant.id } : {}),
       ...(assistant.name ? { name: assistant.name } : {}),

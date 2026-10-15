@@ -151,6 +151,8 @@ export function buildVoiceApp(
     rateLimit?: RateLimitOptions;
     archive?: ReportArchiver;
     archiveRetry?: ArchiveRetryRouteDeps;
+    /** Replaces the global `fetch` the silence-end route uses to reach Vapi (VP-16). */
+    fetchImpl?: typeof fetch;
   } = {},
 ) {
   const callbacks = new MemoryCallbacks();
@@ -173,6 +175,7 @@ export function buildVoiceApp(
     appointments,
     ...(options.rateLimit ? { rateLimit: options.rateLimit } : {}),
     ...(options.archive ? { archive: options.archive } : {}),
+    ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
   };
   const app = createApp({
     db: healthyDb,

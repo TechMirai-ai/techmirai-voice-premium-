@@ -428,7 +428,6 @@ text), then check 1, check 2, then the ending announcement, then the call is hun
 
    English meaning: "As I haven't heard a response, I'll end this call now. Thank you for calling. Please take care."
 
-Notes for the reviewer: wording is the project owner's. Line 3 deliberately ends with
-お大事になさってください ("please take care"), which is a configured hang-up phrase: Vapi hangs up as
-soon as it is spoken, so this line IS the closing line and the standard goodbye should not play on top
-of it (VAPI-FACTS.md VP-16 R2 — pending a real-call check). **Status:** open, not yet reviewed.
+Notes for the reviewer: wording is the project owner's. Line 3 is spoken by the server together with
+the hang-up (VAPI-FACTS.md VP-16 R3 — pending a real-call check), so it should be the only closing line.
+**Status:** open, not yet reviewed.

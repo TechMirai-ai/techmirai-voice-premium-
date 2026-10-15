@@ -217,10 +217,9 @@ scripts:
     # Gloss: "Is the call still connected?"
     ja: お電話はつながっておりますでしょうか？
   silenceEnding:
-    # Deliberately ENDS WITH an `endCallPhrases` phrase ("please take care" /
-    # お大事になさってください): Vapi hangs up once the assistant has said one, so the announcement
-    # is itself the closing line and the standard `endCallMessage` goodbye is not stacked on top
-    # (VP-16 R2). A test enforces that this line contains a hang-up phrase.
+    # Spoken by the server (POST /api/voice/silence-end -> Vapi Live Call Control `say` +
+    # `endCallAfterSpoken`), NOT by a hook `say`: that way it is the only closing line and the
+    # standard `endCallMessage` goodbye is not stacked on top (VAPI-FACTS.md VP-16 R2/R3).
     en: As I haven't heard a response, I'll end this call now. Thank you for calling. Please take care.
     # Gloss: "As I haven't heard a response, I'll end the call now. Thank you for calling. Please take care."
     ja: お返事がないようですので、お電話を終了させていただきます。お電話ありがとうございました。どうぞお大事になさってください。

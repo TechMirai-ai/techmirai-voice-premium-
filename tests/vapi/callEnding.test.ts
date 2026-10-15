@@ -3,11 +3,11 @@ import { describe, expect, test } from 'vitest';
 import { clientConfigSchema } from '../../src/config/schema.js';
 import { loadClient } from '../../src/config/loadClient.js';
 import { FileKnowledgeSource } from '../../src/knowledge/KnowledgeSource.js';
-import { endCallPhrasesFor, silenceHooks } from '../../src/vapi/callEnding.js';
+import { endCallPhrasesFor, silenceEndingLine, silenceHooks } from '../../src/vapi/callEnding.js';
 import { renderAssistant } from '../../src/vapi/render.js';
 import { renderHandoffTool } from '../../src/vapi/squad.js';
 import { SAKURA_ID } from '../helpers/clientFixtures.js';
-import { buildMinimalConfig } from '../helpers/vapiFixtures.js';
+import { buildMinimalConfig, SILENCE_END_SERVER } from '../helpers/vapiFixtures.js';
 
 const OPTIONS = { baseUrl: 'https://example.test', credentialId: 'cred-test' };
 const knowledge = new FileKnowledgeSource();
@@ -33,8 +33,8 @@ describe('endCallPhrasesFor', () => {
 });
 
 describe('silenceHooks (VP-16 graduated silence)', () => {
-  const hooks = silenceHooks(config, 'ja');
-  const enHooks = silenceHooks(config, 'en');
+  const hooks = silenceHooks(config, 'ja', SILENCE_END_SERVER);
+  const enHooks = silenceHooks(config, 'en', SILENCE_END_SERVER);
 
   test('is five staggered one-shot customer.speech.timeout hooks, in escalating order', () => {
     expect(hooks).toHaveLength(5);
@@ -55,8 +55,8 @@ describe('silenceHooks (VP-16 graduated silence)', () => {
     }
   });
 
-  test('timings follow the work order: 4s, then +5s, +5s, +5s, and hang-up 3s after the announcement', () => {
-    expect(hooks.map((h) => h.options.timeoutSeconds)).toEqual([4, 9, 14, 19, 22]);
+  test('timings: 4s, then +5s, +5s, +5s (assumed), and the endCall backstop 12s after the announcement', () => {
+    expect(hooks.map((h) => h.options.timeoutSeconds)).toEqual([4, 9, 14, 19, 31]);
   });
 
   test('step 1 is model-generated from the conversation, not a fixed line', () => {
@@ -72,7 +72,7 @@ describe('silenceHooks (VP-16 graduated silence)', () => {
   test.each([
     ['ja', hooks],
     ['en', enHooks],
-  ])('%s: steps 2–4 say the configured script lines, exactly', (language, set) => {
+  ])('%s: steps 2–3 say the configured script lines, exactly', (language, set) => {
     const say = (i: number) => {
       const action = set[i]?.do[0];
       return action && 'exact' in action ? action.exact : undefined;
@@ -80,8 +80,29 @@ describe('silenceHooks (VP-16 graduated silence)', () => {
 
     expect(say(1)).toBe(config.scripts.silenceCheck1[language]);
     expect(say(2)).toBe(config.scripts.silenceCheck2[language]);
-    expect(say(3)).toBe(config.scripts.silenceEnding[language]);
   });
+
+  test('step 4 is the silence_end_call server tool (async, same credential), not a hook say', () => {
+    const action = hooks[3]?.do[0];
+
+    expect(action).toMatchObject({
+      type: 'tool',
+      tool: {
+        type: 'function',
+        async: true,
+        function: { name: 'silence_end_call' },
+        server: SILENCE_END_SERVER,
+      },
+    });
+    expect(hooks[3]?.do).toHaveLength(1);
+  });
+
+  test.each(['ja', 'en'])(
+    '%s: the line the server speaks is the configured announcement, placeholders filled',
+    (language) => {
+      expect(silenceEndingLine(config, language)).toBe(config.scripts.silenceEnding[language]);
+    },
+  );
 
   test('the final hook runs the built-in endCall, so call-end bookkeeping is unchanged', () => {
     expect(hooks[4]?.do).toEqual([{ type: 'tool', tool: { type: 'endCall' } }]);
@@ -112,12 +133,9 @@ describe('silenceHooks (VP-16 graduated silence)', () => {
         expect(containsPhrase(config.scripts.silenceCheck2[language])).toBe(false);
       });
 
-      test('the announcement contains a hang-up phrase, so it is itself the closing line and ends the call', () => {
-        expect(containsPhrase(config.scripts.silenceEnding[language])).toBe(true);
-      });
 
       test('the only hook after the announcement is a bare endCall backstop that speaks nothing', () => {
-        const set = silenceHooks(config, language);
+        const set = silenceHooks(config, language, SILENCE_END_SERVER);
         const afterAnnouncement = set.slice(
           set.findIndex((h) => h.name === 'silence-announce-end') + 1,
         );
@@ -139,7 +157,7 @@ describe('the assistant and every handoff leg carry the same hang-up backstops',
       const { assistant } = renderAssistant(config, language, faq, OPTIONS);
 
       expect(assistant.endCallPhrases).toEqual(endCallPhrasesFor(config, language));
-      expect(assistant.hooks).toEqual(silenceHooks(config, language));
+      expect(assistant.hooks).toEqual(silenceHooks(config, language, SILENCE_END_SERVER));
     },
   );
 
@@ -149,17 +167,17 @@ describe('the assistant and every handoff leg carry the same hang-up backstops',
     const { assistant } = renderAssistant(minimal, 'fr', [], OPTIONS);
 
     expect('endCallPhrases' in assistant).toBe(false);
-    expect(assistant.hooks).toEqual(silenceHooks(minimal, 'fr'));
+    expect(assistant.hooks).toEqual(silenceHooks(minimal, 'fr', SILENCE_END_SERVER));
   });
 
   test("handoff overrides carry the DESTINATION language's phrases and the hook (VP-6 R3: not inherited across a handoff)", () => {
-    const toEn = renderHandoffTool(config, 'ja', 'en').destinations[0];
-    const toJa = renderHandoffTool(config, 'en', 'ja').destinations[0];
+    const toEn = renderHandoffTool(config, 'ja', 'en', SILENCE_END_SERVER).destinations[0];
+    const toJa = renderHandoffTool(config, 'en', 'ja', SILENCE_END_SERVER).destinations[0];
 
     expect(toEn?.assistantOverrides.endCallPhrases).toEqual(endCallPhrasesFor(config, 'en'));
     expect(toJa?.assistantOverrides.endCallPhrases).toEqual(endCallPhrasesFor(config, 'ja'));
-    expect(toEn?.assistantOverrides.hooks).toEqual(silenceHooks(config, 'en'));
-    expect(toJa?.assistantOverrides.hooks).toEqual(silenceHooks(config, 'ja'));
+    expect(toEn?.assistantOverrides.hooks).toEqual(silenceHooks(config, 'en', SILENCE_END_SERVER));
+    expect(toJa?.assistantOverrides.hooks).toEqual(silenceHooks(config, 'ja', SILENCE_END_SERVER));
   });
 
   test('the return member (ja-return) gets the same settings as ja — it is reached only by handoff', async () => {
