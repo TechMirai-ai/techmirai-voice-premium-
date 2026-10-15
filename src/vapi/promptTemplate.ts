@@ -350,10 +350,10 @@ function reservationSection(
   if (services.length === 0) return [];
 
   const closing = [
-    `After the ${BOOK_APPOINTMENT_FUNCTION_NAME} call: if it succeeded, say something in the ` +
-      `spirit of "${scriptLine(config, language, 'reservationSaved')}", substituting the actual ` +
-      'reservation number for [[reservationNumber]] — never speak the placeholder text itself. ' +
-      `Then ask: "${scriptLine(config, language, 'anythingElse')}" — same as after answering a ` +
+    `After the ${BOOK_APPOINTMENT_FUNCTION_NAME} call: if it succeeded, in the same turn first ` +
+      'state the confirmed appointment date and time back to the caller, then say ' +
+      `"${scriptLine(config, language, 'reservationSaved')}". Never say the reservation number ` +
+      `the tool returns. Then ask:"${scriptLine(config, language, 'anythingElse')}" — same as after answering a ` +
       `question. If it failed, say something in the spirit of "${scriptLine(config, language, 'reservationFailed')}" instead.`,
   ].join(' ');
 

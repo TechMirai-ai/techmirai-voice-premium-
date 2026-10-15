@@ -486,6 +486,16 @@ describe('buildSystemPrompt — VP-8 reservation flow', () => {
     // fixture text for every SCRIPT_KEY, proving the section actually reads that key.
     expect(prompt).toContain('reservationSaved text (fr)');
   });
+
+  test('the booking closing states the date and time, and never the reservation number', () => {
+    const config = buildMinimalConfig({ language: 'fr' });
+
+    const prompt = buildSystemPrompt(config, 'fr', config.faq, SERVICES);
+
+    expect(prompt).toContain('state the confirmed appointment date and time back to the caller');
+    expect(prompt).toContain('Never say the reservation number');
+    expect(prompt).not.toContain('[[reservationNumber]]');
+  });
 });
 
 describe('buildSystemPrompt — no repeated acknowledgement after a split utterance (VP-10)', () => {

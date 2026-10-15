@@ -194,7 +194,7 @@ const scriptsSchema = z.strictObject({
   reservationAskDateTime: localizedTextSchema,
   /** Said when lookup_patient finds no record — falls back to the first-time-visitor path. */
   reservationPatientNotFound: localizedTextSchema,
-  /** May use [[reservationNumber]] — the only other script (besides confirmName) allowed a caller placeholder. */
+  /** Closing line after a successful booking; the prompt has the agent state the date/time just before it. */
   reservationSaved: localizedTextSchema,
   /** Said when book_appointment fails (e.g. the slot was taken in the meantime). */
   reservationFailed: localizedTextSchema,

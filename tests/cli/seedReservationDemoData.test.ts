@@ -28,10 +28,10 @@ describe('seedReservationDemoData', () => {
       new Date('2026-10-01T00:00:00Z'),
     );
 
-    expect(result).toEqual({ services: 3, patients: 3, bookedSlots: 4 });
+    expect(result).toEqual({ services: 2, patients: 3, bookedSlots: 4 });
     const insertedInto = (table: string) =>
       db.queries.filter((q) => q.sql.includes(`INSERT INTO ${table}`));
-    expect(insertedInto('reservation_services')).toHaveLength(3);
+    expect(insertedInto('reservation_services')).toHaveLength(2);
     expect(insertedInto('reservation_demo_patients')).toHaveLength(3);
     expect(insertedInto('reservation_booked_slots')).toHaveLength(4);
   });

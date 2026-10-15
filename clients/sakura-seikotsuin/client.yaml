@@ -228,11 +228,13 @@ scripts:
     ja: >-
       申し訳ございません。そのお名前は当院の記録に見つかりませんでした。
       恐れ入りますが、初めてご来院の方として承ります。
-  # Uses [[reservationNumber]] — the tool call supplies the actual number, substituted in by the model.
-  # CHANGED (content update, 2026-09-29) — shortened, ends right after the reservation number.
+  # CHANGED (content update, 2026-10-15) — no longer speaks the reservation number. The prompt has
+  # the agent state the confirmed date and time first, in the same turn, then say this line.
+  # NEEDS NATIVE-SPEAKER REVIEW.
   reservationSaved:
-    en: Thank you. Your reservation number is [[reservationNumber]].
-    ja: ありがとうございます。ご予約番号は[[reservationNumber]]でございます。
+    en: Thank you. We'll send the details to your number.
+    # Gloss: "We will send the details to this phone number."
+    ja: 詳細はこちらのお電話番号にお送りいたします。
   reservationFailed:
     en: >-
       I'm sorry. We weren't able to complete your reservation.

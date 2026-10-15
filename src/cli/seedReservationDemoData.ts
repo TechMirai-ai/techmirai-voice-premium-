@@ -60,18 +60,11 @@ const FIXTURES: Record<string, DemoFixture> = {
         sortOrder: 1,
       },
       {
-        id: 'follow-up',
-        nameJa: 'フォローアップ',
-        nameEn: 'Follow-up',
-        durationMinutes: 20,
-        sortOrder: 2,
-      },
-      {
         id: 'sports-injury',
         nameJa: 'スポーツ外傷施術',
         nameEn: 'Sports Injury Treatment',
         durationMinutes: 45,
-        sortOrder: 3,
+        sortOrder: 2,
       },
     ],
     // Same spirit as the "Yamada Taro" test data used in VP-7's manual testing.
