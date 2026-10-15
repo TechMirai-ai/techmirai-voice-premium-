@@ -3,10 +3,7 @@ import { describe, expect, test } from 'vitest';
 import { clientConfigSchema } from '../../src/config/schema.js';
 import { loadClient } from '../../src/config/loadClient.js';
 import { FileKnowledgeSource } from '../../src/knowledge/KnowledgeSource.js';
-import {
-  endCallPhrasesFor,
-  silenceHooks,
-} from '../../src/vapi/callEnding.js';
+import { endCallPhrasesFor, silenceHooks } from '../../src/vapi/callEnding.js';
 import { renderAssistant } from '../../src/vapi/render.js';
 import { renderHandoffTool } from '../../src/vapi/squad.js';
 import { SAKURA_ID } from '../helpers/clientFixtures.js';
