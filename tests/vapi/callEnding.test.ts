@@ -91,32 +91,36 @@ describe('silenceHooks (VP-16 graduated silence)', () => {
     expect(config.scripts.silenceCheck1.en).toBe('Hello, can you hear me?');
     expect(config.scripts.silenceCheck2.en).toBe('Are you still on the line?');
     expect(config.scripts.silenceEnding.en).toBe(
-      "As I haven't heard a response, I'll end this call now. Thank you for calling. Take care.",
+      "As I haven't heard a response, I'll end this call now. Thank you for calling. Please take care.",
     );
     expect(config.scripts.silenceCheck1.ja).toBe('もしもし、お聞きになれますでしょうか？');
     expect(config.scripts.silenceCheck2.ja).toBe('お電話はつながっておりますでしょうか？');
     expect(config.scripts.silenceEnding.ja).toBe(
-      'お返事がないようですので、お電話を終了させていただきます。お電話ありがとうございました。どうぞお大事に。',
+      'お返事がないようですので、お電話を終了させていただきます。お電話ありがとうございました。どうぞお大事になさってください。',
     );
   });
 
-  test.each(['ja', 'en'])(
-    "%s: no silence line contains one of that language's endCallPhrases (a match would hang up before the 3s step)",
-    (language) => {
-      const phrases = endCallPhrasesFor(config, language) ?? [];
-      const lines = [
-        config.scripts.silenceCheck1,
-        config.scripts.silenceCheck2,
-        config.scripts.silenceEnding,
-      ].map((line) => (line[language] ?? '').toLowerCase());
+  describe.each(['ja', 'en'])('%s: exactly one closing line on the silence path (VP-16 R2)', (language) => {
+    const phrases = (endCallPhrasesFor(config, language) ?? []).map((p) => p.toLowerCase());
+    const containsPhrase = (text: string | undefined) =>
+      phrases.some((p) => (text ?? '').toLowerCase().includes(p));
 
-      for (const line of lines) {
-        for (const phrase of phrases) {
-          expect(line).not.toContain(phrase.toLowerCase());
-        }
-      }
-    },
-  );
+    test('the check lines contain no hang-up phrase (they must not end the call early)', () => {
+      expect(containsPhrase(config.scripts.silenceCheck1[language])).toBe(false);
+      expect(containsPhrase(config.scripts.silenceCheck2[language])).toBe(false);
+    });
+
+    test('the announcement contains a hang-up phrase, so it is itself the closing line and ends the call', () => {
+      expect(containsPhrase(config.scripts.silenceEnding[language])).toBe(true);
+    });
+
+    test('the only hook after the announcement is a bare endCall backstop that speaks nothing', () => {
+      const set = silenceHooks(config, language);
+      const afterAnnouncement = set.slice(set.findIndex((h) => h.name === 'silence-announce-end') + 1);
+
+      expect(afterAnnouncement.map((h) => h.do)).toEqual([[{ type: 'tool', tool: { type: 'endCall' } }]]);
+    });
+  });
 });
 
 describe('the assistant and every handoff leg carry the same hang-up backstops', () => {

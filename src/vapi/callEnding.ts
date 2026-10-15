@@ -38,6 +38,13 @@ const SILENCE_GAP_SECONDS = {
    * the end announcement; 5s mirrors the other gaps. Confirm during the real-call test.
    */
   announceEnd: 5,
+  /**
+   * BACKSTOP ONLY. The announcement ends with a configured `endCallPhrases` phrase, so Vapi hangs
+   * up as soon as it is spoken and the standard `endCallMessage` goodbye is not stacked on top
+   * (VAPI-FACTS.md VP-16 R2). This `endCall` fires only if that phrase hang-up does not happen —
+   * and would then play the standard goodbye, which is how a real call would show the phrase path
+   * isn't working.
+   */
   hangUp: 3,
 } as const;
 
