@@ -217,9 +217,13 @@ scripts:
     # Gloss: "Is the call still connected?"
     ja: お電話はつながっておりますでしょうか？
   silenceEnding:
-    en: As I haven't heard a response, I'll end this call now. Thank you for calling. Please take care.
-    # Gloss: "As I haven't heard a response, I'll end the call now. Thank you for calling. Please take care."
-    ja: お返事がないようですので、お電話を終了させていただきます。お電話ありがとうございました。どうぞお大事になさってください。
+    # Deliberately does NOT contain any `endCallPhrases` phrase ("please take care" /
+    # お大事になさってください): Vapi hangs up as soon as the assistant says one, which would cut the
+    # call off instead of waiting for the 3s hang-up step. A test enforces this.
+    en: As I haven't heard a response, I'll end this call now. Thank you for calling. Take care.
+    # Gloss: "As I haven't heard a response, I'll end the call now. Thank you for calling. Take care."
+    ja: お返事がないようですので、お電話を終了させていただきます。お電話ありがとうございました。どうぞお大事に。
+    # Gloss: "...Thank you for calling. Please take care." (お大事に = "take care of yourself", shortened)
   # VP-8: demo reservation flow. NEEDS NATIVE-SPEAKER REVIEW, like the rest of the Japanese content.
   reservationAskType:
     en: Is this your first visit, or are you a returning patient?

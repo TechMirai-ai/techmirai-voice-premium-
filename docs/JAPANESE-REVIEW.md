@@ -424,11 +424,13 @@ text), then check 1, check 2, then the ending announcement, then the call is hun
 2. > お電話はつながっておりますでしょうか？
 
    English meaning: "Is the call still connected?" (the owner's English: "Are you still on the line?")
-3. > お返事がないようですので、お電話を終了させていただきます。お電話ありがとうございました。どうぞお大事になさってください。
+3. > お返事がないようですので、お電話を終了させていただきます。お電話ありがとうございました。どうぞお大事に。
 
-   English meaning: "As I haven't heard a response, I'll end this call now. Thank you for calling. Please take care."
+   English meaning: "As I haven't heard a response, I'll end this call now. Thank you for calling. Take care."
 
-Notes for the reviewer: wording is the project owner's. The third line ends with お大事になさってください
-("please take care"), which is also a configured hang-up phrase (`endCallPhrases`), so the platform may
-hang up the moment it finishes — check on a real call that this does not cut the announcement short.
-**Status:** open, not yet reviewed.
+Notes for the reviewer: lines 1–2 are the project owner's wording. Line 3 was shortened from
+「どうぞお大事になさってください」 ("please take care") to 「どうぞお大事に」 ("take care") and the English
+from "Please take care" to "Take care", because the longer phrases are configured hang-up phrases
+(`endCallPhrases`): Vapi would hang up the instant the announcement said them, instead of waiting for
+the 3-second hang-up step. A test enforces that no silence line contains a hang-up phrase. Please
+confirm 「どうぞお大事に」 still sounds natural and polite as a closing. **Status:** open, not yet reviewed.

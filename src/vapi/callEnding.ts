@@ -24,15 +24,19 @@ import type { VapiSilenceHangupHook } from './types.js';
  * Graduated caller-silence flow (VP-16), replacing the flat 20s hang-up (VP-7 R10, itself a
  * shortening of the original 40s). Each step is its own `customer.speech.timeout` hook; Vapi's docs
  * describe staggered hooks for exactly this. Offsets are seconds of caller silence counted from
- * when the assistant stopped speaking, read as ABSOLUTE (VAPI-FACTS.md VP-16 R1) — the work order's
- * gaps are 4s, +5s, +5s, +5s (the last gap is our assumption: none was specified) and a hang-up
- * 3s after the announcement. Whether a hook's own `say` restarts the clock is undocumented and is
- * what the first real call checks; if it does, switch these to the gaps themselves.
+ * when the assistant stopped speaking, read as ABSOLUTE (VAPI-FACTS.md VP-16 R1). Specified by the
+ * owner: 4s, +5s, +5s, and a hang-up 3s after the announcement. Whether a hook's own `say` restarts
+ * the clock is undocumented and is what the first real call checks; if it does, switch these to
+ * the gaps themselves.
  */
 const SILENCE_GAP_SECONDS = {
   repeatQuestion: 4,
   check1: 5,
   check2: 5,
+  /**
+   * ASSUMED TIMING — NOT FROM THE OWNER. The work order gives no delay between the second check and
+   * the end announcement; 5s mirrors the other gaps. Confirm during the real-call test.
+   */
   announceEnd: 5,
   hangUp: 3,
 } as const;
@@ -66,7 +70,10 @@ function silenceHook(
 }
 
 function exactLine(config: ClientConfig, language: string, line: Record<string, string>) {
-  return { type: 'say', exact: fillClinicPlaceholders(config, language, pick(line, language)) } as const;
+  return {
+    type: 'say',
+    exact: fillClinicPlaceholders(config, language, pick(line, language)),
+  } as const;
 }
 
 /**
@@ -83,10 +90,17 @@ export function silenceHooks(config: ClientConfig, language: string): VapiSilenc
   const at5 = at4 + gap.hangUp;
 
   return [
-    silenceHook('silence-repeat-question', at1, { type: 'say', prompt: REPEAT_LAST_QUESTION_PROMPT }),
+    silenceHook('silence-repeat-question', at1, {
+      type: 'say',
+      prompt: REPEAT_LAST_QUESTION_PROMPT,
+    }),
     silenceHook('silence-check-1', at2, exactLine(config, language, config.scripts.silenceCheck1)),
     silenceHook('silence-check-2', at3, exactLine(config, language, config.scripts.silenceCheck2)),
-    silenceHook('silence-announce-end', at4, exactLine(config, language, config.scripts.silenceEnding)),
+    silenceHook(
+      'silence-announce-end',
+      at4,
+      exactLine(config, language, config.scripts.silenceEnding),
+    ),
     silenceHook('silence-hangup', at5, { type: 'tool', tool: { type: 'endCall' } }),
   ];
 }

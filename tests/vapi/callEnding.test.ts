@@ -94,14 +94,32 @@ describe('silenceHooks (VP-16 graduated silence)', () => {
     expect(config.scripts.silenceCheck1.en).toBe('Hello, can you hear me?');
     expect(config.scripts.silenceCheck2.en).toBe('Are you still on the line?');
     expect(config.scripts.silenceEnding.en).toBe(
-      "As I haven't heard a response, I'll end this call now. Thank you for calling. Please take care.",
+      "As I haven't heard a response, I'll end this call now. Thank you for calling. Take care.",
     );
     expect(config.scripts.silenceCheck1.ja).toBe('もしもし、お聞きになれますでしょうか？');
     expect(config.scripts.silenceCheck2.ja).toBe('お電話はつながっておりますでしょうか？');
     expect(config.scripts.silenceEnding.ja).toBe(
-      'お返事がないようですので、お電話を終了させていただきます。お電話ありがとうございました。どうぞお大事になさってください。',
+      'お返事がないようですので、お電話を終了させていただきます。お電話ありがとうございました。どうぞお大事に。',
     );
   });
+
+  test.each(['ja', 'en'])(
+    "%s: no silence line contains one of that language's endCallPhrases (a match would hang up before the 3s step)",
+    (language) => {
+      const phrases = endCallPhrasesFor(config, language) ?? [];
+      const lines = [
+        config.scripts.silenceCheck1,
+        config.scripts.silenceCheck2,
+        config.scripts.silenceEnding,
+      ].map((line) => (line[language] ?? '').toLowerCase());
+
+      for (const line of lines) {
+        for (const phrase of phrases) {
+          expect(line).not.toContain(phrase.toLowerCase());
+        }
+      }
+    },
+  );
 });
 
 describe('the assistant and every handoff leg carry the same hang-up backstops', () => {
