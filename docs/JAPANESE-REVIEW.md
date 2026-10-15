@@ -410,3 +410,25 @@ Notes for the reviewer: "welcome back" has no natural Japanese equivalent for a 
 おかえりなさい ("welcome home") would sound like a café, so 再度のお電話ありがとうございます ("thank you
 for calling again") is used. The recording notice is kept but shortened (no "to improve our service")
 and it deliberately does NOT ask whether they want to book. **Status:** open, not yet reviewed.
+
+---
+
+## VP-16 — graduated caller-silence lines (`scripts.silenceCheck1` / `silenceCheck2` / `silenceEnding`, ja)
+
+Spoken in order when the caller stays silent: a model-written repeat of the last question (no fixed
+text), then check 1, check 2, then the ending announcement, then the call is hung up.
+
+1. > もしもし、お聞きになれますでしょうか？
+
+   English meaning: "Hello, can you hear me?"
+2. > お電話はつながっておりますでしょうか？
+
+   English meaning: "Is the call still connected?" (the owner's English: "Are you still on the line?")
+3. > お返事がないようですので、お電話を終了させていただきます。お電話ありがとうございました。どうぞお大事になさってください。
+
+   English meaning: "As I haven't heard a response, I'll end this call now. Thank you for calling. Please take care."
+
+Notes for the reviewer: wording is the project owner's. The third line ends with お大事になさってください
+("please take care"), which is also a configured hang-up phrase (`endCallPhrases`), so the platform may
+hang up the moment it finishes — check on a real call that this does not cut the announcement short.
+**Status:** open, not yet reviewed.

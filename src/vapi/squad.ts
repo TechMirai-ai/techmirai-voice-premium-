@@ -12,7 +12,7 @@ import {
   goodbyeMessage,
   pick,
 } from './promptTemplate.js';
-import { endCallPhrasesFor, silenceHangupHook } from './callEnding.js';
+import { endCallPhrasesFor, silenceHooks } from './callEnding.js';
 import type { ClientConfig, ScriptKey } from '../config/schema.js';
 import type { VapiHandoffToolPayload, VapiReportingConfig, VapiSquadPayload } from './types.js';
 
@@ -151,7 +151,7 @@ export function renderHandoffTool(
           endCallMessage: goodbyeMessage(config, to),
           // Same reasoning for the platform-level hang-up backstops (VAPI-FACTS.md VP-7 R8).
           ...(endCallPhrases ? { endCallPhrases } : {}),
-          hooks: [silenceHangupHook()],
+          hooks: silenceHooks(config, to),
           // VP-12: a call that was handed off must still report and record (see callReporting.ts).
           ...(reporting ?? {}),
         },

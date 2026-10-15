@@ -4,9 +4,8 @@ import { clientConfigSchema } from '../../src/config/schema.js';
 import { loadClient } from '../../src/config/loadClient.js';
 import { FileKnowledgeSource } from '../../src/knowledge/KnowledgeSource.js';
 import {
-  SILENCE_HANGUP_SECONDS,
   endCallPhrasesFor,
-  silenceHangupHook,
+  silenceHooks,
 } from '../../src/vapi/callEnding.js';
 import { renderAssistant } from '../../src/vapi/render.js';
 import { renderHandoffTool } from '../../src/vapi/squad.js';
@@ -36,22 +35,72 @@ describe('endCallPhrasesFor', () => {
   });
 });
 
-describe('silenceHangupHook', () => {
-  test('is a one-shot customer.speech.timeout hook that runs the built-in endCall, within Vapi documented ranges', () => {
-    const hook = silenceHangupHook();
+describe('silenceHooks (VP-16 graduated silence)', () => {
+  const hooks = silenceHooks(config, 'ja');
+  const enHooks = silenceHooks(config, 'en');
 
-    expect(hook.on).toBe('customer.speech.timeout');
-    expect(hook.do).toEqual([{ type: 'tool', tool: { type: 'endCall' } }]);
-    expect(hook.options.timeoutSeconds).toBe(SILENCE_HANGUP_SECONDS);
-    // Live OpenAPI CustomerSpeechTimeoutOptions: timeoutSeconds 1–1000, triggerMaxCount 1–10.
-    expect(hook.options.timeoutSeconds).toBeGreaterThanOrEqual(1);
-    expect(hook.options.timeoutSeconds).toBeLessThanOrEqual(1000);
-    expect(hook.options.triggerMaxCount).toBe(1);
+  test('is five staggered one-shot customer.speech.timeout hooks, in escalating order', () => {
+    expect(hooks).toHaveLength(5);
+    expect(hooks.map((h) => h.name)).toEqual([
+      'silence-repeat-question',
+      'silence-check-1',
+      'silence-check-2',
+      'silence-announce-end',
+      'silence-hangup',
+    ]);
+    for (const hook of hooks) {
+      expect(hook.on).toBe('customer.speech.timeout');
+      expect(hook.options.triggerMaxCount).toBe(1);
+      expect(hook.options.triggerResetMode).toBe('onUserSpeech');
+      // Live OpenAPI CustomerSpeechTimeoutOptions: timeoutSeconds 1–1000.
+      expect(hook.options.timeoutSeconds).toBeGreaterThanOrEqual(1);
+      expect(hook.options.timeoutSeconds).toBeLessThanOrEqual(1000);
+    }
   });
 
-  test('is long enough for a short lookup pause but short enough to beat real caller patience (VP-7 R10)', () => {
-    expect(SILENCE_HANGUP_SECONDS).toBeGreaterThanOrEqual(15);
-    expect(SILENCE_HANGUP_SECONDS).toBeLessThanOrEqual(30);
+  test('timings follow the work order: 4s, then +5s, +5s, +5s, and hang-up 3s after the announcement', () => {
+    expect(hooks.map((h) => h.options.timeoutSeconds)).toEqual([4, 9, 14, 19, 22]);
+  });
+
+  test('step 1 is model-generated from the conversation, not a fixed line', () => {
+    const [first] = hooks;
+
+    expect(first?.do).toHaveLength(1);
+    const action = first?.do[0];
+    expect(action?.type).toBe('say');
+    expect(action && 'prompt' in action ? action.prompt : '').toMatch(/last question/i);
+    expect(action && 'exact' in action).toBe(false);
+  });
+
+  test.each([
+    ['ja', hooks],
+    ['en', enHooks],
+  ])('%s: steps 2–4 say the configured script lines, exactly', (language, set) => {
+    const say = (i: number) => {
+      const action = set[i]?.do[0];
+      return action && 'exact' in action ? action.exact : undefined;
+    };
+
+    expect(say(1)).toBe(config.scripts.silenceCheck1[language]);
+    expect(say(2)).toBe(config.scripts.silenceCheck2[language]);
+    expect(say(3)).toBe(config.scripts.silenceEnding[language]);
+  });
+
+  test('the final hook runs the built-in endCall, so call-end bookkeeping is unchanged', () => {
+    expect(hooks[4]?.do).toEqual([{ type: 'tool', tool: { type: 'endCall' } }]);
+  });
+
+  test('wording matches the approved lines', () => {
+    expect(config.scripts.silenceCheck1.en).toBe('Hello, can you hear me?');
+    expect(config.scripts.silenceCheck2.en).toBe('Are you still on the line?');
+    expect(config.scripts.silenceEnding.en).toBe(
+      "As I haven't heard a response, I'll end this call now. Thank you for calling. Please take care.",
+    );
+    expect(config.scripts.silenceCheck1.ja).toBe('もしもし、お聞きになれますでしょうか？');
+    expect(config.scripts.silenceCheck2.ja).toBe('お電話はつながっておりますでしょうか？');
+    expect(config.scripts.silenceEnding.ja).toBe(
+      'お返事がないようですので、お電話を終了させていただきます。お電話ありがとうございました。どうぞお大事になさってください。',
+    );
   });
 });
 
@@ -64,7 +113,7 @@ describe('the assistant and every handoff leg carry the same hang-up backstops',
       const { assistant } = renderAssistant(config, language, faq, OPTIONS);
 
       expect(assistant.endCallPhrases).toEqual(endCallPhrasesFor(config, language));
-      expect(assistant.hooks).toEqual([silenceHangupHook()]);
+      expect(assistant.hooks).toEqual(silenceHooks(config, language));
     },
   );
 
@@ -74,7 +123,7 @@ describe('the assistant and every handoff leg carry the same hang-up backstops',
     const { assistant } = renderAssistant(minimal, 'fr', [], OPTIONS);
 
     expect('endCallPhrases' in assistant).toBe(false);
-    expect(assistant.hooks).toEqual([silenceHangupHook()]);
+    expect(assistant.hooks).toEqual(silenceHooks(minimal, 'fr'));
   });
 
   test("handoff overrides carry the DESTINATION language's phrases and the hook (VP-6 R3: not inherited across a handoff)", () => {
@@ -83,8 +132,8 @@ describe('the assistant and every handoff leg carry the same hang-up backstops',
 
     expect(toEn?.assistantOverrides.endCallPhrases).toEqual(endCallPhrasesFor(config, 'en'));
     expect(toJa?.assistantOverrides.endCallPhrases).toEqual(endCallPhrasesFor(config, 'ja'));
-    expect(toEn?.assistantOverrides.hooks).toEqual([silenceHangupHook()]);
-    expect(toJa?.assistantOverrides.hooks).toEqual([silenceHangupHook()]);
+    expect(toEn?.assistantOverrides.hooks).toEqual(silenceHooks(config, 'en'));
+    expect(toJa?.assistantOverrides.hooks).toEqual(silenceHooks(config, 'ja'));
   });
 
   test('the return member (ja-return) gets the same settings as ja — it is reached only by handoff', async () => {

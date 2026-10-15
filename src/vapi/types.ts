@@ -106,8 +106,17 @@ export interface VapiSilenceHangupHook {
     triggerMaxCount: number;
     triggerResetMode: 'onUserSpeech' | 'never';
   };
-  do: [{ type: 'tool'; tool: VapiEndCallToolPayload }];
+  do: VapiSilenceHookAction[];
 }
+
+/**
+ * One action of a `customer.speech.timeout` hook (live OpenAPI `SayHookAction` / `ToolCallHookAction`).
+ * `say` takes `exact` (fixed text) or `prompt` (the model writes the line from the conversation).
+ */
+export type VapiSilenceHookAction =
+  | { type: 'say'; exact: string }
+  | { type: 'say'; prompt: string }
+  | { type: 'tool'; tool: VapiEndCallToolPayload };
 
 export interface VapiServerConfig {
   url: string;

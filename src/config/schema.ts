@@ -185,6 +185,13 @@ const scriptsSchema = z.strictObject({
   repeatedMisunderstanding: localizedTextSchema,
   noMedicalAdvice: localizedTextSchema,
   goodbye: localizedTextSchema,
+  // --- VP-16 graduated caller-silence handling ---
+  /** First "are you there?" check after the repeated question gets no answer. */
+  silenceCheck1: localizedTextSchema,
+  /** Second check, when the caller is still silent. */
+  silenceCheck2: localizedTextSchema,
+  /** Spoken just before the platform hangs up on a caller who never answered. */
+  silenceEnding: localizedTextSchema,
   // --- VP-8 demo reservation flow ---
   /** Asks whether the caller is a first-time or returning patient. */
   reservationAskType: localizedTextSchema,

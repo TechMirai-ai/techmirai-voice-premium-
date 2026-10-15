@@ -9,7 +9,7 @@
  * the edges, in cli.ts, matching every other module in this codebase).
  */
 import { allowedTopics, CALL_OUTCOMES } from '../lib/callTopics.js';
-import { endCallPhrasesFor, silenceHangupHook } from './callEnding.js';
+import { endCallPhrasesFor, silenceHooks } from './callEnding.js';
 import { renderReportingConfig } from './callReporting.js';
 import {
   UnsupportedLanguageError,
@@ -487,7 +487,7 @@ export function renderAssistant(
     // R8) — the same values squad.ts threads through each handoff leg's overrides.
     ...(endCallPhrases ? { endCallPhrases } : {}),
     backgroundSound: BACKGROUND_SOUND,
-    hooks: [silenceHangupHook()],
+    hooks: silenceHooks(config, language),
     // VP-12: route the end-of-call-report to us, record the call, run the outcome extraction.
     ...reporting,
   };

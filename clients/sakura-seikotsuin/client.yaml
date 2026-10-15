@@ -207,6 +207,19 @@ scripts:
   goodbye:
     en: Thank you for your call. Please take care.
     ja: お電話いただき、誠にありがとうございました。どうぞお大事になさってください。
+  # VP-16: graduated caller-silence handling — NEEDS NATIVE-SPEAKER REVIEW.
+  silenceCheck1:
+    en: Hello, can you hear me?
+    # Gloss: "Hello, can you hear me?"
+    ja: もしもし、お聞きになれますでしょうか？
+  silenceCheck2:
+    en: Are you still on the line?
+    # Gloss: "Is the call still connected?"
+    ja: お電話はつながっておりますでしょうか？
+  silenceEnding:
+    en: As I haven't heard a response, I'll end this call now. Thank you for calling. Please take care.
+    # Gloss: "As I haven't heard a response, I'll end the call now. Thank you for calling. Please take care."
+    ja: お返事がないようですので、お電話を終了させていただきます。お電話ありがとうございました。どうぞお大事になさってください。
   # VP-8: demo reservation flow. NEEDS NATIVE-SPEAKER REVIEW, like the rest of the Japanese content.
   reservationAskType:
     en: Is this your first visit, or are you a returning patient?
