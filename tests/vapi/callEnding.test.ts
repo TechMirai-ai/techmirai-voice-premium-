@@ -133,7 +133,6 @@ describe('silenceHooks (VP-16 graduated silence)', () => {
         expect(containsPhrase(config.scripts.silenceCheck2[language])).toBe(false);
       });
 
-
       test('the only hook after the announcement is a bare endCall backstop that speaks nothing', () => {
         const set = silenceHooks(config, language, SILENCE_END_SERVER);
         const afterAnnouncement = set.slice(

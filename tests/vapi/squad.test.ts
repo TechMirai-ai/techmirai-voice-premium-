@@ -46,8 +46,10 @@ describe('renderHandoffTool — Sakura', () => {
   });
 
   test('ja → en targets en directly; en → ja is redirected to ja-return, so the two are not symmetric', () => {
-    const toEn = renderHandoffTool(config, 'ja', 'en', SILENCE_END_SERVER).destinations[0]?.assistantName;
-    const toJa = renderHandoffTool(config, 'en', 'ja', SILENCE_END_SERVER).destinations[0]?.assistantName;
+    const toEn = renderHandoffTool(config, 'ja', 'en', SILENCE_END_SERVER).destinations[0]
+      ?.assistantName;
+    const toJa = renderHandoffTool(config, 'en', 'ja', SILENCE_END_SERVER).destinations[0]
+      ?.assistantName;
 
     expect(toEn).toBe('sakura-seikotsuin--en');
     expect(toJa).toBe('sakura-seikotsuin--ja-return');
@@ -89,7 +91,9 @@ describe('renderHandoffTool — Sakura', () => {
   });
 
   test('rejects a language that is not supported', () => {
-    expect(() => renderHandoffTool(config, 'ja', 'fr', SILENCE_END_SERVER)).toThrow(UnsupportedLanguageError);
+    expect(() => renderHandoffTool(config, 'ja', 'fr', SILENCE_END_SERVER)).toThrow(
+      UnsupportedLanguageError,
+    );
   });
 });
 

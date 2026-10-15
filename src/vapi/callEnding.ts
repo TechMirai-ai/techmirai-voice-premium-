@@ -101,7 +101,8 @@ function silenceEndAction(server: VapiServerConfig): VapiSilenceHookAction {
       async: true,
       function: {
         name: SILENCE_END_CALL_FUNCTION_NAME,
-        description: 'Announces that the call is ending because the caller is silent, then hangs up.',
+        description:
+          'Announces that the call is ending because the caller is silent, then hangs up.',
         parameters: { type: 'object', properties: {} },
       },
       server,
