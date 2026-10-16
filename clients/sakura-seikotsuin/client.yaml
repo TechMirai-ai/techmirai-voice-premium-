@@ -60,6 +60,9 @@ languages:
       # Things a caller says when finished (shown to the model as examples): "Thank you very much",
       # "That's all", "No, that's all, thank you", "Understood, thank you", "OK, thanks".
       callerDoneExamples: ["ありがとうございました", "以上です", "いえ、大丈夫です、ありがとうございます", "わかりました、ありがとうございました", "はい、結構です"]
+      # VP-10 rule, enabled for ja (and so ja-return, which uses the ja settings) in VP-17 after
+      # real-call testing in VP-15/16.
+      avoidRepeatedAcknowledgement: true
     en:
       # Vendor-swap (VAPI-FACTS.md Vendor-swap R3): Cartesia voice "Jillian" (Happy Spirit), replacing Azure en-US-JennyNeural.
       voice: { provider: cartesia, voiceId: e4d5f4c4-6601-4779-bee1-b3c14d629dc6 }
@@ -73,7 +76,6 @@ languages:
       endCallPhrases: ["goodbye", "have a great day", "please take care"]
       callerDoneExamples: ["Thank you very much", "That's all", "No, that's all, thank you", "Got it, thank you", "OK, thanks"]
       # VP-10: adds the "don't repeat an acknowledgement after a split utterance" prompt rule.
-      # English only for now — NOT set for ja/ja-return until it has been tested there.
       avoidRepeatedAcknowledgement: true
 
 callback:

@@ -514,12 +514,53 @@ describe('buildSystemPrompt — no repeated acknowledgement after a split uttera
     expect(prompt).not.toContain('emergency');
   });
 
-  test('Japanese does NOT get the rule until avoidRepeatedAcknowledgement is set for it — a ja re-sync must never pick it up by accident', async () => {
+  test('Japanese gets the rule too (VP-17) — ja and ja-return share the ja language settings', async () => {
     const config = loadClient(SAKURA_ID);
     const faq = await knowledge.listFaq(SAKURA_ID);
 
-    expect(config.languages.settings.ja?.avoidRepeatedAcknowledgement).toBeUndefined();
-    expect(buildSystemPrompt(config, 'ja', faq)).not.toContain('Caller still finishing a thought');
+    expect(config.languages.settings.ja?.avoidRepeatedAcknowledgement).toBe(true);
+    expect(buildSystemPrompt(config, 'ja', faq)).toContain('Caller still finishing a thought');
+  });
+});
+
+describe('buildSystemPrompt — conversational-quality rules (VP-17)', () => {
+  const LANGUAGES = ['ja', 'en'] as const;
+
+  test.each(LANGUAGES)('%s: adaptive sentence length replaces the flat "one or two short sentences" rule', async (language) => {
+    const config = loadClient(SAKURA_ID);
+    const prompt = buildSystemPrompt(config, language, await knowledge.listFaq(SAKURA_ID));
+
+    expect(prompt).toContain('Sentence length adapts to the caller');
+    expect(prompt).not.toContain('- One or two short sentences per turn, at most one question.');
+  });
+
+  test.each(LANGUAGES)('%s: has filler, caller-situation, pace and no-filler-before-key-info rules', async (language) => {
+    const config = loadClient(SAKURA_ID);
+    const prompt = buildSystemPrompt(config, language, await knowledge.listFaq(SAKURA_ID));
+
+    expect(prompt).toContain('Natural acknowledgements');
+    expect(prompt).toContain('Caller in a hurry, outdoors, or struggling');
+    expect(prompt).toContain("Match the caller's pace");
+    expect(prompt).toContain('No filler before important information');
+  });
+
+  test.each(LANGUAGES)('%s: off-topic rule is narrow and leaves the clinic-related "New topic" rule intact', async (language) => {
+    const config = loadClient(SAKURA_ID);
+    const prompt = buildSystemPrompt(config, language, await knowledge.listFaq(SAKURA_ID));
+
+    expect(prompt).toContain("- New topic: follow the caller; don't pull them back to the previous subject.");
+    expect(prompt).toContain('Off-topic: only when');
+    expect(prompt).toContain('no connection at all to the clinic or this call');
+    expect(prompt).toContain('never applies to a topic shift');
+  });
+
+  test.each(LANGUAGES)('%s: follow-up question and apology wording are varied, and the split-utterance exemption no longer demands identical wording', async (language) => {
+    const config = loadClient(SAKURA_ID);
+    const prompt = buildSystemPrompt(config, language, await knowledge.listFaq(SAKURA_ID));
+
+    expect(prompt).toContain('Vary the follow-up question');
+    expect(prompt).toContain('Vary apologies');
+    expect(prompt).not.toContain('exactly as written there');
   });
 });
 

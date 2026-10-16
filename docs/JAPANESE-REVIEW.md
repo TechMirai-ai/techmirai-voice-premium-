@@ -431,3 +431,26 @@ text), then check 1, check 2, then the ending announcement, then the call is hun
 Notes for the reviewer: wording is the project owner's. Line 3 is spoken by the server together with
 the hang-up (VAPI-FACTS.md VP-16 R3 — pending a real-call check), so it should be the only closing line.
 **Status:** open, not yet reviewed.
+
+---
+
+## VP-17 — conversational-quality prompt rules (Japanese example wording inside the system prompt)
+
+These are example phrases written into the prompt's rules (the model may say them or similar words),
+not scripted lines in `client.yaml`. Same prompt for `ja` and `ja-return`.
+
+1. > 承知いたしました
+
+   English meaning: "Certainly / understood." Offered as a short acknowledgement the model can vary.
+2. > さようでございますか
+
+   English meaning: "Is that so? / I see." (very formal). Offered as a second acknowledgement option.
+   Please check it is not too stiff for a clinic phone line.
+3. > 申し訳ございません → 失礼いたしました
+
+   English meaning: "I am very sorry" → "Please excuse me / my apologies." The prompt tells the model to
+   vary the apology wording when it apologises more than once in a call (the scripted lines in
+   `client.yaml` that begin 「申し訳ございません」 are unchanged).
+
+Notes for the reviewer: please confirm these read as natural, polite receptionist speech and suggest
+better alternatives if not. **Status:** open, not yet reviewed.
