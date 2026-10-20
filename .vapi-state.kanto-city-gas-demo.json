@@ -4,10 +4,16 @@
     "kanto-city-gas-demo--ja--log-call-topic": "f13d2a5c-c172-40d3-8392-22d3df383d63",
     "kanto-city-gas-demo--ja--handoff-to-en": "ea02d671-628b-4186-b058-7eb77c5d1d2d",
     "kanto-city-gas-demo--ja--check-availability": "ef0e5919-b37e-412e-ae02-f533baa1389f",
-    "kanto-city-gas-demo--ja--book-appointment": "16da420f-f45e-4b85-8521-2f83b26b7ba6"
+    "kanto-city-gas-demo--ja--book-appointment": "16da420f-f45e-4b85-8521-2f83b26b7ba6",
+    "kanto-city-gas-demo--en--request-callback": "1832b098-43cb-4fe3-be64-6e05a374e11a",
+    "kanto-city-gas-demo--en--log-call-topic": "a7556ee2-b09c-4d55-a8db-a054a06fd169",
+    "kanto-city-gas-demo--en--handoff-to-ja": "8b1e13c9-b058-4b3f-a545-542cba8cb031",
+    "kanto-city-gas-demo--en--check-availability": "fe9474ea-0daa-4dd6-bd94-b53ebbbfc983",
+    "kanto-city-gas-demo--en--book-appointment": "90995973-54f3-4e44-beb8-c6a468c53e3a"
   },
   "assistants": {
-    "kanto-city-gas-demo--ja": "ff817bb4-b78c-4db3-b750-096964153f02"
+    "kanto-city-gas-demo--ja": "ff817bb4-b78c-4db3-b750-096964153f02",
+    "kanto-city-gas-demo--en": "5bef7901-8244-470e-89b1-4ac8a135a4f6"
   },
   "squads": {},
   "structuredOutputs": {
