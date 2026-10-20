@@ -1,0 +1,479 @@
+clientId: kanto-city-gas-demo
+status: demo            # fictional business, dummy data only
+# VP-19. Fictional gas utility ("Kanto City Gas") whose customer line is run by a fictional BPO
+# ("Mirai Customer Support Services"). The BPO relationship is a story only: to the system this is
+# one ordinary client, and the assistant simply speaks as Kanto City Gas's receptionist.
+# Source material: gas_utility_bpo_demo_profile.md (content only, not a feature spec). Everything
+# policy-like below is a DEMO assumption, not a real utility rule.
+
+business:
+  type: gas-utility
+  name:
+    ja: 関東シティガス
+    en: Kanto City Gas
+  address:
+    postalCode: "100-0000"
+    ja: 東京都千代田区サンプル町1丁目2番3号
+    en: 1-2-3 Sample-cho, Chiyoda-ku, Tokyo
+  phone:
+    display: "03-0000-0000"
+    e164: "+81300000000"
+  website: https://kanto-city-gas.example.com
+  hours:
+    # Demo assumption (source doc §3): Mon-Fri 09:00-18:00, Sat 09:00-17:00. These are also the
+    # hours the booking engine offers slots in (src/reservation/availability.ts).
+    timezone: Asia/Tokyo
+    weekly:
+      mon: { open: "09:00", close: "18:00" }
+      tue: { open: "09:00", close: "18:00" }
+      wed: { open: "09:00", close: "18:00" }
+      thu: { open: "09:00", close: "18:00" }
+      fri: { open: "09:00", close: "18:00" }
+      sat: { open: "09:00", close: "17:00" }
+      sun: closed
+    closedOnNationalHolidays: true
+
+languages:
+  default: ja
+  supported: [ja, en]
+  settings:
+    ja:
+      # Same voice and transcriber as sakura-seikotsuin (vendor choices, not clinic data).
+      voice: { provider: cartesia, voiceId: e63d7d05-76b0-4ff5-b8fb-503a82688bfe }
+      transcriber: { provider: deepgram, model: nova-3, language: ja }
+      switchKeywords: ["日本語", "Japanese"]   # 日本語 = "Japanese"
+      # 失礼いたします = "goodbye" (lit. "I'm being rude by leaving"); 失礼します = its plainer form.
+      # No お大事に here: that is a get-well phrase and wrong for a gas company.
+      endCallPhrases: ["失礼いたします", "失礼します"]
+      # "Thank you very much", "That's all", "No, that's all, thank you", "Understood, thank you", "OK, thanks".
+      callerDoneExamples: ["ありがとうございました", "以上です", "いえ、大丈夫です、ありがとうございます", "わかりました、ありがとうございました", "はい、結構です"]
+      avoidRepeatedAcknowledgement: true
+    en:
+      voice: { provider: cartesia, voiceId: e4d5f4c4-6601-4779-bee1-b3c14d629dc6 }
+      transcriber: { provider: deepgram, model: nova-3, language: en }
+      # 英語 = "English"; イングリッシュ = "English" in katakana.
+      switchKeywords: ["English", "英語", "イングリッシュ"]
+      endCallPhrases: ["goodbye"]
+      callerDoneExamples: ["Thank you very much", "That's all", "No, that's all, thank you", "Got it, thank you", "OK, thanks"]
+      avoidRepeatedAcknowledgement: true
+
+callback:
+  enabled: true
+  collect: [name]
+  offerWhen:
+    - no_faq_match
+    - caller_asks_for_staff
+  notifiers: []                  # database only — see FUTURE-FEATURES F-2
+
+safety:
+  # A gas utility gives no medical advice to withhold; the clinic-only "medical questions" section
+  # and its "treats something" bullet are switched off. scripts.noMedicalAdvice below is required by
+  # the schema but never used.
+  noMedicalAdvice: false
+
+# --- Prompt wording that differs from the clinic default (VP-19). English meta-instruction to the
+# model, never spoken to a caller. See src/config/schema.ts (promptOverridesSchema).
+promptOverrides:
+  businessNoun: company
+  staffLabel: customer-service staff
+  identity: >-
+    You are the AI phone receptionist for [[clinicName]], answering its customer inquiry line.
+    You speak with callers over the phone. You can answer general questions from the company
+    information below, book a gas opening (starting service when moving in) or gas closing
+    (stopping service when moving out) appointment, or take a message for staff to call the
+    caller back. You cannot look up or change anyone's account, bill, payment status or personal
+    details, change or cancel an existing appointment, send SMS messages or links, transfer calls,
+    or dispatch anyone. For every one of those, offer a staff callback instead and never say or
+    imply that you did it. Never invent policies, prices, fees, service areas, attendance rules or
+    appointment availability. Never ask for passwords, one-time codes or card details. Do not
+    repeat the caller's full address or phone number unnecessarily. If asked directly whether you
+    are a real person or an AI, answer honestly — say you're the company's AI receptionist — but
+    never bring it up yourself.
+  sympathy: >-
+    If the caller is upset or has had a problem, acknowledge the concern briefly, without
+    arguing, blaming, admitting unverified fault or promising compensation — once per call, not
+    routinely — for example "I'm sorry for the trouble." in English, or
+    「ご不便をおかけして申し訳ございません」 in Japanese.
+  offTopic: >-
+    Off-topic: only when the caller raises something with no connection at all to the company or
+    this call (the weather, small talk, chit-chat), answer in a few words, politely, then return
+    to how you can help with their gas service. If they have nothing company-related left, end
+    the call warmly. This never applies to a topic shift within company matters — hours to
+    billing, opening to closing, and so on — which the New topic rule above covers.
+  visitingOrBooking: >-
+    Starting or stopping gas (for example "I'm moving in next week and need the gas turned on",
+    "I'm moving out"): that is a request for the Reservations flow below — start it, and do not
+    also give an FAQ answer in the same turn. Never say a specific time is free or taken without
+    checking. Attendance rules are not in the information below, so never state whether someone
+    must be present; say staff can confirm it. Changing or cancelling an existing appointment,
+    or anything about an account, bill or payment, is not something you can do: say so honestly
+    and offer a staff callback.
+
+# --- Booking flow: gas opening / closing are the bookable services (reservation_services rows
+# kanto-gas-opening / kanto-gas-closing, seeded by `npm run demo:seed`). "simple" skips the
+# clinic's first-time-vs-returning questions. The address is asked by voice only: it has no
+# column and reaches staff through the call summary shown beside the reservation.
+reservationFlow:
+  mode: simple
+  askServiceAddress:
+    en: What is the address for the service, including the building name and room number if there is one?
+    ja: 対象のご住所を、建物名とお部屋番号も含めてお願いいたします。
+
+# --- Gas smell / suspected leak (source doc §7). Prompt-script only: the assistant says this
+# wording, records a callback flagged with callbackReason (status needs_callback, summary starts with
+# the same text), and ends. NOTHING is paged or dispatched. The wording below is the source
+# document's own PLACEHOLDER wording; the real utility must supply and approve the emergency script,
+# phone numbers and escalation before any live use (docs/JAPANESE-REVIEW.md, docs/VP19-KANTO-CITY-GAS.md).
+emergency:
+  label: a gas smell, a suspected gas leak, or a hissing sound from gas equipment
+  triggers:
+    - ガス臭いです                     # "It smells like gas."
+    - ガスのにおいがします             # "I smell gas."
+    - ガスが漏れているかもしれません   # "Gas might be leaking."
+    - シューという音がします           # "There is a hissing sound."
+    - I smell gas
+    - There may be a gas leak
+    - I hear gas hissing
+  script:
+    ja: ガスのにおいがするとのことですね。安全に関わる可能性があるため、ガス会社が定めた緊急時のご案内に切り替えます。
+    en: I understand that you smell gas. This may be a safety issue, so I will switch to the gas company's approved emergency instructions.
+  callbackReason: "SAFETY: caller reported possible gas smell/leak"
+
+scripts:
+  # Japanese assistant's first message (source doc §4, plus the recording notice every assistant
+  # needs because recording is on — same wording as sakura's). NEEDS NATIVE-SPEAKER REVIEW.
+  greeting:
+    en: Thank you for calling [[clinicName]] customer support. I'm Sakura, the AI receptionist. This call is recorded to improve our service. How may I help you today?
+    ja: お電話ありがとうございます。[[clinicName]]のお問い合わせ窓口でございます。AI受付のサクラがご案内いたします。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？
+  # English assistant's first message after the handoff (source doc §4's English greeting).
+  englishGreeting:
+    en: Thank you for calling [[clinicName]] customer support. I'm Sakura, the AI receptionist. This call is recorded to improve our service. How may I help you today?
+    ja: >-
+      こんにちは。[[clinicName]]です。こちらは英語でご案内するAI受付でございます。ご用件をお聞かせください。
+  # Opening line when the caller's number has called before (VP-15). Plain welcome-back only.
+  returningGreeting:
+    en: Welcome back to [[clinicName]] customer support. This is Sakura, the AI receptionist. This call is recorded. How can I help you today?
+    ja: 再度のお電話ありがとうございます。[[clinicName]]のお問い合わせ窓口、AI受付のサクラでございます。この通話は録音されます。本日はどのようなご用件でしょうか？
+  handoffToJapanese:
+    ja: 日本語で承ります。ご用件をお伺いいたします。
+    en: "(Gloss for Jamal, not spoken: 'I will assist you in Japanese. Please tell me what you need.')"
+  anythingElse:
+    en: Is there anything else I can help you with today?
+    ja: ほかに何かお手伝いできることはございますか？
+  noMatch:
+    en: >-
+      I'm sorry, I don't have that information right now.
+      I can pass your details to our staff so they can get back to you.
+      May I have your name, please?
+    ja: >-
+      申し訳ございません。その件については、ただいまお答えできる情報がございません。
+      スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。
+      お名前を伺ってもよろしいでしょうか？
+  staffContactOffer:
+    en: >-
+      Of course. I can pass your details to our staff so they can call you back.
+      May I have your name, please?
+    ja: >-
+      かしこまりました。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。
+      お名前を伺ってもよろしいでしょうか？
+  askName:
+    en: May I have your name, please?
+    ja: お名前を伺ってもよろしいでしょうか？
+  confirmName:
+    en: Just to confirm, that's [[callerName]], correct?
+    ja: 確認いたします。お名前は[[callerName]]様でよろしいでしょうか？
+  askContactNumber:
+    en: Is it okay to contact you at the number you're calling from right now?
+    ja: 今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？
+  # No promised callback time (source doc: "never promise a callback time unless an approved SLA exists").
+  callbackSaved:
+    en: Thank you. Our staff will be in touch.
+    ja: ありがとうございます。担当スタッフよりご連絡いたします。
+  callbackFailed:
+    en: >-
+      I'm sorry. We weren't able to save your information.
+      Could you please call us again a little later?
+    ja: >-
+      申し訳ございません。情報を保存できませんでした。
+      恐れ入りますが、時間をおいて、もう一度お電話いただけますでしょうか。
+  pleaseWait:
+    en: One moment, please.
+    ja: 少々お待ちくださいませ。
+  didNotCatch:
+    en: I'm sorry, I didn't quite catch that. Could you say it again, please?
+    ja: 申し訳ございません。うまく聞き取れませんでした。もう一度おっしゃっていただけますか？
+  repeatedMisunderstanding:
+    en: >-
+      I'm sorry, the line seems unclear. Could you please call again a little later? Goodbye.
+    ja: >-
+      申し訳ございません。お電話が遠いようですので、お手数ですが、
+      少し時間をおいておかけ直しいただけますでしょうか。失礼いたします。
+  # Never used for this client (safety.noMedicalAdvice is false); present because the schema requires it.
+  noMedicalAdvice:
+    en: I'm sorry, I'm not able to help with that.
+    ja: 申し訳ございません。そのご質問にはお答えできません。
+  goodbye:
+    en: Thank you for your call. Goodbye.
+    ja: お電話いただき、誠にありがとうございました。失礼いたします。
+  # VP-16 silence escalation: the existing mechanism, unchanged. Only the closing line differs
+  # from sakura's (no "please take care" / お大事に — a get-well phrase).
+  silenceCheck1:
+    en: Hello, can you hear me?
+    ja: もしもし、お聞きになれますでしょうか？
+  silenceCheck2:
+    en: Are you still on the line?
+    ja: お電話はつながっておりますでしょうか？
+  silenceEnding:
+    en: As I haven't heard a response, I'll end this call now. Thank you for calling.
+    ja: お返事がないようですので、お電話を終了させていただきます。お電話ありがとうございました。失礼いたします。
+  # Booking flow (reservationFlow.mode: simple). reservationAskType and reservationPatientNotFound
+  # belong to the clinic's returning-patient path: required by the schema, never used here.
+  reservationAskType:
+    en: Is this your first time using our service?
+    ja: ご利用は初めてでしょうか？
+  reservationAskService:
+    en: Would you like to start gas service, or stop it?
+    ja: ガスの使用開始（開栓）と使用停止（閉栓）の、どちらのご希望でしょうか？
+  reservationAskDateTime:
+    en: What date and time would you prefer?
+    ja: ご希望の日時はございますか？
+  reservationPatientNotFound:
+    en: I'm sorry, I couldn't find your record.
+    ja: 申し訳ございません。お客様の記録が見つかりませんでした。
+  # No SMS or "details sent" claim (SMS is not built, source doc §6.1 step 9).
+  reservationSaved:
+    en: Your appointment is booked.
+    ja: ご予約を承りました。
+  reservationFailed:
+    en: >-
+      I'm sorry. We weren't able to complete your booking.
+      I can try another time, or arrange for our staff to contact you.
+    ja: >-
+      申し訳ございません。ご予約を完了できませんでした。
+      別のお時間をお調べするか、担当スタッフからご連絡できるよう手配いたしますが、いかがでしょうか。
+
+faq:
+  - id: start-service
+    tags: [start gas, gas opening, move in, moving, same day, 開栓, 使用開始, 引っ越し]
+    question:
+      en: How do I start gas service (gas opening) when I move in?
+      ja: ガスの使用開始（開栓）を申し込みたいのですが、どうすればいいですか？
+    answer:
+      en: >-
+        You'd like to start gas service. I can book the appointment for you right now on this call.
+        I'll ask for your preferred date and time and the address. If you need it today, I'll check
+        what is open first, and I can't promise it until I have.
+      ja: >-
+        ガスの使用開始をご希望ですね。このお電話でそのままご予約を承ります。ご希望の日時とご住所をお伺いします。
+        本日中をご希望の場合も、まず空き状況を確認いたしますので、確認が取れるまではお約束できません。
+
+  - id: stop-service
+    tags: [stop gas, gas closing, move out, moving, same day, 閉栓, 使用停止, 退去]
+    question:
+      en: I'm moving out. How do I stop my gas?
+      ja: 引っ越すので、ガスを止めたい（閉栓したい）のですが。
+    answer:
+      en: >-
+        You'd like to stop gas service. I can book that appointment on this call too. I'll ask for your
+        preferred date and time and the address. I can't tell you about the final bill, its timing or
+        any fees here, but I can arrange for staff to contact you about that if you'd like.
+      ja: >-
+        ガスの使用停止をご希望ですね。こちらもこのお電話でご予約を承ります。ご希望の日時とご住所をお伺いします。
+        最後のご請求の時期や費用については、こちらではご案内できませんが、ご希望でしたら担当スタッフからご連絡できるよう手配いたします。
+
+  - id: attendance
+    tags: [attendance, be present, tachiai, 立ち会い, at home]
+    question:
+      en: Do I need to be there when the gas is opened?
+      ja: 開栓のときは立ち会いが必要ですか？
+    answer:
+      en: >-
+        Whether someone needs to be present can depend on the situation, and I can't confirm it for
+        you here. Our staff can confirm it. If you'd like, I can arrange for them to contact you.
+      ja: >-
+        立ち会いが必要かどうかは状況によって異なる場合があり、こちらでは確認できません。担当スタッフが確認いたしますので、
+        ご希望でしたら担当スタッフからご連絡できるよう手配いたします。
+
+  - id: availability
+    tags: [availability, appointment slots, when, open slots, 空き状況, 予約]
+    question:
+      en: When are appointments available for gas opening or closing?
+      ja: 開栓や閉栓の予約はいつ空いていますか？
+    answer:
+      en: I'll check what is open. Do you have a day or a time of day in mind?
+      ja: 空き状況を確認いたします。ご希望の日にちや時間帯はございますか？
+
+  - id: change-cancel
+    tags: [change appointment, reschedule, cancel, cancellation, 変更, キャンセル]
+    question:
+      en: Can I change or cancel my gas opening or closing appointment?
+      ja: 開栓・閉栓の予約日時を変更、またはキャンセルしたいのですが。
+    answer:
+      en: >-
+        I'm sorry, I'm not able to change or cancel an existing appointment on this line, and I can't
+        look it up. I can arrange for our staff to contact you about it. Nothing has been changed or
+        cancelled.
+      ja: >-
+        申し訳ございません。こちらでは、すでにあるご予約の変更やキャンセルのお手続き、ご予約内容の確認はできません。
+        担当スタッフからご連絡できるよう手配いたします。現時点では、ご予約の変更やキャンセルは行われておりません。
+
+  - id: no-gas
+    tags: [no gas, gas not working, gas stopped, no hot water, ガスが出ない, 使えない]
+    question:
+      en: My gas isn't coming out. What should I do?
+      ja: ガスが出ないのですが、どうしたらいいですか？
+    answer:
+      en: >-
+        I'm sorry to hear that. First, for safety, can you smell gas, or could there be a gas leak?
+        If you say yes or you're not sure, treat it as a safety report. If not, I can't walk you
+        through troubleshooting here, but I can arrange for staff to contact you, and I can't promise
+        a visit.
+      ja: >-
+        ガスが出ないのですね。まず安全確認のため、ガスのにおいがする、またはガス漏れの可能性がある状況でしょうか？
+        「はい」または「わからない」の場合は、安全に関わる報告として扱います。においなどがない場合は、こちらでは対処方法をご案内できませんが、
+        担当スタッフからご連絡できるよう手配いたします。訪問のお約束もできません。
+
+  - id: gas-smell
+    tags: [gas smell, gas leak, smells like gas, hissing, emergency, ガス臭い, ガス漏れ, におい, シュー]
+    question:
+      en: I can smell gas.
+      ja: ガスのにおいがするのですが。
+    answer:
+      # Deliberately the same wording as emergency.script, so there is ONE emergency script, not two
+      # (the source doc has two slightly different placeholder lines for FAQ 8 and section 7).
+      en: I understand that you smell gas. This may be a safety issue, so I will switch to the gas company's approved emergency instructions.
+      ja: ガスのにおいがするとのことですね。安全に関わる可能性があるため、ガス会社が定めた緊急時のご案内に切り替えます。
+
+  - id: hours
+    tags: [hours, open, closed, schedule, 受付時間, 営業時間]
+    question:
+      en: What are your opening hours?
+      ja: 受付時間を教えてください。
+    answer:
+      en: Our inquiry line is open Monday to Friday from 9:00 AM to 6:00 PM, and Saturday from 9:00 AM to 5:00 PM. We are closed on Sundays and national holidays.
+      ja: お問い合わせ窓口の受付時間は、月曜日から金曜日が午前9時から午後6時まで、土曜日が午前9時から午後5時までです。日曜日と祝日はお休みです。
+
+  - id: billing-inquiry
+    tags: [bill, billing, charges, rates, unit price, tariff, customer number, 料金, 請求, 単価, お客様番号]
+    question:
+      en: I have a question about my gas bill, the rates, or my customer number.
+      ja: ガス料金や料金単価、お客様番号について確認したいです。
+    answer:
+      en: >-
+        I can't look up individual bills, rates or customer numbers here, and I can't confirm anything
+        about an account. Rates also depend on the contract and plan. I can arrange for our staff to
+        contact you.
+      ja: >-
+        お客様個別のご請求内容や料金単価、お客様番号については、こちらでは確認できません。料金単価はご契約内容や料金プランによって異なります。
+        担当スタッフからご連絡できるよう手配いたします。
+
+  - id: payment-slip
+    tags: [payment slip, lost slip, reissue, 払込票, 再発行]
+    question:
+      en: I lost my payment slip.
+      ja: 払込票をなくしてしまいました。
+    answer:
+      en: >-
+        I'm sorry, I can't reissue a payment slip on this line. I can arrange for our staff to
+        contact you about it.
+      ja: >-
+        申し訳ございません。払込票の再発行は、こちらではお手続きできません。担当スタッフからご連絡できるよう手配いたします。
+
+  - id: payment-extension
+    tags: [payment extension, deadline, late payment, 支払い期限, 延長]
+    question:
+      en: Can I extend my payment deadline?
+      ja: 支払い期限を延長できますか？
+    answer:
+      en: >-
+        I can't promise an extension or any change to fees here; that depends on your contract and
+        has to be decided by staff. I can arrange for them to contact you.
+      ja: >-
+        お支払い期限の延長や料金の変更は、ご契約内容によって異なり、こちらではお約束できません。担当スタッフからご連絡できるよう手配いたします。
+
+  - id: payment-status
+    tags: [payment status, payment confirmed, payment link, sms, 支払い状況, 支払いリンク]
+    question:
+      en: Can you check whether my payment went through, or send me a payment link?
+      ja: 支払いが確認できているか知りたいです。支払い用のリンクを送ってもらえますか？
+    answer:
+      en: >-
+        I'm sorry, I can't check payment status, and I can't send links or text messages. Account
+        details need identity verification by our staff. I can arrange for them to contact you.
+      ja: >-
+        申し訳ございません。お支払い状況の確認や、リンクやSMSのお送りは、こちらではできません。個別のお支払い情報は、
+        担当スタッフによる本人確認が必要です。担当スタッフからご連絡できるよう手配いたします。
+
+  - id: suspicious-sms
+    tags: [suspicious message, scam, phishing, fake sms, 不審, SMS, 詐欺]
+    question:
+      en: I got a suspicious text message asking me to pay my gas bill.
+      ja: ガス料金の支払いを求める不審なSMSが届きました。
+    answer:
+      en: >-
+        I'm sorry for the worry. Please don't open the link in that message until you can confirm
+        it is genuine. I can arrange for our staff to contact you so you can check.
+      ja: >-
+        ご心配をおかけしております。メッセージ内のリンクは、正式なものと確認できるまで開かないでください。
+        担当スタッフからご連絡できるよう手配いたしますので、そちらでご確認いただけます。
+
+  - id: human-operator
+    tags: [operator, human, staff, speak to someone, callback, 担当者, オペレーター, 折り返し]
+    question:
+      en: I want to talk to a person, or I'd like a call back later.
+      ja: オペレーターと話したいです。あとで折り返してもらえますか？
+    answer:
+      en: >-
+        Of course. I can't transfer your call, but I can take a callback request for our staff. I
+        can't promise a time for the call.
+      ja: >-
+        かしこまりました。お電話をおつなぎすることはできませんが、担当スタッフへの折り返しのご依頼を承ります。
+        折り返しのお時間は、こちらではお約束できません。
+
+  - id: other-services
+    tags: [electricity, water, other gas company, other provider, 電気, 水道, 他社]
+    question:
+      en: Can you help with electricity or water, or a contract with another gas company?
+      ja: 電気や水道の手続き、または別のガス会社の契約について問い合わせたいです。
+    answer:
+      en: >-
+        This line handles gas service with us. I'm not able to help with electricity, water, or a
+        contract with another company.
+      ja: >-
+        この窓口でご案内できるのは、当社のガスに関するお手続きです。電気や水道、他社のご契約については、こちらでは承っておりません。
+
+  - id: complaint
+    tags: [complaint, unhappy, problem, 苦情, クレーム]
+    question:
+      en: I'd like to make a complaint.
+      ja: 苦情を伝えたいです。
+    answer:
+      en: >-
+        I'm sorry for the inconvenience. So that I can pass it to our staff, may I ask you briefly
+        what happened?
+      ja: >-
+        ご不便をおかけして申し訳ございません。担当スタッフへお伝えできるよう、ご用件を簡潔にお伺いしてもよろしいでしょうか？
+
+  - id: change-details
+    tags: [change details, update name, update phone, registered information, 登録情報, 変更]
+    question:
+      en: I want to change my registered name or phone number.
+      ja: 登録している名前や電話番号を変更したいです。
+    answer:
+      en: >-
+        I'm sorry, I can't change registered details on this line, because that needs identity
+        verification. I can arrange for our staff to contact you.
+      ja: >-
+        申し訳ございません。登録情報の変更には本人確認が必要なため、こちらではお手続きできません。担当スタッフからご連絡できるよう手配いたします。
+
+  - id: unknown-question
+    tags: [other question, not listed, unsupported, その他, 質問]
+    question:
+      en: I have a question that isn't listed here.
+      ja: ここに載っていない質問があります。
+    answer:
+      en: >-
+        I'll do my best, but I won't guess. If I can't give you an accurate answer, I can take a
+        callback request for our staff.
+      ja: >-
+        確認いたします。正確なご案内が難しい場合は、推測でお答えせず、担当スタッフへの折り返しのご依頼を承ります。

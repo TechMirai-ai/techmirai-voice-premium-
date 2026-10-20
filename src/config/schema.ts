@@ -144,6 +144,59 @@ const safetySchema = z.strictObject({
   noMedicalAdvice: z.boolean(),
 });
 
+/**
+ * Optional wording overrides for the shared prompt template (VP-19). The template's defaults read
+ * like a clinic receptionist; a client in another line of business replaces just the pieces that
+ * don't fit, here, instead of the template growing a branch per business type. Every field is
+ * English meta-instruction to the model — never text spoken to a caller — and an absent field
+ * keeps today's default, so a client without this section renders exactly as before.
+ */
+const promptOverridesSchema = z.strictObject({
+  /** The word for the business in the prompt's own prose ("clinic"). Default "clinic". */
+  businessNoun: nonEmpty.optional(),
+  /** Replaces the whole Identity paragraph. */
+  identity: nonEmpty.optional(),
+  /** Replaces the "caller mentions pain or a difficult situation" style bullet. */
+  sympathy: nonEmpty.optional(),
+  /** Replaces the off-topic bullet in "Leading the call". */
+  offTopic: nonEmpty.optional(),
+  /** Replaces the "visiting or booking" bullet in "Answering questions". */
+  visitingOrBooking: nonEmpty.optional(),
+  /** Who reads the call summary, for the call-outcome extraction ("clinic staff"). */
+  staffLabel: nonEmpty.optional(),
+});
+
+/**
+ * Which booking conversation the assistant runs, when the client has bookable services.
+ * `patient-types` (the default, and the only mode before VP-19) asks first-time vs returning and
+ * looks the caller up. `simple` skips that: service → date/time → availability → name → book.
+ */
+const reservationFlowSchema = z.strictObject({
+  mode: z.enum(['patient-types', 'simple']),
+  /**
+   * `simple` mode only. When set, the assistant asks for this (e.g. the service address) after the
+   * time is confirmed. It is not a tool argument and has no column: it is captured only in the
+   * call summary the staff dashboard shows beside the reservation (VP-19 decision).
+   */
+  askServiceAddress: localizedTextSchema.optional(),
+});
+
+/**
+ * A safety-critical report (e.g. a gas smell) that overrides every other flow. Prompt-script only
+ * (VP-19 decision 3): the assistant says the fixed wording, records a flagged callback, and ends.
+ * There is no paging or escalation behind it, and the assistant is told never to imply there is.
+ */
+const emergencySchema = z.strictObject({
+  /** English description for the model, e.g. "a gas smell or a suspected gas leak". */
+  label: nonEmpty,
+  /** Example phrases a caller might use, in any language — anchors for the model, not a regex. */
+  triggers: z.array(nonEmpty).min(1, 'needs at least one trigger phrase'),
+  /** The fixed wording the assistant says, word for word, in each supported language. */
+  script: localizedTextSchema,
+  /** The exact `reason` passed to request_callback — and the flag staff see on the dashboard. */
+  callbackReason: nonEmpty,
+});
+
 const scriptsSchema = z.strictObject({
   greeting: localizedTextSchema,
   englishGreeting: localizedTextSchema,
@@ -232,6 +285,10 @@ export const clientConfigSchema = z.looseObject({
   safety: safetySchema,
   scripts: scriptsSchema,
   faq: z.array(faqEntrySchema).min(1, 'needs at least one FAQ entry'),
+  // VP-19: all optional — a client that omits them renders exactly as it did before they existed.
+  promptOverrides: promptOverridesSchema.optional(),
+  reservationFlow: reservationFlowSchema.optional(),
+  emergency: emergencySchema.optional(),
 });
 
 export type ClientConfig = z.infer<typeof clientConfigSchema>;

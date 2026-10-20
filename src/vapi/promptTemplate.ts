@@ -9,12 +9,24 @@
  * function itself entirely language-agnostic: the same code path runs for
  * every entry in `languages.supported`, never branching on a specific code.
  */
-import { CLINIC_PLACEHOLDERS } from '../config/rules.js';
-import type { ClientConfig, ScriptKey } from '../config/schema.js';
+import type { ClientConfig } from '../config/schema.js';
 import { allowedTopics } from '../lib/callTopics.js';
 import { PRIOR_CALL_VARIABLE } from './callVariables.js';
 import type { FaqEntry } from '../knowledge/KnowledgeSource.js';
 import type { ReservationService } from '../repositories/reservationServiceRepository.js';
+import { emergencySection, simpleReservationSection } from './promptExtraSections.js';
+import {
+  CONFIRMATION_ACK_INSTRUCTIONS,
+  businessNoun,
+  businessNounTitle,
+  contactNumberInstructions,
+  fillClinicPlaceholders,
+  nameConfirmationInstructions,
+  pick,
+  reservationClosingInstructions,
+  scriptLine,
+  spokenClinicName,
+} from './promptShared.js';
 import {
   BOOK_APPOINTMENT_FUNCTION_NAME,
   CHECK_AVAILABILITY_FUNCTION_NAME,
@@ -23,6 +35,9 @@ import {
   LOOKUP_PATIENT_FUNCTION_NAME,
   REQUEST_CALLBACK_FUNCTION_NAME,
 } from './toolNames.js';
+
+// Moved to promptShared.ts (VP-19); re-exported so every existing importer keeps working.
+export { fillClinicPlaceholders, pick };
 
 export class UnsupportedLanguageError extends Error {
   constructor(clientId: string, language: string, supported: readonly string[]) {
@@ -33,7 +48,6 @@ export class UnsupportedLanguageError extends Error {
   }
 }
 
-const PLACEHOLDER_PATTERN = /\[\[([^\][]*)\]\]/g;
 const DAY_ORDER = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 const DAY_LABELS: Record<(typeof DAY_ORDER)[number], string> = {
   mon: 'Mon',
@@ -44,57 +58,6 @@ const DAY_LABELS: Record<(typeof DAY_ORDER)[number], string> = {
   sat: 'Sat',
   sun: 'Sun',
 };
-
-/** Picks one language's text out of a `{ ja: "...", en: "..." }`-shaped block. */
-export function pick(source: Record<string, string>, language: string): string {
-  return source[language] ?? '';
-}
-
-/**
- * Fills `[[clinicName]]`-style clinic placeholders from `config`. Anything
- * else — including `[[callerName]]` / `[[reservationNumber]]` — is left untouched:
- * those are only known once the model has talked to the caller, and it is
- * told (see the "Tone" section) to substitute them itself before speaking.
- *
- * Exported so render.ts can apply the same substitution to `firstMessage`
- * and the tool's canned failure message — anywhere client.yaml text reaches
- * a payload Vapi will actually speak, not just inside the system prompt.
- */
-/**
- * The clinic name as it should be SPOKEN in `language`: the phonetic
- * `business.namePronunciation` override when the config sets one for that
- * language (VP-6 D), else the plain `business.name`. Anything the model
- * might say aloud — the `[[clinicName]]` placeholder and the prompt's own
- * "Identity" line — must go through this, not `business.name` directly.
- */
-function spokenClinicName(config: ClientConfig, language: string): string {
-  return (
-    pick(config.business.namePronunciation ?? {}, language) || pick(config.business.name, language)
-  );
-}
-
-export function fillClinicPlaceholders(
-  config: ClientConfig,
-  language: string,
-  text: string,
-): string {
-  const values = new Map<string, string>([
-    ['clinicName', spokenClinicName(config, language)],
-    ['clinicPhone', config.business.phone.display],
-    ['clinicAddress', pick(config.business.address, language)],
-  ]);
-
-  // CLINIC_PLACEHOLDERS is the schema's source of truth for this set; assert
-  // against it so a placeholder added there can't silently go unfilled here.
-  for (const key of CLINIC_PLACEHOLDERS) {
-    if (!values.has(key)) throw new Error(`promptTemplate has no value for [[${key}]]`);
-  }
-
-  return text.replace(PLACEHOLDER_PATTERN, (match, rawName: string) => {
-    const value = values.get(rawName.trim());
-    return value ?? match;
-  });
-}
 
 /**
  * `language`'s goodbye line, clinic placeholders filled — the single source
@@ -121,11 +84,6 @@ function formatFaqEntry(config: ClientConfig, language: string, entry: FaqEntry)
     `  A: ${fillClinicPlaceholders(config, language, pick(entry.answer, language))}`,
     `  (tags: ${entry.tags.join(', ')})`,
   ].join('\n');
-}
-
-/** `config.scripts[key]` for `language`, clinic placeholders filled. */
-function scriptLine(config: ClientConfig, language: string, key: ScriptKey): string {
-  return fillClinicPlaceholders(config, language, pick(config.scripts[key], language));
 }
 
 /**
@@ -162,8 +120,16 @@ function languageSwitchSection(config: ClientConfig, language: string): string[]
   ];
 }
 
+/** A `promptOverrides` sentence as a prompt bullet; `undefined` when the client set none. */
+function overrideBullet(text: string | undefined): string | undefined {
+  return text === undefined ? undefined : `- ${text}`;
+}
+
 // 1. Identity
 function identitySection(config: ClientConfig, language: string): string {
+  const override = config.promptOverrides?.identity;
+  if (override) return fillClinicPlaceholders(config, language, override);
+
   const clinicName = spokenClinicName(config, language);
   return (
     `You are the AI phone receptionist for ${clinicName}. You speak with callers over the phone ` +
@@ -175,7 +141,7 @@ function identitySection(config: ClientConfig, language: string): string {
 }
 
 // 2. Style
-function styleSection(): string {
+function styleSection(config: ClientConfig): string {
   return [
     'How you speak:',
     '- Everything you say is spoken aloud on a phone call — no lists, symbols, or written-style formatting.',
@@ -192,11 +158,12 @@ function styleSection(): string {
       'from one turn to the next — for example "Of course." or "Certainly." in English, or ' +
       '「承知いたしました」 or 「さようでございますか」 in Japanese. Never stack two in a row.',
     '- No filler before important information: appointment dates and times, directions to the ' +
-      'clinic, and any instruction from staff are stated directly. Do not put an acknowledgement ' +
+      `${businessNoun(config)}, and any instruction from staff are stated directly. Do not put an acknowledgement ` +
       'or soft lead-in phrase immediately before them.',
-    '- If the caller mentions pain or a difficult situation, a brief expression of sympathy is ' +
-      'natural — once per call, not routinely — for example "I\'m sorry to hear that." in ' +
-      'English, or 例えば「それはご心配ですね」 in Japanese.',
+    overrideBullet(config.promptOverrides?.sympathy) ??
+      '- If the caller mentions pain or a difficult situation, a brief expression of sympathy is ' +
+        'natural — once per call, not routinely — for example "I\'m sorry to hear that." in ' +
+        'English, or 例えば「それはご心配ですね」 in Japanese.',
     '- Say times and dates the way a person would, not as raw numbers or a written date format.',
     "- Don't say you'll wait unless something is actually taking time — and if you do, use a " +
       'formal phrase such as "One moment, please," never a casual one; in Japanese, use a polite ' +
@@ -213,11 +180,13 @@ function leadingSection(config: ClientConfig, language: string): string {
       'everything you know.',
     '- Several questions at once: answer each briefly, in a sensible order, without dropping any.',
     "- New topic: follow the caller; don't pull them back to the previous subject.",
-    '- Off-topic: only when the caller raises something with no connection at all to the clinic ' +
-      'or this call (the weather, small talk, chit-chat), answer in a few words, politely, then ' +
-      'return to how you can help with their visit. If they have nothing clinic-related left, ' +
-      'end the call warmly. This never applies to a topic shift within clinic matters — hours to ' +
-      'parking, prices to booking, and so on — which the New topic rule above covers.',
+    overrideBullet(config.promptOverrides?.offTopic) ??
+      `- Off-topic: only when the caller raises something with no connection at all to the ${businessNoun(config)} ` +
+        'or this call (the weather, small talk, chit-chat), answer in a few words, politely, then ' +
+        'return to how you can help with their visit. If they have nothing ' +
+        `${businessNoun(config)}-related left, ` +
+        `end the call warmly. This never applies to a topic shift within ${businessNoun(config)} matters — hours to ` +
+        'parking, prices to booking, and so on — which the New topic rule above covers.',
     '- Caller in a hurry, outdoors, or struggling: if the caller says they are busy or driving, ' +
       'sounds rushed (short clipped answers), is somewhere noisy, or is having difficulty ' +
       'communicating, use shorter sentences, ask only the questions that are essential, and move ' +
@@ -249,75 +218,36 @@ function leadingSection(config: ClientConfig, language: string): string {
 
 // 4. Answering
 function answeringSection(config: ClientConfig, language: string): string {
+  const noun = businessNoun(config);
   return [
     'Answering questions:',
-    "- Use only the clinic information below, matching the caller's wording by meaning, not exact " +
+    `- Use only the ${noun} information below, matching the caller's wording by meaning, not exact ` +
       'phrasing — callers rarely phrase things exactly like the question text. Never invent ' +
       'prices, availability, directions, names, or policies not listed.',
-    '- Whether the clinic treats something is a service question, not a request for medical ' +
-      'advice — answer it from the information below.',
+    // The "treats something" bullet only makes sense where medical advice is a concern.
+    ...(config.safety.noMedicalAdvice
+      ? [
+          `- Whether the ${noun} treats something is a service question, not a request for medical ` +
+            'advice — answer it from the information below.',
+        ]
+      : []),
     '- Questions about today\'s or tomorrow\'s hours ("until when today?", "open tomorrow?"): work ' +
       'out that exact day of the week from Today below and answer for that day only, from the ' +
-      'hours listed. If the clinic is closed that day, say so plainly — never say "yes" or give ' +
+      `hours listed. If the ${noun} is closed that day, say so plainly — never say "yes" or give ` +
       'opening hours for a day it is closed.',
-    '- Visiting or booking (for example "I\'d like to come in tomorrow"): give that day\'s hours ' +
-      "(see Today, below), explain how to book online, and offer a staff callback if they'd " +
-      "rather arrange it by phone. Never say a specific time is free or taken — you can't see the schedule. " +
-      'But if the caller directly asks to book or make a reservation (e.g. "can I make a reservation?"), ' +
-      'that is a request for the Reservations flow below, not this FAQ answer — start that flow instead ' +
-      'and do not also give this online-booking/callback answer in the same turn.',
+    overrideBullet(config.promptOverrides?.visitingOrBooking) ??
+      '- Visiting or booking (for example "I\'d like to come in tomorrow"): give that day\'s hours ' +
+        "(see Today, below), explain how to book online, and offer a staff callback if they'd " +
+        "rather arrange it by phone. Never say a specific time is free or taken — you can't see the schedule. " +
+        'But if the caller directly asks to book or make a reservation (e.g. "can I make a reservation?"), ' +
+        'that is a request for the Reservations flow below, not this FAQ answer — start that flow instead ' +
+        'and do not also give this online-booking/callback answer in the same turn.',
     "- If the caller wants something the information below doesn't cover, say so honestly and " +
-      'offer a staff callback — never tell them to call or contact the clinic, they already are.',
+      `offer a staff callback — never tell them to call or contact the ${noun}, they already are.`,
     "- When a question is fully answered and you haven't just asked something else, ask once: " +
       `"${scriptLine(config, language, 'anythingElse')}"`,
   ].join('\n');
 }
-
-/**
- * Name capture shared by the callback and reservation flows: ask for a short name, read it back,
- * wait for a clear yes, then ask whether staff may use the number the caller is calling from.
- * No phone number is ever collected by voice — in the demo the server fills in a placeholder
- * (src/lib/demoCallerPhone.ts; TODO(SV-5): real caller-ID).
- */
-function nameConfirmationInstructions(config: ClientConfig, language: string): string {
-  return (
-    'Read the name back, as its own turn, then stop and wait: ' +
-    `"${scriptLine(config, language, 'confirmName')}" — substituting the name for ` +
-    '[[callerName]], never speaking the placeholder text itself.\n' +
-    '   - A first name or short name is enough — never ask for a full formal name. In Japanese, ' +
-    "use katakana so it's pronounced exactly as heard, and never ask how it's written in kanji. " +
-    "In English, ask them to spell it only if it's unusual or unclear.\n" +
-    '   - If the caller says no or corrects the name, fix it, read it back again, and ask again.'
-  );
-}
-
-/** The question asked after the name is confirmed — answered yes before any tool call is made. */
-function contactNumberInstructions(config: ClientConfig, language: string): string {
-  return (
-    `Then ask, as its own turn: "${scriptLine(config, language, 'askContactNumber')}" ` +
-    'Never ask for, repeat or read out a phone number — you do not collect one; the number the ' +
-    'caller is calling from is used automatically. If they say no or ask to be contacted ' +
-    'another way, say that staff will use the number they are calling from and ask again once; ' +
-    'if they still refuse, do not make the tool call.'
-  );
-}
-
-/**
- * Distinguishes a mid-sentence listening noise from a real "yes" — paired with the name
- * confirmation and contact-number question, which must each be answered before a tool is used.
- */
-const CONFIRMATION_ACK_INSTRUCTIONS =
-  'Short acknowledgement sounds the caller makes WHILE you are still speaking (a quick ' +
-  '"mm-hm" or "yeah", or the Japanese equivalent such as 「はい」/「うん」 said mid-sentence) ' +
-  "are not a yes — they're just the caller listening. Only an explicit affirmative answer " +
-  'given AFTER you finish asking counts as confirmation. A "no," a correction, silence, or ' +
-  'anything unclear is not a yes either — fix the detail and ask again. ' +
-  'Each question and the tool call that depends on it are always separate turns: when you ' +
-  'ask a confirmation question, that turn contains ONLY the question — no tool call. Stop ' +
-  "and wait. Call the tool in a later turn, only once the caller's own reply to that exact " +
-  'question has appeared in the conversation. Never produce the tool call in the same turn as ' +
-  'the question itself, even when you expect the answer to be yes — the caller has not actually ' +
-  'answered yet at that point.';
 
 // 5. Callback requests
 function callbackSection(config: ClientConfig, language: string): string {
@@ -374,14 +304,11 @@ function reservationSection(
   services: ReservationService[],
 ): string[] {
   if (services.length === 0) return [];
+  if (config.reservationFlow?.mode === 'simple') {
+    return simpleReservationSection(config, language, services);
+  }
 
-  const closing = [
-    `After the ${BOOK_APPOINTMENT_FUNCTION_NAME} call: if it succeeded, in the same turn first ` +
-      'state the confirmed appointment date and time back to the caller, then say ' +
-      `"${scriptLine(config, language, 'reservationSaved')}". Never say the reservation number ` +
-      `the tool returns. Then ask:"${scriptLine(config, language, 'anythingElse')}" — same as after answering a ` +
-      `question. If it failed, say something in the spirit of "${scriptLine(config, language, 'reservationFailed')}" instead.`,
-  ].join(' ');
+  const closing = reservationClosingInstructions(config, language);
 
   return [
     [
@@ -571,7 +498,7 @@ function clinicInformationSection(config: ClientConfig, language: string, faq: F
   const hours = config.business.hours;
 
   return [
-    'Clinic information (for your own grounding — do not recite this list unless asked):',
+    `${businessNounTitle(config)} information (for your own grounding — do not recite this list unless asked):`,
     `- Address: ${clinicAddress}`,
     `- Phone: ${config.business.phone.display} — this is the number the caller is already on; ` +
       'never tell them to call it.',
@@ -587,13 +514,21 @@ function clinicInformationSection(config: ClientConfig, language: string, faq: F
 }
 
 /** VP-8: the demo bookable-services list, for grounding the reservation flow above. */
-function reservationServicesSection(language: string, services: ReservationService[]): string[] {
+function reservationServicesSection(
+  config: ClientConfig,
+  language: string,
+  services: ReservationService[],
+): string[] {
   if (services.length === 0) return [];
+
+  const usage =
+    config.reservationFlow?.mode === 'simple'
+      ? 'offer these when the caller books an appointment'
+      : "offer these when booking a first-time visitor's appointment; a returning patient skips this";
 
   return [
     [
-      'Reservation services (for your own grounding — offer these when booking a first-time ' +
-        "visitor's appointment; a returning patient skips this):",
+      `Reservation services (for your own grounding — ${usage}):`,
       ...services.map(
         (service) =>
           `- ${pick(service.name, language)} (id: ${service.id}, about ${service.durationMinutes} min)`,
@@ -613,7 +548,7 @@ function todaySection(config: ClientConfig): string {
     ...(config.business.hours.closedOnNationalHolidays
       ? [
           'You do not know which dates are national holidays; if asked about one that might be, ' +
-            'say the clinic is closed on national holidays.',
+            `say the ${businessNoun(config)} is closed on national holidays.`,
         ]
       : []),
   ].join('\n');
@@ -626,9 +561,9 @@ function todaySection(config: ClientConfig): string {
  * verified, so the model mentions the earlier call by topic gist only, never recites it.
  * Deliberately free of any other curly braces — Liquid would try to evaluate them.
  */
-function returningCallerSection(): string {
+function returningCallerSection(config: ClientConfig): string {
   return [
-    "Earlier call from this caller's phone number (clinic records, reference only):",
+    `Earlier call from this caller's phone number (${businessNoun(config)} records, reference only):`,
     `{{${PRIOR_CALL_VARIABLE}}}`,
     'If that line says "none", is blank, or looks like unfilled template text, there is no earlier ' +
       'call: ignore this section completely and never mention it. If such a caller asks whether you ' +
@@ -681,7 +616,8 @@ export function buildSystemPrompt(
 
   const sections = [
     identitySection(config, language),
-    styleSection(),
+    ...emergencySection(config, language),
+    styleSection(config),
     leadingSection(config, language),
     answeringSection(config, language),
     callbackSection(config, language),
@@ -690,9 +626,9 @@ export function buildSystemPrompt(
     ...languageSwitchSection(config, language),
     endingSection(config, language, faq),
     clinicInformationSection(config, language, faq),
-    ...reservationServicesSection(language, services),
+    ...reservationServicesSection(config, language, services),
     todaySection(config),
-    returningCallerSection(),
+    returningCallerSection(config),
   ];
 
   return sections.join('\n\n');

@@ -18,6 +18,7 @@ import {
   goodbyeMessage,
   pick,
 } from './promptTemplate.js';
+import { businessNoun } from './promptShared.js';
 import type { ClientConfig } from '../config/schema.js';
 import type { ReservationService } from '../repositories/reservationServiceRepository.js';
 import {
@@ -260,6 +261,7 @@ function renderTopicTool(
  * overridden — the real cause of the "chotto matte" bug (VAPI-FACTS.md, 2026-09-23 entry).
  */
 function renderReservationTools(
+  config: ClientConfig,
   baseUrl: string,
   credentialId: string,
   services: ReservationService[],
@@ -267,13 +269,16 @@ function renderReservationTools(
 ): RenderedReservationTool[] {
   const serviceIds = services.map((service) => service.id);
   const requestStartMessages = [{ type: 'request-start' as const, content: pleaseWaitMessage }];
+  // VP-19: the `simple` booking flow has no returning-patient path, so no lookup tool and no
+  // returning-patient wording in the booking tool.
+  const isSimpleFlow = config.reservationFlow?.mode === 'simple';
 
   const checkAvailability: VapiFunctionToolPayload = {
     type: 'function',
     function: {
       name: CHECK_AVAILABILITY_FUNCTION_NAME,
       description:
-        "Checks whether a specific date and time is open on the clinic's demo booking calendar. " +
+        `Checks whether a specific date and time is open on the ${businessNoun(config)}'s demo booking calendar. ` +
         'Always call this before offering or booking a time.',
       parameters: {
         type: 'object',
@@ -319,19 +324,31 @@ function renderReservationTools(
         properties: {
           serviceId: {
             type: 'string',
-            description:
-              'The chosen service id. Omit entirely for a returning patient, who skips service selection.',
+            description: isSimpleFlow
+              ? 'The chosen service id.'
+              : 'The chosen service id. Omit entirely for a returning patient, who skips service selection.',
             ...(serviceIds.length > 0 ? { enum: serviceIds } : {}),
           },
           date: { type: 'string', description: 'The confirmed date, as YYYY-MM-DD.' },
           time: { type: 'string', description: 'The confirmed time, as 24-hour HH:MM.' },
-          patientName: { type: 'string', description: "The patient's confirmed name." },
-          isReturningPatient: {
-            type: 'boolean',
-            description: 'True when the patient was already found via lookup_patient.',
+          patientName: {
+            type: 'string',
+            description: isSimpleFlow
+              ? "The caller's confirmed name."
+              : "The patient's confirmed name.",
           },
+          ...(isSimpleFlow
+            ? {}
+            : {
+                isReturningPatient: {
+                  type: 'boolean',
+                  description: 'True when the patient was already found via lookup_patient.',
+                },
+              }),
         },
-        required: ['date', 'time', 'patientName'],
+        required: isSimpleFlow
+          ? ['serviceId', 'date', 'time', 'patientName']
+          : ['date', 'time', 'patientName'],
       },
     },
     server: { url: `${baseUrl}/api/voice/book-appointment`, credentialId },
@@ -340,7 +357,7 @@ function renderReservationTools(
 
   return [
     { key: 'check-availability', payload: checkAvailability },
-    { key: 'lookup-patient', payload: lookupPatient },
+    ...(isSimpleFlow ? [] : [{ key: 'lookup-patient' as const, payload: lookupPatient }]),
     { key: 'book-appointment', payload: bookAppointment },
   ];
 }
@@ -442,7 +459,7 @@ export function renderAssistant(
 
   const reservationTools =
     services.length > 0
-      ? renderReservationTools(baseUrl, options.credentialId, services, pleaseWaitMessage)
+      ? renderReservationTools(config, baseUrl, options.credentialId, services, pleaseWaitMessage)
       : [];
 
   const endCallPhrases = endCallPhrasesFor(config, language);

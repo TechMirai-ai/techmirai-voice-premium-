@@ -39,6 +39,19 @@ export function collectCrossFieldIssues(
     ...completenessIssues(config),
     ...faqIdIssues(config),
     ...placeholderIssues(config),
+    ...reservationFlowIssues(config),
+  ];
+}
+
+/** The service-address question belongs to the `simple` booking flow only (VP-19). */
+function reservationFlowIssues(config: ClientConfig): ConfigIssue[] {
+  const flow = config.reservationFlow;
+  if (!flow?.askServiceAddress || flow.mode === 'simple') return [];
+  return [
+    {
+      path: 'reservationFlow.askServiceAddress',
+      message: 'is only used by the "simple" booking flow — set reservationFlow.mode to "simple"',
+    },
   ];
 }
 
@@ -142,6 +155,15 @@ function localizedBlocks(config: ClientConfig): LocalizedBlock[] {
     { path: 'business.name', text: config.business.name },
     { path: 'business.address', text: addressText },
     ...SCRIPT_KEYS.map((key) => ({ path: `scripts.${key}`, text: config.scripts[key] })),
+    ...(config.emergency ? [{ path: 'emergency.script', text: config.emergency.script }] : []),
+    ...(config.reservationFlow?.askServiceAddress
+      ? [
+          {
+            path: 'reservationFlow.askServiceAddress',
+            text: config.reservationFlow.askServiceAddress,
+          },
+        ]
+      : []),
     ...config.faq.flatMap((entry, index) => [
       { path: `faq[${index}].question`, text: entry.question },
       { path: `faq[${index}].answer`, text: entry.answer },

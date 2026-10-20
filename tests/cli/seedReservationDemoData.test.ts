@@ -36,6 +36,24 @@ describe('seedReservationDemoData', () => {
     expect(insertedInto('reservation_booked_slots')).toHaveLength(4);
   });
 
+  test('VP-19: seeds kanto-city-gas-demo with client-prefixed service ids and no demo patients', async () => {
+    const db = fakeDb();
+
+    const result = await seedReservationDemoData('kanto-city-gas-demo', db);
+
+    expect(result).toEqual({ services: 2, patients: 0, bookedSlots: 3 });
+    const serviceInserts = db.queries.filter((q) =>
+      q.sql.includes('INSERT INTO reservation_services'),
+    );
+    expect(serviceInserts.map((q) => q.values?.[0])).toEqual([
+      'kanto-gas-opening',
+      'kanto-gas-closing',
+    ]);
+    // reservation_services.id is a global primary key: every id must carry the client prefix.
+    for (const query of serviceInserts) expect(query.values?.[1]).toBe('kanto-city-gas-demo');
+    expect(db.queries.filter((q) => q.sql.includes('reservation_demo_patients'))).toHaveLength(0);
+  });
+
   test('every insert is ON CONFLICT DO NOTHING — idempotent', async () => {
     const db = fakeDb();
 

@@ -48,7 +48,7 @@ interface DemoFixture {
   bookedSlotOffsetsDays: { dayOffset: number; time: string }[];
 }
 
-/** Only sakura-seikotsuin's fixture is defined today — this is demo-only content, not client.yaml data. */
+/** Demo-only fixtures, one per client that has bookable services — not client.yaml data. */
 const FIXTURES: Record<string, DemoFixture> = {
   'sakura-seikotsuin': {
     services: [
@@ -78,6 +78,33 @@ const FIXTURES: Record<string, DemoFixture> = {
       { dayOffset: 1, time: '14:00' },
       { dayOffset: 2, time: '09:00' },
       { dayOffset: 3, time: '15:30' },
+    ],
+  },
+  // VP-19. `reservation_services.id` is a global primary key, so every id is client-prefixed
+  // (VP-18 finding) — "gas-opening" would collide with the next gas client. No returning-patient
+  // records: this client's booking flow is `simple` (client.yaml `reservationFlow`) and never looks one up.
+  'kanto-city-gas-demo': {
+    services: [
+      {
+        id: 'kanto-gas-opening',
+        nameJa: 'ガスの開栓（使用開始）',
+        nameEn: 'Gas opening (start of service)',
+        durationMinutes: 60,
+        sortOrder: 1,
+      },
+      {
+        id: 'kanto-gas-closing',
+        nameJa: 'ガスの閉栓（使用停止）',
+        nameEn: 'Gas closing (stop of service)',
+        durationMinutes: 30,
+        sortOrder: 2,
+      },
+    ],
+    patients: [],
+    bookedSlotOffsetsDays: [
+      { dayOffset: 1, time: '10:00' },
+      { dayOffset: 1, time: '14:00' },
+      { dayOffset: 2, time: '09:00' },
     ],
   },
 };
