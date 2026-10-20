@@ -454,3 +454,249 @@ not scripted lines in `client.yaml`. Same prompt for `ja` and `ja-return`.
 
 Notes for the reviewer: please confirm these read as natural, polite receptionist speech and suggest
 better alternatives if not. **Status:** open, not yet reviewed.
+
+---
+
+## VP-19 — Kanto City Gas demo client (`clients/kanto-city-gas-demo/client.yaml`)
+
+Every line a caller can hear from the new gas-utility client, Japanese first and then what it means
+in English. The English wording the English assistant speaks is flagged for review in the same
+pass (work order decision 8: a second business, same bar — the project owner reading English does
+not replace a review). Source: the project owner's demo document (`gas_utility_bpo_demo_profile.md`);
+its Japanese was kept where it fit and adapted where it promised something that is not built (see
+"Where I changed the source wording" below). All of it is **NEW (VP-19)** and **open, not yet
+reviewed**.
+
+**Please look at these first**
+
+1. **The gas-smell script** (below) is the source document's own *placeholder* wording. The document
+   itself says the real utility must supply the approved emergency script and phone numbers before
+   any live use. As built, the caller hears only this line, then is asked for a name and a callback is
+   logged; the assistant gives no safety instructions of its own (deliberately — it does not know the
+   correct procedure). Nothing is paged or dispatched.
+2. **`失礼いたします` as the closing** (goodbye, silence ending, "line unclear" line). Sakura's
+   `お大事になさってください` ("please take care of yourself", a get-well phrase) was dropped as wrong
+   for a gas company. Is `失礼いたします` alone a natural, warm enough ending here?
+3. **`手配いたします`** ("I will arrange it") is used in many FAQ answers for "I can arrange for staff
+   to contact you". Natural for a utility's phone line, or would `お取り次ぎいたします` /
+   `ご連絡するよう担当に伝えます` read better?
+4. **Terms for the service**: `開栓` / `閉栓` (gas opening / closing) with `使用開始` / `使用停止`
+   (start / stop of use) as the plain explanation. Does a caller say `開栓` or `使用開始`?
+5. **`当社`** ("our company") and **`担当スタッフ`** ("the staff in charge") — right register for a
+   gas company's receptionist?
+6. **`ご不便をおかけして申し訳ございません`** ("I apologise for the inconvenience") — used in the
+   complaint answer and as the example phrase in this client's prompt for an upset caller.
+7. **The recording notice** in the greetings is the same wording Sakura's greeting already uses
+   (`サービス向上のため、この通話は録音されます`, "This call is recorded to improve our service").
+8. **The assistant's name `サクラ` (Sakura)** comes from the source document. It collides with the
+   name of the other demo client, `sakura-seikotsuin` — see the VP-19 report.
+
+**Where I changed the source wording** (so a reviewer can see what is not the document's own text)
+
+- Every FAQ answer that said the assistant could connect the caller to staff (`おつなぎ`) now offers a
+  callback instead — transfer is not built and the assistant must not claim it.
+- The hours answer no longer says "in the demo settings", and says nothing about emergencies.
+- FAQ `attendance` no longer states a rule ("depends on the contract") — it says staff can confirm.
+- FAQ `gas-smell` uses the same wording as the gas-smell script below, so there is one emergency
+  script, not two slightly different ones (the document has two).
+- `reservationSaved` does not say details will be sent to the caller's number (no SMS is built).
+- `callbackSaved` promises no time ("by the next business day" was dropped).
+
+The three Sakura-only lines the schema requires but this client never uses (`noMedicalAdvice`,
+`reservationAskType`, `reservationPatientNotFound`) are not listed.
+
+### Scripts (spoken lines)
+
+**`scripts.greeting`** — the Japanese assistant's opening line. `[[clinicName]]` is spoken as 関東シティガス.
+> お電話ありがとうございます。[[clinicName]]のお問い合わせ窓口でございます。AI受付のサクラがご案内いたします。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？
+
+English meaning: "Thank you for calling Kanto City Gas's inquiry desk. Sakura, the AI receptionist, will assist you. This call is recorded to improve our service. How may I help you today?"
+
+**`scripts.returningGreeting`** — opening line for a number that has called before.
+> 再度のお電話ありがとうございます。[[clinicName]]のお問い合わせ窓口、AI受付のサクラでございます。この通話は録音されます。本日はどのようなご用件でしょうか？
+
+English meaning: "Thank you for calling again. This is Kanto City Gas's inquiry desk, Sakura, the AI receptionist. This call is recorded. How may I help you today?"
+
+**`scripts.handoffToJapanese`** — said when a caller is handed back to Japanese.
+> 日本語で承ります。ご用件をお伺いいたします。
+
+English meaning: "I will assist you in Japanese. Please tell me what you need."
+
+**`scripts.englishGreeting`** — the English assistant's opening line. Its Japanese field is never spoken; the **English line is what the caller hears** and is flagged for review:
+> "Thank you for calling Kanto City Gas customer support. I'm Sakura, the AI receptionist. This call is recorded to improve our service. How may I help you today?"
+
+**`scripts.anythingElse`**
+> ほかに何かお手伝いできることはございますか？
+
+English meaning: "Is there anything else I can help you with?"
+
+**`scripts.noMatch`**
+> 申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？
+
+English meaning: "I'm sorry, I don't have that information right now. I'll pass your details to our staff so they can get back to you. May I have your name, please?"
+
+**`scripts.staffContactOffer`**
+> かしこまりました。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？
+
+English meaning: "Of course. I'll pass your details to our staff so they can call you back. May I have your name, please?"
+
+**`scripts.askName`** / **`scripts.confirmName`** / **`scripts.askContactNumber`**
+> お名前を伺ってもよろしいでしょうか？
+>
+> 確認いたします。お名前は[[callerName]]様でよろしいでしょうか？
+>
+> 今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？
+
+English meaning: "May I have your name, please?" / "Just to confirm, your name is [[callerName]] — is that right?" / "May we contact you at the number you are calling from now?"
+
+**`scripts.callbackSaved`** — NEW wording, no promised time.
+> ありがとうございます。担当スタッフよりご連絡いたします。
+
+English meaning: "Thank you. Our staff will be in touch."
+
+**`scripts.callbackFailed`**
+> 申し訳ございません。情報を保存できませんでした。恐れ入りますが、時間をおいて、もう一度お電話いただけますでしょうか。
+
+English meaning: "I'm sorry. We weren't able to save your information. Could you please call us again a little later?"
+
+**`scripts.pleaseWait`**
+> 少々お待ちくださいませ。
+
+English meaning: "One moment, please."
+
+**`scripts.didNotCatch`** / **`scripts.repeatedMisunderstanding`**
+> 申し訳ございません。うまく聞き取れませんでした。もう一度おっしゃっていただけますか？
+>
+> 申し訳ございません。お電話が遠いようですので、お手数ですが、少し時間をおいておかけ直しいただけますでしょうか。失礼いたします。
+
+English meaning: "I'm sorry, I didn't quite catch that. Could you say it again, please?" / "I'm sorry, the line seems far away. Could you please call again a little later? Goodbye."
+
+**`scripts.goodbye`** — spoken when the call ends.
+> お電話いただき、誠にありがとうございました。失礼いたします。
+
+English meaning: "Thank you very much for your call. Goodbye."
+
+**`scripts.silenceCheck1`**, **`silenceCheck2`**, **`silenceEnding`** — the existing VP-16 silence mechanism; the first two are identical to Sakura's, only the ending drops `どうぞお大事になさってください`.
+> もしもし、お聞きになれますでしょうか？
+>
+> お電話はつながっておりますでしょうか？
+>
+> お返事がないようですので、お電話を終了させていただきます。お電話ありがとうございました。失礼いたします。
+
+English meaning: "Hello, can you hear me?" / "Is the call still connected?" / "As I haven't heard a response, I will end this call now. Thank you for calling. Goodbye."
+
+**Booking lines**
+> ガスの使用開始（開栓）と使用停止（閉栓）の、どちらのご希望でしょうか？
+>
+> ご希望の日時はございますか？
+>
+> 対象のご住所を、建物名とお部屋番号も含めてお願いいたします。
+>
+> ご予約を承りました。
+>
+> 申し訳ございません。ご予約を完了できませんでした。別のお時間をお調べするか、担当スタッフからご連絡できるよう手配いたしますが、いかがでしょうか。
+
+English meaning, in order: "Would you like to start gas service (開栓) or stop it (閉栓)?" / "What date and time would you prefer?" / "What is the address for the service, including the building name and room number?" / "Your appointment is booked." / "I'm sorry. We weren't able to complete your booking. I can look for another time, or arrange for our staff to contact you — would that be all right?"
+
+### The gas-smell script (`emergency.script`) — source document's placeholder wording
+
+> ガスのにおいがするとのことですね。安全に関わる可能性があるため、ガス会社が定めた緊急時のご案内に切り替えます。
+
+English meaning: "I understand you smell gas. This may be a safety issue, so I will switch to the gas company's approved emergency instructions."
+
+The callback it records carries the reason `SAFETY: caller reported possible gas smell/leak` (English).
+
+### FAQ answers (18, condensed from the document's 26)
+
+Each answer is grounding text the assistant paraphrases, not read verbatim, except `gas-smell`.
+
+**`start-service`** — ガスの使用開始（開栓）を申し込みたいのですが、どうすればいいですか？ ("How do I start gas service?")
+> ガスの使用開始をご希望ですね。このお電話でそのままご予約を承ります。ご希望の日時とご住所をお伺いします。本日中をご希望の場合も、まず空き状況を確認いたしますので、確認が取れるまではお約束できません。
+
+English meaning: "You'd like to start gas service. I can book the appointment right now on this call. I'll ask for your preferred date and time and the address. If you need it today, I'll check what is open first, and I can't promise it until I have."
+
+**`stop-service`** — 引っ越すので、ガスを止めたい（閉栓したい）のですが。 ("I'm moving out; I want to stop my gas.")
+> ガスの使用停止をご希望ですね。こちらもこのお電話でご予約を承ります。ご希望の日時とご住所をお伺いします。最後のご請求の時期や費用については、こちらではご案内できませんが、ご希望でしたら担当スタッフからご連絡できるよう手配いたします。
+
+English meaning: "You'd like to stop gas service. I can book that on this call too. I'll ask for your preferred date and time and the address. I can't tell you the timing or cost of the final bill here, but if you'd like I can arrange for staff to contact you."
+
+**`attendance`** — 開栓のときは立ち会いが必要ですか？ ("Do I need to be there when the gas is opened?")
+> 立ち会いが必要かどうかは状況によって異なる場合があり、こちらでは確認できません。担当スタッフが確認いたしますので、ご希望でしたら担当スタッフからご連絡できるよう手配いたします。
+
+English meaning: "Whether someone needs to be present can depend on the situation, and I can't confirm it here. Our staff will confirm it; if you'd like, I can arrange for them to contact you."
+
+**`availability`** — 開栓や閉栓の予約はいつ空いていますか？ ("When are appointments available?")
+> 空き状況を確認いたします。ご希望の日にちや時間帯はございますか？
+
+English meaning: "I'll check what is open. Do you have a day or a time of day in mind?"
+
+**`change-cancel`** — 開栓・閉栓の予約日時を変更、またはキャンセルしたいのですが。 ("I want to change or cancel my appointment.")
+> 申し訳ございません。こちらでは、すでにあるご予約の変更やキャンセルのお手続き、ご予約内容の確認はできません。担当スタッフからご連絡できるよう手配いたします。現時点では、ご予約の変更やキャンセルは行われておりません。
+
+English meaning: "I'm sorry, on this line I can't change or cancel an existing appointment or look up its details. I'll arrange for staff to contact you. At this point your appointment has not been changed or cancelled."
+
+**`no-gas`** — ガスが出ないのですが、どうしたらいいですか？ ("My gas isn't coming out.")
+> ガスが出ないのですね。まず安全確認のため、ガスのにおいがする、またはガス漏れの可能性がある状況でしょうか？「はい」または「わからない」の場合は、安全に関わる報告として扱います。においなどがない場合は、こちらでは対処方法をご案内できませんが、担当スタッフからご連絡できるよう手配いたします。訪問のお約束もできません。
+
+English meaning: "Your gas isn't coming out. First, for safety: do you smell gas, or could there be a leak? If yes or you're not sure, I'll treat it as a safety report. If there's no smell, I can't walk you through troubleshooting here, but I'll arrange for staff to contact you. I also can't promise a visit."
+
+**`gas-smell`** — ガスのにおいがするのですが。 ("I smell gas.") — answer is the gas-smell script above, word for word.
+
+**`hours`** — 受付時間を教えてください。 ("What are your opening hours?")
+> お問い合わせ窓口の受付時間は、月曜日から金曜日が午前9時から午後6時まで、土曜日が午前9時から午後5時までです。日曜日と祝日はお休みです。
+
+English meaning: "The inquiry desk is open Monday to Friday 9:00 AM to 6:00 PM and Saturday 9:00 AM to 5:00 PM. We are closed on Sundays and national holidays."
+
+**`billing-inquiry`** — ガス料金や料金単価、お客様番号について確認したいです。 ("I want to ask about my bill, the rates or my customer number.")
+> お客様個別のご請求内容や料金単価、お客様番号については、こちらでは確認できません。料金単価はご契約内容や料金プランによって異なります。担当スタッフからご連絡できるよう手配いたします。
+
+English meaning: "I can't check individual bills, rates or customer numbers here. Rates depend on the contract and plan. I'll arrange for staff to contact you."
+
+**`payment-slip`** — 払込票をなくしてしまいました。 ("I lost my payment slip.")
+> 申し訳ございません。払込票の再発行は、こちらではお手続きできません。担当スタッフからご連絡できるよう手配いたします。
+
+English meaning: "I'm sorry, I can't reissue a payment slip on this line. I'll arrange for staff to contact you."
+
+**`payment-extension`** — 支払い期限を延長できますか？ ("Can I extend my payment deadline?")
+> お支払い期限の延長や料金の変更は、ご契約内容によって異なり、こちらではお約束できません。担当スタッフからご連絡できるよう手配いたします。
+
+English meaning: "Extending a deadline or changing fees depends on your contract, and I can't promise it here. I'll arrange for staff to contact you."
+
+**`payment-status`** — 支払いが確認できているか知りたいです。支払い用のリンクを送ってもらえますか？ ("Has my payment been received? Can you send a payment link?")
+> 申し訳ございません。お支払い状況の確認や、リンクやSMSのお送りは、こちらではできません。個別のお支払い情報は、担当スタッフによる本人確認が必要です。担当スタッフからご連絡できるよう手配いたします。
+
+English meaning: "I'm sorry, I can't check payment status or send links or text messages here. Individual payment details need identity verification by our staff. I'll arrange for staff to contact you."
+
+**`suspicious-sms`** — ガス料金の支払いを求める不審なSMSが届きました。 ("I received a suspicious text asking me to pay my gas bill.")
+> ご心配をおかけしております。メッセージ内のリンクは、正式なものと確認できるまで開かないでください。担当スタッフからご連絡できるよう手配いたしますので、そちらでご確認いただけます。
+
+English meaning: "I'm sorry for the worry. Please don't open the link in that message until you can confirm it is genuine. I'll arrange for staff to contact you so you can check."
+
+**`human-operator`** — オペレーターと話したいです。あとで折り返してもらえますか？ ("I want to talk to an operator / can you call me back later?")
+> かしこまりました。お電話をおつなぎすることはできませんが、担当スタッフへの折り返しのご依頼を承ります。折り返しのお時間は、こちらではお約束できません。
+
+English meaning: "Of course. I can't transfer your call, but I can take a callback request for our staff. I can't promise a time for the call."
+
+**`other-services`** — 電気や水道の手続き、または別のガス会社の契約について問い合わせたいです。 ("Can you help with electricity, water or another gas company?")
+> この窓口でご案内できるのは、当社のガスに関するお手続きです。電気や水道、他社のご契約については、こちらでは承っておりません。
+
+English meaning: "This line handles our company's gas service. We don't handle electricity, water or another company's contracts here."
+
+**`complaint`** — 苦情を伝えたいです。 ("I want to make a complaint.")
+> ご不便をおかけして申し訳ございません。担当スタッフへお伝えできるよう、ご用件を簡潔にお伺いしてもよろしいでしょうか？
+
+English meaning: "I apologise for the inconvenience. So I can pass it to our staff, may I ask briefly what it is about?"
+
+**`change-details`** — 登録している名前や電話番号を変更したいです。 ("I want to change my registered name or phone number.")
+> 申し訳ございません。登録情報の変更には本人確認が必要なため、こちらではお手続きできません。担当スタッフからご連絡できるよう手配いたします。
+
+English meaning: "I'm sorry, changing registered details needs identity verification, so I can't do it here. I'll arrange for staff to contact you."
+
+**`unknown-question`** — ここに載っていない質問があります。 ("I have a question that isn't listed.")
+> 確認いたします。正確なご案内が難しい場合は、推測でお答えせず、担当スタッフへの折り返しのご依頼を承ります。
+
+English meaning: "I'll look into it. If I can't give an accurate answer, I won't guess; I can take a callback request for our staff."
+
+### English wording to review (spoken by the English assistant)
+
+Same status. The English lines are in `client.yaml` under each script's and FAQ entry's `en` field; the ones callers hear most, and where the wording is a judgement call, are: the greeting (above), `Thank you. Our staff will be in touch.` (no promised time), `Your appointment is booked.` (no "details will be sent" claim), the gas-smell script (above) and the `change-cancel`, `payment-status` and `human-operator` FAQ answers, which tell the caller plainly what the assistant cannot do.

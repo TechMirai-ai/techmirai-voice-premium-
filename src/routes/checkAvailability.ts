@@ -10,6 +10,7 @@ import { loadClient } from '../config/loadClient.js';
 import { checkAvailability } from '../reservation/availability.js';
 import type { AppointmentRepository } from '../repositories/appointmentRepository.js';
 import type { AssistantResolver } from '../vapi/assistantResolver.js';
+import { businessNoun } from '../vapi/promptShared.js';
 import { CHECK_AVAILABILITY_FUNCTION_NAME } from '../vapi/toolNames.js';
 import { errorResult, okResult } from '../vapi/toolCallsMessage.js';
 import { toolWebhook } from './voiceWebhook.js';
@@ -51,7 +52,7 @@ export function checkAvailabilityRouter(deps: CheckAvailabilityRouteDeps): Route
         if (result.closed) {
           return okResult(
             call,
-            `The clinic is closed on ${date}. Ask the caller for a different date.`,
+            `The ${businessNoun(config)} is closed on ${date}. Ask the caller for a different date.`,
           );
         }
         if (result.requestedAvailable) {

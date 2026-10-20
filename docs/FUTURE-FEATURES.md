@@ -129,6 +129,22 @@ staff dashboard's call list), or a real call shows a missing classification that
 `assistant-said-end-call-phrase` / silence hangup (docs say "runs after each call" by default) —
 confirm with a real call before relying on it.
 
+## F-11 — Gas-utility capabilities postponed in VP-19
+**What:** The second demo client (`kanto-city-gas-demo`) deliberately does NOT do any of the following; for each, the assistant says plainly it cannot, and offers a staff callback.
+- Change or cancel an existing appointment (the reservation engine is booking-only: no routes, repository methods or tools).
+- Account-specific billing, payment status, payment links or customer verification (no CRM / billing integration).
+- SMS (confirmations, payment links) and human call transfer (no telephony integration).
+- **Real emergency escalation for the gas-smell report — a production blocker, not just a nice-to-have.** Today it is a fixed script plus a callback flagged `SAFETY: …`; nothing is paged or dispatched, and the assistant gives no safety instructions of its own.
+- A structured service-address field on bookings (the address is asked by voice and reaches staff only through the call summary).
+- A two-tier BPO / utility tenant model (`client_id` plus `end_customer_id`), the source document's call-outcome status taxonomy, and per-client archive separation (the Google archive is still shared with sakura — VP-18 finding).
+**Why later:** The demo needs to show the receptionist, not a gas company's back office; each item needs an integration or a decision only a real utility can make.
+**Build when:** A real gas utility or BPO signs up. Emergency escalation must come first — before any live use, the utility must supply the approved emergency instructions, phone numbers, escalation recipients and failure procedure.
+**Base must allow:**
+- Callback requests keep going through `CallbackNotifier` (F-2), so a safety flag can later page someone without changing the callback logic; `emergency.callbackReason` is already the single marker.
+- `book_appointment` stays the only writer of `appointments`, and `reservation_services` ids stay client-prefixed, so change/cancel can be added as new tools against the same rows.
+- `reservationFlow` / `promptOverrides` / `emergency` stay optional `client.yaml` sections whose absence leaves a client's rendered output byte-identical (guarded by `tests/vapi/sakuraGolden.test.ts`).
+- Call status stays derived from which tool ran (`callStatus.ts`); a richer taxonomy would be a new derivation, not a rename of the four existing values.
+
 ---
 
 ---
