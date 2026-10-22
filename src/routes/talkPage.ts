@@ -20,6 +20,7 @@ import { normalizeCallerPhone } from '../lib/callerPhone.js';
 import type { PriorCallReader } from '../repositories/callLogRepository.js';
 import {
   decideTalkCall,
+  remainingTalkCalls,
   talkCallCookieName,
   TALK_CALL_COOKIE_MAX_AGE_MS,
   TALK_MAX_CALL_DURATION_SECONDS,
@@ -114,8 +115,14 @@ export function talkRouter(options: TalkRouterOptions): Router {
       }));
     const key = typeof req.query.key === 'string' ? req.query.key : undefined;
 
+    const callsRemaining = remainingTalkCalls(clientId, req.headers.cookie, key, {
+      rateLimitSecret: options.rateLimitSecret,
+      bypassKey: options.bypassKey,
+    });
+
     res.type('html').send(
       renderTalkPage({
+        ...(callsRemaining !== undefined ? { callsRemaining } : {}),
         clinicName: clinicNameOf(resolved.config, language),
         language,
         switchLinks,
@@ -170,7 +177,7 @@ export function talkRouter(options: TalkRouterOptions): Router {
       });
 
       if (!decision.allowed) {
-        res.status(429).json({ status: 'error', error: 'rate_limited' });
+        res.status(429).json({ status: 'error', error: 'rate_limited', callsRemaining: 0 });
         return;
       }
 
@@ -198,6 +205,7 @@ export function talkRouter(options: TalkRouterOptions): Router {
 
       res.json({
         assistantId: resolved.assistantId,
+        ...(decision.remaining !== undefined ? { callsRemaining: decision.remaining } : {}),
         maxDurationSeconds: TALK_MAX_CALL_DURATION_SECONDS,
         variableValues: {
           [CALLER_PHONE_VARIABLE]: callerPhone,

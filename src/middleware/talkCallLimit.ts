@@ -79,6 +79,21 @@ export interface TalkCallDecision {
   bypassed: boolean;
   /** Set only when the cap check actually ran and the count cookie should be updated. */
   newCookieValue?: string;
+  /** Demo calls left after this decision; absent for a bypassed visitor (no cap applies). */
+  remaining?: number;
+}
+
+/** Calls left for this browser, without counting a new one. Undefined when the bypass key lifts the cap. */
+export function remainingTalkCalls(
+  clientId: string,
+  cookieHeader: string | undefined,
+  providedKey: string | undefined,
+  options: { rateLimitSecret: string; bypassKey: string },
+): number | undefined {
+  if (isBypassKeyValid(providedKey, options.bypassKey)) return undefined;
+  const existing = readCookie(cookieHeader, talkCallCookieName(clientId));
+  const currentCount = existing ? verifyCount(clientId, existing, options.rateLimitSecret) : 0;
+  return Math.max(0, TALK_CALL_CAP - currentCount);
 }
 
 export function decideTalkCall(
@@ -95,7 +110,7 @@ export function decideTalkCall(
   const currentCount = existing ? verifyCount(clientId, existing, options.rateLimitSecret) : 0;
 
   if (currentCount >= TALK_CALL_CAP) {
-    return { allowed: false, bypassed: false };
+    return { allowed: false, bypassed: false, remaining: 0 };
   }
 
   const nextCount = currentCount + 1;
@@ -103,5 +118,6 @@ export function decideTalkCall(
     allowed: true,
     bypassed: false,
     newCookieValue: signCount(clientId, nextCount, options.rateLimitSecret),
+    remaining: TALK_CALL_CAP - nextCount,
   };
 }

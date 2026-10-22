@@ -4,6 +4,7 @@ import {
   decideTalkCall,
   isBypassKeyValid,
   readCookie,
+  remainingTalkCalls,
   talkCallCookieName,
   TALK_CALL_CAP,
 } from '../../src/middleware/talkCallLimit.js';
@@ -38,6 +39,34 @@ describe('isBypassKeyValid', () => {
     expect(isBypassKeyValid('wrong-key', BYPASS_KEY)).toBe(false);
     expect(isBypassKeyValid(BYPASS_KEY.slice(0, -1), BYPASS_KEY)).toBe(false);
     expect(isBypassKeyValid(BYPASS_KEY + 'x', BYPASS_KEY)).toBe(false);
+  });
+});
+
+describe('remainingTalkCalls', () => {
+  const options = { rateLimitSecret: SECRET, bypassKey: BYPASS_KEY };
+
+  test('a fresh or tampered cookie has the full cap left; the bypass key has no cap at all', () => {
+    expect(remainingTalkCalls(CLIENT_ID, undefined, undefined, options)).toBe(TALK_CALL_CAP);
+    expect(remainingTalkCalls(CLIENT_ID, cookieHeaderFor('0.deadbeef'), undefined, options)).toBe(
+      TALK_CALL_CAP,
+    );
+    expect(remainingTalkCalls(CLIENT_ID, undefined, BYPASS_KEY, options)).toBeUndefined();
+  });
+
+  test('counts down with each decided call and never goes below 0', () => {
+    let cookieHeader: string | undefined;
+    const remaining: Array<number | undefined> = [];
+    for (let i = 0; i < TALK_CALL_CAP; i++) {
+      const decision = decideTalkCall(CLIENT_ID, cookieHeader, undefined, options);
+      cookieHeader = cookieHeaderFor(decision.newCookieValue);
+      remaining.push(decision.remaining);
+      expect(remainingTalkCalls(CLIENT_ID, cookieHeader, undefined, options)).toBe(
+        decision.remaining,
+      );
+    }
+
+    expect(remaining).toEqual([3, 2, 1, 0]);
+    expect(decideTalkCall(CLIENT_ID, cookieHeader, undefined, options).remaining).toBe(0);
   });
 });
 

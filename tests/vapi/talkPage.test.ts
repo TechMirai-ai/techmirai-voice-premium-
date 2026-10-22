@@ -16,6 +16,28 @@ describe('renderTalkPage', () => {
     expect(html.indexOf('id="caller-phone"')).toBeLessThan(html.indexOf('id="talk-button"'));
   });
 
+  test('tells visitors to enter a made-up number, not their real one', () => {
+    const html = renderTalkPage({
+      clinicName: 'Sakura Seikotsuin',
+      language: 'en',
+      switchLinks: [],
+      scriptSrc: '/x.js',
+    });
+
+    expect(html).toContain(
+      "Enter any made-up number — this is just for testing, don't use your real one.",
+    );
+    expect(html).toContain('aria-describedby="caller-phone-hint"');
+  });
+
+  test('renders a hidden 00:00 timer, and the remaining-calls line only when a count is given', () => {
+    const base = { clinicName: 'Sakura', language: 'en', switchLinks: [], scriptSrc: '/x.js' };
+
+    expect(renderTalkPage(base)).toMatch(/id="call-timer" hidden>00:00</);
+    expect(renderTalkPage(base)).not.toContain('id="calls-remaining"');
+    expect(renderTalkPage({ ...base, callsRemaining: 3 })).toContain('3 of 4 demo calls remaining');
+  });
+
   test('shows the clinic name and a single Talk button', () => {
     const html = renderTalkPage({
       clinicName: 'Sakura Seikotsuin',
@@ -196,6 +218,26 @@ describe('renderTalkBootstrapScript', () => {
 
     expect(script).toContain('data.firstMessage');
     expect(script).toMatch(/if \(data\.firstMessage\)/);
+  });
+
+  test('starts the mm:ss timer when the call connects and stops it when the call ends or errors', () => {
+    const script = renderTalkBootstrapScript({ publicKey: 'pk', callsUrl: '/talk/x/ja/calls' });
+    const handler = (event: string) => {
+      const start = script.indexOf(`vapi.on('${event}'`);
+      return script.slice(start, script.indexOf('});', start));
+    };
+
+    expect(handler('call-start')).toContain('startTimer()');
+    expect(handler('call-end')).toContain('stopTimer()');
+    expect(handler('error')).toContain('stopTimer()');
+    expect(script).toContain("getElementById('call-timer')");
+  });
+
+  test('updates the remaining-calls line from the server response, and to 0 on a rejection', () => {
+    const script = renderTalkBootstrapScript({ publicKey: 'pk', callsUrl: '/talk/x/ja/calls' });
+
+    expect(script).toContain('showCallsRemaining(data.callsRemaining)');
+    expect(script).toContain('showCallsRemaining(0)');
   });
 
   test('refuses to start a call with an empty number, and explains a server-side rejection', () => {

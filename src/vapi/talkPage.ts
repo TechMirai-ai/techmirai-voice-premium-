@@ -11,6 +11,7 @@
  * client-side, not specific to either page's design.
  */
 import { escapeHtml } from '../lib/htmlEscape.js';
+import { TALK_CALL_CAP } from '../middleware/talkCallLimit.js';
 
 const VAPI_WEB_SDK_ESM_URL = 'https://cdn.jsdelivr.net/npm/@vapi-ai/web@2.7.1/+esm';
 
@@ -38,6 +39,10 @@ export interface TalkPageOptions {
    * this is only how the value reaches that request from a page load.
    */
   bypassKey?: string;
+  /** Demo calls allowed per visitor; defaults to the real cap (talkCallLimit.ts). */
+  callCap?: number;
+  /** Calls this visitor has left; absent on the bypass link, where no cap applies. */
+  callsRemaining?: number;
 }
 
 export function renderTalkPage(options: TalkPageOptions): string {
@@ -47,6 +52,11 @@ export function renderTalkPage(options: TalkPageOptions): string {
   const bypassKeyScript = options.bypassKey
     ? `<script>window.__TALK_BYPASS_KEY__ = ${safeJsonForScript(options.bypassKey)};</script>\n`
     : '';
+  const callCap = options.callCap ?? TALK_CALL_CAP;
+  const callsRemainingMarkup =
+    options.callsRemaining !== undefined
+      ? `<p id="calls-remaining" data-cap="${callCap}">${options.callsRemaining} of ${callCap} demo calls remaining</p>\n`
+      : '';
   const switcher = options.switchLinks
     .map((link) => `<a href="${escapeHtml(link.href)}">${escapeHtml(link.label)}</a>`)
     .join(' · ');
@@ -148,6 +158,26 @@ h1 {
   background: var(--brand-navy-hover);
 }
 
+#caller-phone-hint {
+  font-size: 0.8rem;
+  color: var(--text-sub);
+  margin: -0.7rem 0 1.1rem;
+}
+
+#call-timer {
+  margin-top: 1rem;
+  font-size: 1.4rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--brand-navy);
+}
+
+#calls-remaining {
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-sub);
+}
+
 #call-status {
   margin-top: 1.25rem;
   font-size: 0.85rem;
@@ -166,10 +196,12 @@ h1 {
 <h1>${clinicName}</h1>
 ${switcher ? `<p class="switch">${switcher}</p>` : ''}
 <label id="caller-phone-label" for="caller-phone">Your phone number (demo only)</label>
-<input id="caller-phone" name="callerPhone" type="tel" inputmode="tel" autocomplete="tel" maxlength="40" placeholder="090-1234-5678" required />
+<input id="caller-phone" name="callerPhone" type="tel" inputmode="tel" autocomplete="tel" maxlength="40" placeholder="090-1234-5678" required aria-describedby="caller-phone-hint" />
+<p id="caller-phone-hint">Enter any made-up number — this is just for testing, don't use your real one.</p>
 <button type="button" id="talk-button">Talk</button>
+<p id="call-timer" hidden>00:00</p>
 <p id="call-status" aria-live="polite">Tap to start.</p>
-${bypassKeyScript}<script type="module" src="${scriptSrc}"></script>
+${callsRemainingMarkup}${bypassKeyScript}<script type="module" src="${scriptSrc}"></script>
 </body>
 </html>
 `;
@@ -208,21 +240,57 @@ var bypassKey = window.__TALK_BYPASS_KEY__;
 var button = document.getElementById('talk-button');
 var phoneInput = document.getElementById('caller-phone');
 var statusEl = document.getElementById('call-status');
+var timerEl = document.getElementById('call-timer');
+var remainingEl = document.getElementById('calls-remaining');
 var inCall = false;
+var timerHandle = null;
+
+function formatDuration(totalSeconds) {
+  var minutes = Math.floor(totalSeconds / 60);
+  var seconds = totalSeconds % 60;
+  return (minutes < 10 ? '0' : '') + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+}
+
+// Counts from the moment the call connects. The final time stays visible after the call ends.
+function startTimer() {
+  stopTimer();
+  var startedAt = Date.now();
+  if (timerEl) {
+    timerEl.textContent = formatDuration(0);
+    timerEl.hidden = false;
+  }
+  timerHandle = setInterval(function () {
+    if (timerEl) timerEl.textContent = formatDuration(Math.floor((Date.now() - startedAt) / 1000));
+  }, 250);
+}
+
+function stopTimer() {
+  if (timerHandle !== null) clearInterval(timerHandle);
+  timerHandle = null;
+}
+
+// The server is the source of truth (signed cookie); the page only displays what it returns.
+function showCallsRemaining(count) {
+  if (!remainingEl || typeof count !== 'number') return;
+  remainingEl.textContent = count + ' of ' + remainingEl.getAttribute('data-cap') + ' demo calls remaining';
+}
 
 vapi.on('error', function (e) {
   console.error('Call error:', e);
   if (statusEl) statusEl.textContent = 'Something went wrong — please try again.';
   inCall = false;
+  stopTimer();
   if (button) button.textContent = 'Talk';
 });
 vapi.on('call-start', function () {
   inCall = true;
+  startTimer();
   if (statusEl) statusEl.textContent = 'Connected — go ahead and talk.';
   if (button) button.textContent = 'End';
 });
 vapi.on('call-end', function () {
   inCall = false;
+  stopTimer();
   if (statusEl) statusEl.textContent = 'Call ended. Tap to start again.';
   if (button) button.textContent = 'Talk';
 });
@@ -290,6 +358,7 @@ button.addEventListener('click', function () {
         return null;
       }
       if (res.status === 429) {
+        showCallsRemaining(0);
         if (statusEl) statusEl.textContent = "You've reached the demo call limit. Please get in touch to try it live.";
         return null;
       }
@@ -302,6 +371,7 @@ button.addEventListener('click', function () {
     .then(function (results) {
       var data = results[1];
       if (!data) return;
+      showCallsRemaining(data.callsRemaining);
       if (statusEl) statusEl.textContent = 'Connecting…';
       var overrides = {
         maxDurationSeconds: data.maxDurationSeconds,

@@ -192,9 +192,42 @@ describe('GET /talk', () => {
       expect(response.body).toEqual({
         assistantId: JA_ASSISTANT_ID,
         maxDurationSeconds: 43200,
+        callsRemaining: 3,
         variableValues: { callerPhone: NORMALISED_PHONE, priorCall: 'none' },
       });
       expect(response.headers['set-cookie']?.[0]).toContain('tmvp_talk_calls_demo-clinic=');
+    });
+
+    test('reports one fewer remaining call after each call, down to 0 on the last allowed one', async () => {
+      const agent = request.agent(app());
+      const remaining: number[] = [];
+      for (let i = 0; i < 4; i++) {
+        const ok = await agent.post('/talk/demo-clinic/ja/calls').send(PHONE_BODY);
+        remaining.push(ok.body.callsRemaining);
+      }
+
+      expect(remaining).toEqual([3, 2, 1, 0]);
+    });
+
+    test('the bypass link gets no callsRemaining (no cap applies)', async () => {
+      const response = await request(app())
+        .post(`/talk/demo-clinic/ja/calls?key=${BYPASS_KEY}`)
+        .send(PHONE_BODY);
+
+      expect(response.body).not.toHaveProperty('callsRemaining');
+    });
+
+    test('the page shows the calls left for this browser, updating as calls are used', async () => {
+      const agent = request.agent(app());
+      const fresh = await agent.get('/talk/demo-clinic/en');
+      await agent.post('/talk/demo-clinic/en/calls').send(PHONE_BODY);
+      await agent.post('/talk/demo-clinic/en/calls').send(PHONE_BODY);
+      const afterTwo = await agent.get('/talk/demo-clinic/en');
+      const bypass = await request(app()).get(`/talk/demo-clinic/en?key=${BYPASS_KEY}`);
+
+      expect(fresh.text).toContain('4 of 4 demo calls remaining');
+      expect(afterTwo.text).toContain('2 of 4 demo calls remaining');
+      expect(bypass.text).not.toContain('demo calls remaining');
     });
 
     test('blocks the 5th call once the cookie shows the cap already reached, with no cookie set', async () => {
@@ -207,7 +240,7 @@ describe('GET /talk', () => {
       const blocked = await agent.post('/talk/demo-clinic/ja/calls').send(PHONE_BODY);
 
       expect(blocked.status).toBe(429);
-      expect(blocked.body).toEqual({ status: 'error', error: 'rate_limited' });
+      expect(blocked.body).toEqual({ status: 'error', error: 'rate_limited', callsRemaining: 0 });
       expect(blocked.headers['set-cookie']).toBeUndefined();
     });
 
