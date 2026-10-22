@@ -124,6 +124,21 @@ const languageSettingsSchema = z.strictObject({
    * a re-sync of any other language can never pick it up by accident.
    */
   avoidRepeatedAcknowledgement: z.boolean().optional(),
+  /**
+   * Alternative wordings of the opening "how can I help you today?" sentence. A greeting script
+   * (`greeting`, `englishGreeting`, `returningGreeting`) puts it where `[[openingQuestion]]`
+   * appears. Saved assistants always speak the FIRST entry (so a `vapi:sync` never changes with
+   * the list's length); the /talk page picks one at random per call. Keep the meaning identical —
+   * only the wording varies. The recording / AI disclosures stay in the script, never in here.
+   */
+  openingQuestions: z.array(nonEmpty).min(1).optional(),
+  /**
+   * Extra wordings for the platform-spoken wait filler (`scripts.pleaseWait` is always one of
+   * them). Rendered as several `request-start` messages; Vapi speaks one of them at random on
+   * each tool call. They play before request_callback / check_availability / lookup_patient /
+   * book_appointment alike, so keep them neutral — nothing that claims to be "checking".
+   */
+  pleaseWaitVariants: z.array(nonEmpty).min(1).optional(),
 });
 
 const languagesSchema = z.strictObject({

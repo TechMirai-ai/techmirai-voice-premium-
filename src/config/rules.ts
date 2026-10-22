@@ -18,7 +18,22 @@ export const CALLER_PLACEHOLDERS = ['callerName', 'reservationNumber'] as const;
 /** The scripts that may use a caller placeholder — everywhere else, it's a typo. */
 export const CALLER_PLACEHOLDER_SCRIPTS = ['confirmName', 'reservationSaved'] as const;
 
-export const ALLOWED_PLACEHOLDERS = [...CLINIC_PLACEHOLDERS, ...CALLER_PLACEHOLDERS] as const;
+/**
+ * The opening "how can I help?" sentence, chosen from `languages.settings.<code>.openingQuestions`.
+ * Only meaningful in the scripts a call opens with; elsewhere it is a typo.
+ */
+export const OPENING_PLACEHOLDER = 'openingQuestion';
+export const OPENING_PLACEHOLDER_SCRIPTS = [
+  'greeting',
+  'englishGreeting',
+  'returningGreeting',
+] as const;
+
+export const ALLOWED_PLACEHOLDERS = [
+  ...CLINIC_PLACEHOLDERS,
+  ...CALLER_PLACEHOLDERS,
+  OPENING_PLACEHOLDER,
+] as const;
 
 /** We use `[[name]]`, not `{{ name }}`, so we never collide with Vapi's own syntax. */
 const PLACEHOLDER_PATTERN = /\[\[([^\][]*)\]\]/g;
@@ -204,21 +219,52 @@ function placeholderIssues(config: ClientConfig): ConfigIssue[] {
   ]);
 
   const allowedPaths = CALLER_PLACEHOLDER_SCRIPTS.map((key) => `scripts.${key}`);
+  const openingPaths = OPENING_PLACEHOLDER_SCRIPTS.map((key) => `scripts.${key}`);
 
   return [...scriptBlocks, ...faqBlocks].flatMap(({ path, text }) =>
     Object.entries(text).flatMap(([code, value]) =>
-      checkPlaceholders(`${path}.${code}`, value, allowedPaths.includes(path)),
+      checkPlaceholders(`${path}.${code}`, value, {
+        allowCaller: allowedPaths.includes(path),
+        allowOpening: openingPaths.includes(path),
+        // The first entry is what a saved assistant speaks, so a script using the placeholder
+        // needs at least one — otherwise the literal "[[openingQuestion]]" would be spoken.
+        hasOpeningQuestions: (config.languages.settings[code]?.openingQuestions?.length ?? 0) > 0,
+      }),
     ),
   );
 }
 
-function checkPlaceholders(path: string, value: string, allowCaller: boolean): ConfigIssue[] {
+interface PlaceholderContext {
+  allowCaller: boolean;
+  allowOpening: boolean;
+  hasOpeningQuestions: boolean;
+}
+
+function checkPlaceholders(
+  path: string,
+  value: string,
+  context: PlaceholderContext,
+): ConfigIssue[] {
   const issues: ConfigIssue[] = [];
+  const { allowCaller } = context;
 
   for (const match of value.matchAll(PLACEHOLDER_PATTERN)) {
     const name = (match[1] ?? '').trim();
     const isCaller = (CALLER_PLACEHOLDERS as readonly string[]).includes(name);
     const isKnown = (ALLOWED_PLACEHOLDERS as readonly string[]).includes(name);
+
+    if (name === OPENING_PLACEHOLDER) {
+      if (!context.allowOpening) {
+        const scriptNames = OPENING_PLACEHOLDER_SCRIPTS.map((key) => `scripts.${key}`).join(', ');
+        issues.push({ path, message: `"[[${name}]]" is only allowed in ${scriptNames}` });
+      } else if (!context.hasOpeningQuestions) {
+        issues.push({
+          path,
+          message: `"[[${name}]]" needs a non-empty languages.settings.<language>.openingQuestions list`,
+        });
+      }
+      continue;
+    }
 
     if (!isKnown) {
       issues.push({

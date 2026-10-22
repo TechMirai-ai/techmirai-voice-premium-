@@ -165,9 +165,13 @@ function styleSection(config: ClientConfig): string {
         'natural — once per call, not routinely — for example "I\'m sorry to hear that." in ' +
         'English, or 例えば「それはご心配ですね」 in Japanese.',
     '- Say times and dates the way a person would, not as raw numbers or a written date format.',
-    "- Don't say you'll wait unless something is actually taking time — and if you do, use a " +
-      'formal phrase such as "One moment, please," never a casual one; in Japanese, use a polite ' +
-      'phrase such as 「少々お待ちくださいませ。」, never a casual one such as 「ちょっと待って」.',
+    "- Don't say you'll wait unless something is actually taking time. When you do, use a formal " +
+      'phrase and vary it — do not use identical wording twice in one call. In English, for example ' +
+      '"One moment, please," "Just a moment, please," or "One second, please," and, only when you are ' +
+      'really looking something up in that same turn, "Let me check that for you." In Japanese, for ' +
+      'example 「少々お待ちくださいませ。」, 「少々お待ちいただけますでしょうか。」, or, only when you are ' +
+      'really looking something up in that same turn, 「ただいま確認いたしますので、少々お待ちくださいませ。」. ' +
+      'Never a casual one such as "hang on" or 「ちょっと待って」.',
   ].join('\n');
 }
 

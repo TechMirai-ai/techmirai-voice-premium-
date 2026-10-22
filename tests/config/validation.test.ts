@@ -100,6 +100,22 @@ describe('client config validation', () => {
     expect(() => parse(sakura)).not.toThrow();
   });
 
+  test('allows [[openingQuestion]] only in the opening greetings, and only with openingQuestions configured', () => {
+    const outside = withChanges(sakura, (draft) => {
+      draft.scripts.goodbye.en = 'Goodbye. [[openingQuestion]]';
+    });
+    const missingList = withChanges(sakura, (draft) => {
+      delete draft.languages.settings.en.openingQuestions;
+    });
+
+    const outsideIssues = captureIssues(() => parse(outside)).issues;
+    const missingIssues = captureIssues(() => parse(missingList)).issues;
+
+    expect(issueAt(outsideIssues, 'scripts.goodbye.en')).toContain('scripts.greeting');
+    expect(issueAt(missingIssues, 'scripts.englishGreeting.en')).toContain('openingQuestions');
+    expect(() => parse(sakura)).not.toThrow();
+  });
+
   test('rejects [[reservationNumber]] outside scripts.reservationSaved', () => {
     const document = withChanges(sakura, (draft) => {
       draft.scripts.goodbye.en = 'Your number was [[reservationNumber]].';

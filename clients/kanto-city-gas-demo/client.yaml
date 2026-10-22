@@ -48,6 +48,21 @@ languages:
       # "Thank you very much", "That's all", "No, that's all, thank you", "Understood, thank you", "OK, thanks".
       callerDoneExamples: ["ありがとうございました", "以上です", "いえ、大丈夫です、ありがとうございます", "わかりました、ありがとうございました", "はい、結構です"]
       avoidRepeatedAcknowledgement: true
+      # Alternative wordings of the opening "how can I help?" sentence (see [[openingQuestion]] in the
+      # greetings below). The first is what the saved assistant says; /talk rotates per call.
+      # 本日はどのようなご用件でしょうか？ = "What can I help you with today?"; 本日はどういったご用件でしょうか？ =
+      # the same, a little softer; どのようなご用件でいらっしゃいますか？ = "What is your business?" (more formal).
+      # NEEDS NATIVE-SPEAKER REVIEW.
+      openingQuestions:
+        - 本日はどのようなご用件でしょうか？
+        - 本日はどういったご用件でしょうか？
+        - どのようなご用件でいらっしゃいますか？
+      # Extra wait lines beside scripts.pleaseWait (the platform picks one per tool call).
+      # 少々お待ちいただけますでしょうか = "Could you wait a moment?"; 恐れ入ります、少々お待ちくださいませ =
+      # "Sorry to trouble you, one moment please." NEEDS NATIVE-SPEAKER REVIEW.
+      pleaseWaitVariants:
+        - 少々お待ちいただけますでしょうか。
+        - 恐れ入ります、少々お待ちくださいませ。
     en:
       voice: { provider: cartesia, voiceId: e4d5f4c4-6601-4779-bee1-b3c14d629dc6 }
       transcriber: { provider: deepgram, model: nova-3, language: en }
@@ -56,6 +71,14 @@ languages:
       endCallPhrases: ["goodbye"]
       callerDoneExamples: ["Thank you very much", "That's all", "No, that's all, thank you", "Got it, thank you", "OK, thanks"]
       avoidRepeatedAcknowledgement: true
+      openingQuestions:
+        - How may I help you today?
+        - How can I help you today?
+        - What can I help you with today?
+      pleaseWaitVariants:
+        - Just a moment, please.
+        - One second, please.
+        - Please bear with me for a moment.
 
 callback:
   enabled: true
@@ -143,17 +166,17 @@ scripts:
   # Japanese assistant's first message (source doc §4, plus the recording notice every assistant
   # needs because recording is on — same wording as sakura's). NEEDS NATIVE-SPEAKER REVIEW.
   greeting:
-    en: Thank you for calling [[clinicName]] customer support. I'm Sakura, the AI receptionist. This call is recorded to improve our service. How may I help you today?
-    ja: お電話ありがとうございます。[[clinicName]]のお問い合わせ窓口でございます。AI受付のサクラがご案内いたします。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？
+    en: Thank you for calling [[clinicName]] customer support. I'm Sakura, the AI receptionist. This call is recorded to improve our service. [[openingQuestion]]
+    ja: お電話ありがとうございます。[[clinicName]]のお問い合わせ窓口でございます。AI受付のサクラがご案内いたします。サービス向上のため、この通話は録音されます。[[openingQuestion]]
   # English assistant's first message after the handoff (source doc §4's English greeting).
   englishGreeting:
-    en: Thank you for calling [[clinicName]] customer support. I'm Sakura, the AI receptionist. This call is recorded to improve our service. How may I help you today?
+    en: Thank you for calling [[clinicName]] customer support. I'm Sakura, the AI receptionist. This call is recorded to improve our service. [[openingQuestion]]
     ja: >-
       こんにちは。[[clinicName]]です。こちらは英語でご案内するAI受付でございます。ご用件をお聞かせください。
   # Opening line when the caller's number has called before (VP-15). Plain welcome-back only.
   returningGreeting:
-    en: Welcome back to [[clinicName]] customer support. This is Sakura, the AI receptionist. This call is recorded. How can I help you today?
-    ja: 再度のお電話ありがとうございます。[[clinicName]]のお問い合わせ窓口、AI受付のサクラでございます。この通話は録音されます。本日はどのようなご用件でしょうか？
+    en: Welcome back to [[clinicName]] customer support. This is Sakura, the AI receptionist. This call is recorded. [[openingQuestion]]
+    ja: 再度のお電話ありがとうございます。[[clinicName]]のお問い合わせ窓口、AI受付のサクラでございます。この通話は録音されます。[[openingQuestion]]
   handoffToJapanese:
     ja: 日本語で承ります。ご用件をお伺いいたします。
     en: "(Gloss for Jamal, not spoken: 'I will assist you in Japanese. Please tell me what you need.')"

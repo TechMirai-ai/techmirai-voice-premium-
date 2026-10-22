@@ -50,6 +50,29 @@ export function renderArrivalMessage(config: ClientConfig, language: string): st
   return fillClinicPlaceholders(config, language, pick(config.scripts[key], language));
 }
 
+/**
+ * What the assistant for `language` says first when a call starts directly with it: the full
+ * greeting for the default language, its arrival message for any other (render.ts makes the same
+ * choice for the saved `firstMessage`). `openingQuestion` swaps in another wording of the
+ * "how can I help?" sentence; omitted, it is the first configured one — i.e. the saved text.
+ */
+export function renderOpeningMessage(
+  config: ClientConfig,
+  language: string,
+  openingQuestion?: string,
+): string {
+  const key: ScriptKey =
+    language === config.languages.default
+      ? 'greeting'
+      : (ARRIVAL_SCRIPT_KEYS[language] ?? 'greeting');
+  return fillClinicPlaceholders(
+    config,
+    language,
+    pick(config.scripts[key], language),
+    openingQuestion === undefined ? {} : { openingQuestion },
+  );
+}
+
 /** The default language first (it starts the call), then the rest in `supported` order. */
 export function orderedLanguages(config: ClientConfig): string[] {
   const { default: defaultLanguage, supported } = config.languages;

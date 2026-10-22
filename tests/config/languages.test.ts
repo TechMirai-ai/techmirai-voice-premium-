@@ -28,6 +28,8 @@ function addThirdLanguage(draft: Record<string, any>): void {
     voice: { provider: 'azure', voiceId: 'pt-BR-FranciscaNeural' },
     transcriber: null,
     switchKeywords: ['Português'],
+    // The copied greetings contain [[openingQuestion]], which needs at least one wording.
+    openingQuestions: ['Como posso ajudar hoje?'],
   };
 
   draft.business.name[NEW_LANGUAGE] = 'Clínica Sakura';

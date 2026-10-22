@@ -457,6 +457,51 @@ better alternatives if not. **Status:** open, not yet reviewed.
 
 ---
 
+## Phrase variation — wait lines and the opening question (both clients, `ja` and `ja-return`)
+
+New Japanese wording so the assistant does not say the same sentence every call. Same wording in
+`sakura-seikotsuin` and `kanto-city-gas-demo`. **NEW, open, not yet reviewed.**
+
+**A. Wait line spoken by the platform before a tool runs** (`languages.settings.ja.pleaseWaitVariants`;
+the existing 「少々お待ちくださいませ。」 stays as the first option and Vapi picks one at random each time)
+
+1. > 少々お待ちいただけますでしょうか。
+
+   English meaning: "Could you please wait a moment?" (a request, slightly softer than the original).
+2. > 恐れ入ります、少々お待ちくださいませ。
+
+   English meaning: "Sorry to trouble you — one moment, please."
+
+**B. The opening question** (`languages.settings.ja.openingQuestions`; the first is the existing wording.
+On the `/talk` page one is picked at random per call and placed after the recording notice. For Sakura the
+booking question 「ご予約をご希望でしょうか？」 still follows it.)
+
+1. > 本日はどのようなご用件でしょうか？ (existing)
+
+   English meaning: "What can I help you with today?"
+2. > 本日はどういったご用件でしょうか？
+
+   English meaning: "What kind of matter is it today?" (a little softer).
+3. > どのようなご用件でいらっしゃいますか？
+
+   English meaning: "What is your business with us?" (more formal). Please check it does not sound
+   stiff when 「ご予約をご希望でしょうか？」 follows it, and that it reads fine without 「本日は」.
+
+**C. Example wording inside the system prompt** (the model may say these or similar; it is told to vary them
+and to use the third only when it is really looking something up)
+
+1. > 少々お待ちくださいませ。 / 少々お待ちいただけますでしょうか。
+
+   English meaning: "One moment, please." / "Could you wait a moment?"
+2. > ただいま確認いたしますので、少々お待ちくださいませ。
+
+   English meaning: "I will check right now, so please wait a moment." Never a casual 「ちょっと待って」 ("hang on a sec").
+
+Notes for the reviewer: please say whether each is natural, polite receptionist speech and suggest
+better alternatives. **Status:** open, not yet reviewed.
+
+---
+
 ## VP-19 — Kanto City Gas demo client (`clients/kanto-city-gas-demo/client.yaml`)
 
 Every line a caller can hear from the new gas-utility client, Japanese first and then what it means

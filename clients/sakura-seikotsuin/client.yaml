@@ -63,6 +63,21 @@ languages:
       # VP-10 rule, enabled for ja (and so ja-return, which uses the ja settings) in VP-17 after
       # real-call testing in VP-15/16.
       avoidRepeatedAcknowledgement: true
+      # Alternative wordings of the opening "how can I help?" sentence (see [[openingQuestion]] in the
+      # greetings below). The first is what the saved assistant says; /talk rotates per call.
+      # 本日はどのようなご用件でしょうか？ = "What can I help you with today?"; 本日はどういったご用件でしょうか？ =
+      # the same, a little softer; どのようなご用件でいらっしゃいますか？ = "What is your business?" (more formal).
+      # NEEDS NATIVE-SPEAKER REVIEW.
+      openingQuestions:
+        - 本日はどのようなご用件でしょうか？
+        - 本日はどういったご用件でしょうか？
+        - どのようなご用件でいらっしゃいますか？
+      # Extra wait lines beside scripts.pleaseWait (the platform picks one per tool call).
+      # 少々お待ちいただけますでしょうか = "Could you wait a moment?"; 恐れ入ります、少々お待ちくださいませ =
+      # "Sorry to trouble you, one moment please." NEEDS NATIVE-SPEAKER REVIEW.
+      pleaseWaitVariants:
+        - 少々お待ちいただけますでしょうか。
+        - 恐れ入ります、少々お待ちくださいませ。
     en:
       # Vendor-swap (VAPI-FACTS.md Vendor-swap R3): Cartesia voice "Jillian" (Happy Spirit), replacing Azure en-US-JennyNeural.
       voice: { provider: cartesia, voiceId: e4d5f4c4-6601-4779-bee1-b3c14d629dc6 }
@@ -77,6 +92,14 @@ languages:
       callerDoneExamples: ["Thank you very much", "That's all", "No, that's all, thank you", "Got it, thank you", "OK, thanks"]
       # VP-10: adds the "don't repeat an acknowledgement after a split utterance" prompt rule.
       avoidRepeatedAcknowledgement: true
+      openingQuestions:
+        - How may I assist you today?
+        - How can I help you today?
+        - What can I help you with today?
+      pleaseWaitVariants:
+        - Just a moment, please.
+        - One second, please.
+        - Please bear with me for a moment.
 
 callback:
   enabled: true
@@ -103,7 +126,7 @@ scripts:
     # `.ja` CHANGED (2026-10-12, VP-12): recording notice added before the question, so the question is
     # still the last thing the caller hears. サービス向上のため、この通話は録音されます = "This call is
     # recorded to improve our service." NEEDS NATIVE-SPEAKER REVIEW.
-    ja: お電話ありがとうございます。[[clinicName]]のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？
+    ja: お電話ありがとうございます。[[clinicName]]のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。[[openingQuestion]]ご予約をご希望でしょうか？
   # English assistant's first message after the handoff.
   englishGreeting:
     # `.en` CHANGED (content update, 2026-09-29): the project owner reversed the S-2 AI-disclosure
@@ -113,7 +136,7 @@ scripts:
     # whether the caller wants to book. [[clinicName]] resolves to the phonetic respelling (namePronunciation).
     # `.en` CHANGED (2026-10-12, VP-12): recording notice added before the question. Said again here (not
     # only in the Japanese opening) so a caller who switched to English hears it in their own language.
-    en: Thank you for calling [[clinicName]]. I am your AI receptionist, Jenny. This call is recorded to improve our service. How may I assist you today? Are you calling to make an appointment?
+    en: Thank you for calling [[clinicName]]. I am your AI receptionist, Jenny. This call is recorded to improve our service. [[openingQuestion]] Are you calling to make an appointment?
     ja: >-
       こんにちは。[[clinicName]]です。こちらは英語でご案内するAI受付でございます。ご用件をお聞かせください。
   # Opening line when the caller's phone number has called before (VP-15). Sent per call as a
@@ -123,8 +146,8 @@ scripts:
   # ja: 再度のお電話ありがとうございます = "Thank you for calling again" (the natural Japanese
   # clinic phrasing for "welcome back"; おかえりなさい would sound like a café, so it is not used).
   returningGreeting:
-    en: Welcome back to [[clinicName]]. This is Jenny, the AI receptionist. This call is recorded. How can I help you today?
-    ja: 再度のお電話ありがとうございます。[[clinicName]]のAI受付、ハルカでございます。この通話は録音されます。本日はどのようなご用件でしょうか？
+    en: Welcome back to [[clinicName]]. This is Jenny, the AI receptionist. This call is recorded. [[openingQuestion]]
+    ja: 再度のお電話ありがとうございます。[[clinicName]]のAI受付、ハルカでございます。この通話は録音されます。[[openingQuestion]]
   # Japanese assistant's first message when a caller is handed BACK to it from
   # the English assistant (VP-3). Only the assistant's own language is spoken
   # (.ja); .en is a gloss for the project owner's review, never spoken.

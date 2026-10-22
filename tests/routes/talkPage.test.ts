@@ -59,7 +59,7 @@ describe('GET /talk', () => {
     rmSync(repoRoot, { recursive: true, force: true });
   });
 
-  const app = (isProduction = false, stateRepoRoot: string = repoRoot) =>
+  const app = (isProduction = false, stateRepoRoot: string = repoRoot, random?: () => number) =>
     createApp({
       db: healthyDb,
       isProduction,
@@ -73,6 +73,7 @@ describe('GET /talk', () => {
         callLogs: priorCalls,
         clientsDir,
         repoRoot: stateRepoRoot,
+        ...(random ? { random } : {}),
       },
     });
 
@@ -194,6 +195,7 @@ describe('GET /talk', () => {
         maxDurationSeconds: 43200,
         callsRemaining: 3,
         variableValues: { callerPhone: NORMALISED_PHONE, priorCall: 'none' },
+        firstMessage: expect.stringContaining('録音されます'),
       });
       expect(response.headers['set-cookie']?.[0]).toContain('tmvp_talk_calls_demo-clinic=');
     });
@@ -339,9 +341,71 @@ describe('GET /talk', () => {
         }
       });
 
-      test('a new caller gets no firstMessage override (the saved greeting plays unchanged)', async () => {
-        const response = await request(app()).post('/talk/demo-clinic/ja/calls').send(PHONE_BODY);
-        expect(response.body).not.toHaveProperty('firstMessage');
+      test('a new caller gets a per-call greeting whose "how can I help?" wording is the randomly picked one, disclosures intact', async () => {
+        const first = await request(app(false, repoRoot, () => 0))
+          .post('/talk/demo-clinic/ja/calls')
+          .send(PHONE_BODY);
+        const last = await request(app(false, repoRoot, () => 0.999))
+          .post('/talk/demo-clinic/ja/calls')
+          .send(PHONE_BODY);
+        const en = await request(app(false, repoRoot, () => 0.5))
+          .post('/talk/demo-clinic/en/calls')
+          .send(PHONE_BODY);
+
+        expect(first.body.firstMessage).toContain('本日はどのようなご用件でしょうか？');
+        expect(last.body.firstMessage).toContain('どのようなご用件でいらっしゃいますか？');
+        expect(last.body.firstMessage).not.toContain('本日はどのようなご用件でしょうか？');
+        expect(en.body.firstMessage).toContain('How can I help you today?');
+        for (const body of [first.body, last.body, en.body]) {
+          expect(body.firstMessage).toMatch(/録音されます|recorded/);
+          expect(body.firstMessage).not.toContain('[[');
+        }
+      });
+
+      test('a returning caller also gets the rotated wording; a client with no variants sends no override for a new caller', async () => {
+        priorCalls.seed('demo-clinic', NORMALISED_PHONE, {
+          status: 'resolved_by_ai',
+          summary: 'x',
+          occurredAt: new Date(),
+        });
+        const returning = await request(app(false, repoRoot, () => 0.999))
+          .post('/talk/demo-clinic/en/calls')
+          .send(PHONE_BODY);
+        expect(returning.body.firstMessage).toContain('Welcome back to');
+        expect(returning.body.firstMessage).toContain('What can I help you with today?');
+
+        // Same client, but with a single wording configured: nothing to rotate.
+        const single = writeClientFixture(
+          'demo-clinic',
+          withChanges(readSakuraDocument(), (draft) => {
+            draft.clientId = 'demo-clinic';
+            draft.languages.settings.ja.openingQuestions = ['本日はどのようなご用件でしょうか？'];
+          }),
+        );
+        try {
+          const response = await request(
+            createApp({
+              db: healthyDb,
+              isProduction: false,
+              voice: buildVoiceApp().voiceOptions,
+              staff: buildStaffOptions(),
+              talk: {
+                publicKey: PUBLIC_KEY,
+                rateLimitSecret: RATE_LIMIT_SECRET,
+                bypassKey: BYPASS_KEY,
+                isProduction: false,
+                callLogs: new MemoryPriorCalls(),
+                clientsDir: single.clientsDir,
+                repoRoot,
+              },
+            }),
+          )
+            .post('/talk/demo-clinic/ja/calls')
+            .send(PHONE_BODY);
+          expect(response.body).not.toHaveProperty('firstMessage');
+        } finally {
+          single.cleanup();
+        }
       });
 
       test("a different number does not see someone else's call", async () => {

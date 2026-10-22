@@ -4,7 +4,7 @@
  * reservation flows and the emergency path all reuse. Lives apart from the template so the
  * template and the extra sections can both import it without importing each other.
  */
-import { CLINIC_PLACEHOLDERS } from '../config/rules.js';
+import { CLINIC_PLACEHOLDERS, OPENING_PLACEHOLDER } from '../config/rules.js';
 import type { ClientConfig, ScriptKey } from '../config/schema.js';
 import { BOOK_APPOINTMENT_FUNCTION_NAME } from './toolNames.js';
 
@@ -56,12 +56,19 @@ export function fillClinicPlaceholders(
   config: ClientConfig,
   language: string,
   text: string,
+  options: { openingQuestion?: string } = {},
 ): string {
   const values = new Map<string, string>([
     ['clinicName', spokenClinicName(config, language)],
     ['clinicPhone', config.business.phone.display],
     ['clinicAddress', pick(config.business.address, language)],
   ]);
+
+  // `[[openingQuestion]]` is the FIRST configured wording unless the caller picked another one
+  // (the /talk page does, per call). Absent list = left untouched; rules.ts rejects that config.
+  const openingQuestion =
+    options.openingQuestion ?? config.languages.settings[language]?.openingQuestions?.[0];
+  if (openingQuestion !== undefined) values.set(OPENING_PLACEHOLDER, openingQuestion);
 
   // CLINIC_PLACEHOLDERS is the schema's source of truth for this set; assert
   // against it so a placeholder added there can't silently go unfilled here.

@@ -82,6 +82,70 @@ describe('renderAssistant — Sakura fixture (ja)', () => {
     expect(startMessage?.content).toBe('少々お待ちくださいませ。');
   });
 
+  test.each([
+    ['ja', '少々お待ちくださいませ。', '恐れ入ります、少々お待ちくださいませ。'],
+    ['en', 'One moment, please.', 'One second, please.'],
+  ])(
+    'the %s tool sends scripts.pleaseWait AND its configured variants as separate request-start messages',
+    async (language, base, variant) => {
+      const config = loadClient(SAKURA_ID);
+      const faq = await knowledge.listFaq(SAKURA_ID);
+
+      const { tool } = renderAssistant(config, language, faq, OPTIONS);
+
+      const contents = (tool.messages ?? [])
+        .filter((message) => message.type === 'request-start')
+        .map((message) => message.content);
+      expect(contents[0]).toBe(base);
+      expect(contents).toContain(variant);
+      expect(contents.length).toBeGreaterThanOrEqual(3);
+      expect(new Set(contents).size).toBe(contents.length);
+    },
+  );
+
+  test('a client with no pleaseWaitVariants still sends exactly one request-start message', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+    const { pleaseWaitVariants: _removed, ...enSettings } = config.languages.settings.en!;
+    const plain = {
+      ...config,
+      languages: {
+        ...config.languages,
+        settings: { ...config.languages.settings, en: enSettings },
+      },
+    };
+
+    const { tool } = renderAssistant(plain, 'en', faq, OPTIONS);
+
+    expect(tool.messages?.filter((message) => message.type === 'request-start')).toHaveLength(1);
+  });
+
+  test('the saved greeting always uses the FIRST opening wording, never a literal placeholder', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    const ja = renderAssistant(config, 'ja', faq, OPTIONS).assistant.firstMessage;
+    const en = renderAssistant(config, 'en', faq, OPTIONS).assistant.firstMessage;
+
+    expect(ja).toContain('本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？');
+    expect(en).toContain('How may I assist you today? Are you calling to make an appointment?');
+    expect(`${ja}${en}`).not.toContain('[[');
+  });
+
+  test('the system prompt tells the model to vary its wait line, in both languages, and still forbids casual ones', async () => {
+    const config = loadClient(SAKURA_ID);
+    const faq = await knowledge.listFaq(SAKURA_ID);
+
+    for (const member of ['ja', 'en', 'ja-return']) {
+      const { assistant } = renderAssistant(config, member, faq, OPTIONS);
+      const prompt = assistant.model.messages[0]!.content;
+      expect(prompt).toContain('vary it — do not use identical wording twice in one call');
+      expect(prompt).toContain('"Just a moment, please,"');
+      expect(prompt).toContain('「少々お待ちいただけますでしょうか。」');
+      expect(prompt).toContain('「ちょっと待って」');
+    }
+  });
+
   test('assistant.endCallMessage speaks scripts.goodbye with clinic placeholders substituted', async () => {
     const config = loadClient(SAKURA_ID);
     const faq = await knowledge.listFaq(SAKURA_ID);

@@ -30,7 +30,7 @@ import {
   PRIOR_CALL_VARIABLE,
   formatPriorCall,
 } from '../vapi/callVariables.js';
-import { assistantResourceName } from '../vapi/squad.js';
+import { assistantResourceName, renderOpeningMessage } from '../vapi/squad.js';
 import { readState } from '../vapi/stateStore.js';
 import { renderTalkBootstrapScript, renderTalkPage } from '../vapi/talkPage.js';
 
@@ -47,6 +47,8 @@ export interface TalkRouterOptions {
   isProduction: boolean;
   /** Returning-caller lookup (VP-15): the caller's most recent earlier call, by phone number. */
   callLogs: PriorCallReader;
+  /** Random source for the opening-line rotation; tests pass a fixed one. Defaults to Math.random. */
+  random?: () => number;
   /** Overrides for tests: where the client configs / Vapi state files are resolved from. */
   clientsDir?: string;
   repoRoot?: string;
@@ -87,6 +89,20 @@ function clinicNameOf(config: ClientConfig, language: string): string {
     throw new Error(`business.name missing "${language}" despite passing validation — config bug`);
   }
   return name;
+}
+
+/**
+ * One of the language's configured "how can I help?" wordings, chosen at random. Undefined when
+ * there is nothing to rotate (fewer than two wordings), so such a client keeps its saved greeting.
+ */
+function pickOpeningQuestion(
+  config: ClientConfig,
+  language: string,
+  random: () => number,
+): string | undefined {
+  const questions = config.languages.settings[language]?.openingQuestions;
+  if (!questions || questions.length < 2) return undefined;
+  return questions[Math.min(questions.length - 1, Math.floor(random() * questions.length))];
 }
 
 function pagePath(clientId: string, language: string): string {
@@ -203,6 +219,23 @@ export function talkRouter(options: TalkRouterOptions): Router {
       }
       logger.info('returning-caller lookup', { clientId, isReturning: priorCall !== undefined });
 
+      const openingQuestion = pickOpeningQuestion(
+        resolved.config,
+        language,
+        options.random ?? Math.random,
+      );
+      const openingFill = openingQuestion === undefined ? {} : { openingQuestion };
+      const firstMessage = priorCall
+        ? fillClinicPlaceholders(
+            resolved.config,
+            language,
+            pick(resolved.config.scripts.returningGreeting, language),
+            openingFill,
+          )
+        : openingQuestion === undefined
+          ? undefined
+          : renderOpeningMessage(resolved.config, language, openingQuestion);
+
       res.json({
         assistantId: resolved.assistantId,
         ...(decision.remaining !== undefined ? { callsRemaining: decision.remaining } : {}),
@@ -214,17 +247,11 @@ export function talkRouter(options: TalkRouterOptions): Router {
             resolved.config.business.hours.timezone,
           ),
         },
-        // A returning caller hears a plain welcome-back instead of the saved greeting. The saved
-        // greeting is spoken before the model runs, so only a firstMessage override can change it.
-        ...(priorCall
-          ? {
-              firstMessage: fillClinicPlaceholders(
-                resolved.config,
-                language,
-                pick(resolved.config.scripts.returningGreeting, language),
-              ),
-            }
-          : {}),
+        // A returning caller hears a plain welcome-back instead of the saved greeting, and every
+        // call can rotate the "how can I help?" wording. The greeting is spoken before the model
+        // runs, so only a firstMessage override can change it. No variants configured and a new
+        // caller = no override: the saved greeting plays exactly as synced.
+        ...(firstMessage !== undefined ? { firstMessage } : {}),
       });
     },
   );

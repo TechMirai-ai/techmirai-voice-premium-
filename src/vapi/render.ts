@@ -41,6 +41,7 @@ import type {
   VapiFunctionToolPayload,
   VapiHandoffToolPayload,
   VapiStartSpeakingPlan,
+  VapiToolMessage,
 } from './types.js';
 
 export class UnconfiguredTranscriberError extends Error {
@@ -255,9 +256,30 @@ function renderTopicTool(
 }
 
 /**
+ * Several `request-start` messages are variants of each other: Vapi speaks ONE of them, chosen
+ * each time the tool starts (live OpenAPI `ToolMessageStart`, VAPI-FACTS.md 2026-10-22), so a
+ * list here is what stops the wait line repeating verbatim.
+ */
+function requestStartMessagesOf(contents: string[]): VapiToolMessage[] {
+  return contents.map((content) => ({ type: 'request-start' as const, content }));
+}
+
+/**
+ * The wait lines for `language`: `scripts.pleaseWait` first, then any configured variants,
+ * clinic placeholders filled, duplicates dropped.
+ */
+function pleaseWaitMessagesFor(config: ClientConfig, language: string): string[] {
+  const variants = config.languages.settings[language]?.pleaseWaitVariants ?? [];
+  const lines = [pick(config.scripts.pleaseWait, language), ...variants].map((line) =>
+    fillClinicPlaceholders(config, language, line),
+  );
+  return [...new Set(lines)];
+}
+
+/**
  * VP-8: `check_availability`, `lookup_patient` and `book_appointment` — a plain function tool each.
- * `pleaseWaitMessage` (already language-filled — see `renderAssistant`) is their `request-start`
- * message: each is synchronous with real latency, so Vapi speaks its own default filler unless
+ * `pleaseWaitMessages` (already language-filled — see `renderAssistant`) are their `request-start`
+ * messages: each is synchronous with real latency, so Vapi speaks its own default filler unless
  * overridden — the real cause of the "chotto matte" bug (VAPI-FACTS.md, 2026-09-23 entry).
  */
 function renderReservationTools(
@@ -265,10 +287,10 @@ function renderReservationTools(
   baseUrl: string,
   credentialId: string,
   services: ReservationService[],
-  pleaseWaitMessage: string,
+  pleaseWaitMessages: string[],
 ): RenderedReservationTool[] {
   const serviceIds = services.map((service) => service.id);
-  const requestStartMessages = [{ type: 'request-start' as const, content: pleaseWaitMessage }];
+  const requestStartMessages = requestStartMessagesOf(pleaseWaitMessages);
   // VP-19: the `simple` booking flow has no returning-patient path, so no lookup tool and no
   // returning-patient wording in the booking tool.
   const isSimpleFlow = config.reservationFlow?.mode === 'simple';
@@ -408,11 +430,7 @@ export function renderAssistant(
     language,
     pick(config.scripts.callbackFailed, language),
   );
-  const pleaseWaitMessage = fillClinicPlaceholders(
-    config,
-    language,
-    pick(config.scripts.pleaseWait, language),
-  );
+  const pleaseWaitMessages = pleaseWaitMessagesFor(config, language);
   // The member that starts every call (its id equals the default language)
   // opens with the greeting. Every other member — including the "-return"
   // variant of the default language — is only ever reached by a handoff, so
@@ -444,7 +462,7 @@ export function renderAssistant(
       // request_callback is synchronous with real latency (a DB write), so
       // without this Vapi speaks its own default filler — the "chotto matte"
       // bug (VAPI-FACTS.md, 2026-09-23 entry).
-      { type: 'request-start', content: pleaseWaitMessage },
+      ...requestStartMessagesOf(pleaseWaitMessages),
       // Safety net per work order §4.4: spoken if the model doesn't produce a
       // timely response of its own after the tool call fails.
       { type: 'request-failed', content: failureMessage },
@@ -459,7 +477,7 @@ export function renderAssistant(
 
   const reservationTools =
     services.length > 0
-      ? renderReservationTools(config, baseUrl, options.credentialId, services, pleaseWaitMessage)
+      ? renderReservationTools(config, baseUrl, options.credentialId, services, pleaseWaitMessages)
       : [];
 
   const endCallPhrases = endCallPhrasesFor(config, language);
