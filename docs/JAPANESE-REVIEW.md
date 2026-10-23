@@ -643,6 +643,19 @@ English meaning: "Hello, can you hear me?" / "Is the call still connected?" / "A
 
 English meaning, in order: "Would you like to start gas service (開栓) or stop it (閉栓)?" / "What date and time would you prefer?" / "What is the address for the service, including the building name and room number?" / "Your appointment is booked." / "I'm sorry. We weren't able to complete your booking. I can look for another time, or arrange for our staff to contact you — would that be all right?"
 
+**Postal-code address lines (VP-20, `reservationFlow.postalCodeLookup`)** — new, not yet reviewed by a native speaker. The assistant now asks for the postal code, looks up the area, and only asks for the building and room. The older address question above is kept as the fallback.
+> 対象のご住所の郵便番号を、7桁の数字でお願いいたします。
+>
+> 郵便番号[[postalCode]]は、[[area]]でよろしいでしょうか。
+>
+> 建物名とお部屋番号をお願いいたします。ない場合は、その旨をお伝えください。
+>
+> 申し訳ございません、郵便番号から自動で確認することができませんでした。
+
+English meaning, in order: "What is the 7-digit postal code of the address for the service?" / "Postal code [[postalCode]] is [[area]] — is that right?" (the assistant fills in the code, e.g. 150-0002, and the area, e.g. 東京都渋谷区渋谷 = "Shibuya, Shibuya Ward, Tokyo") / "What are the building name and the room number? If there isn't one, just let me know." / "I'm sorry, I couldn't look that up automatically." (said right before the older address question is asked instead).
+
+Points for the reviewer: (1) is `郵便番号…は、…でよろしいでしょうか` natural when the area is a long name like 京都府京都市中京区上大阪町 ("Kamiōsakachō, Nakagyō Ward, Kyoto City, Kyoto Prefecture")? (2) is `ない場合は、その旨をお伝えください` ("if there is none, please let us know") the right register for a caller living in a house with no building name?
+
 ### The gas-smell script (`emergency.script`) — source document's placeholder wording
 
 > ガスのにおいがするとのことですね。安全に関わる可能性があるため、ガス会社が定めた緊急時のご案内に切り替えます。

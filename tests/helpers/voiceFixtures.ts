@@ -1,4 +1,8 @@
 /** Shared fixtures for the voice webhook tests: an app with in-memory doubles and Vapi envelopes. */
+import type {
+  PostalCodeLookup,
+  PostalCodeLookupResult,
+} from '../../src/address/postalCodeLookup.js';
 import { createApp } from '../../src/app.js';
 import type { Queryable } from '../../src/db/pool.js';
 import { FileKnowledgeSource } from '../../src/knowledge/KnowledgeSource.js';
@@ -104,6 +108,29 @@ export class MemoryReservationServices implements ReservationServiceRepository {
   }
 }
 
+/** VP-20: a postal-code lookup that answers a scripted result and records what it was asked. */
+export class MemoryPostalCodes implements PostalCodeLookup {
+  result: PostalCodeLookupResult = {
+    kind: 'found',
+    addresses: [
+      {
+        prefecture: '東京都',
+        city: '渋谷区',
+        town: '渋谷',
+        prefectureKana: 'トウキョウト',
+        cityKana: 'シブヤク',
+        townKana: 'シブヤ',
+      },
+    ],
+  };
+  readonly asked: string[] = [];
+
+  lookup(rawPostalCode: string): Promise<PostalCodeLookupResult> {
+    this.asked.push(rawPostalCode);
+    return Promise.resolve(this.result);
+  }
+}
+
 /** Knows one fake returning patient, 'ヤマダ タロウ'. */
 export class MemoryReservationPatients implements ReservationPatientRepository {
   patients: ReservationPatient[] = [{ name: 'ヤマダ タロウ' }];
@@ -162,6 +189,7 @@ export function buildVoiceApp(
   const services = new MemoryReservationServices();
   const patients = new MemoryReservationPatients();
   const appointments = new MemoryAppointments();
+  const postalCodes = new MemoryPostalCodes();
   const voiceOptions: VoiceRouterOptions = {
     webhookSecret: WEBHOOK_SECRET,
     resolver,
@@ -173,6 +201,7 @@ export function buildVoiceApp(
     services,
     patients,
     appointments,
+    postalCodes,
     ...(options.rateLimit ? { rateLimit: options.rateLimit } : {}),
     ...(options.archive ? { archive: options.archive } : {}),
     ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
@@ -200,6 +229,7 @@ export function buildVoiceApp(
     services,
     patients,
     appointments,
+    postalCodes,
     voiceOptions,
   };
 }

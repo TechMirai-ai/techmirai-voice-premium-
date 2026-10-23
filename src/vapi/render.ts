@@ -26,6 +26,7 @@ import {
   CHECK_AVAILABILITY_FUNCTION_NAME,
   LOG_CALL_TOPIC_FUNCTION_NAME,
   LOOKUP_PATIENT_FUNCTION_NAME,
+  LOOKUP_POSTAL_CODE_FUNCTION_NAME,
   REQUEST_CALLBACK_FUNCTION_NAME,
 } from './toolNames.js';
 import type { FaqEntry } from '../knowledge/KnowledgeSource.js';
@@ -109,7 +110,7 @@ export interface RenderedHandoffTool {
 
 /** One of the three VP-8 reservation tools. `key` is the state-file bookkeeping suffix (sync.ts). */
 export interface RenderedReservationTool {
-  key: 'check-availability' | 'lookup-patient' | 'book-appointment';
+  key: 'check-availability' | 'lookup-patient' | 'lookup-postal-code' | 'book-appointment';
   payload: VapiFunctionToolPayload;
 }
 
@@ -335,6 +336,29 @@ function renderReservationTools(
     messages: requestStartMessages,
   };
 
+  // VP-20: only for clients that configure the postal-code address flow.
+  const lookupPostalCode: VapiFunctionToolPayload = {
+    type: 'function',
+    function: {
+      name: LOOKUP_POSTAL_CODE_FUNCTION_NAME,
+      description:
+        'Looks up the prefecture, city and town for a Japanese postal code the caller gave and ' +
+        'confirmed digit by digit. Call it only after the caller said the digits were right.',
+      parameters: {
+        type: 'object',
+        properties: {
+          postalCode: {
+            type: 'string',
+            description: 'The confirmed 7-digit postal code, digits only (no hyphen).',
+          },
+        },
+        required: ['postalCode'],
+      },
+    },
+    server: { url: `${baseUrl}/api/voice/lookup-postal-code`, credentialId },
+    messages: requestStartMessages,
+  };
+
   const bookAppointment: VapiFunctionToolPayload = {
     type: 'function',
     function: {
@@ -380,6 +404,9 @@ function renderReservationTools(
   return [
     { key: 'check-availability', payload: checkAvailability },
     ...(isSimpleFlow ? [] : [{ key: 'lookup-patient' as const, payload: lookupPatient }]),
+    ...(config.reservationFlow?.postalCodeLookup
+      ? [{ key: 'lookup-postal-code' as const, payload: lookupPostalCode }]
+      : []),
     { key: 'book-appointment', payload: bookAppointment },
   ];
 }

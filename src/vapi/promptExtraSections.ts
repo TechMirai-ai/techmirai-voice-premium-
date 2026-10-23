@@ -21,6 +21,7 @@ import {
   CHECK_AVAILABILITY_FUNCTION_NAME,
   END_CALL_FUNCTION_NAME,
   LOG_CALL_TOPIC_FUNCTION_NAME,
+  LOOKUP_POSTAL_CODE_FUNCTION_NAME,
   REQUEST_CALLBACK_FUNCTION_NAME,
 } from './toolNames.js';
 
@@ -67,6 +68,50 @@ export function emergencySection(config: ClientConfig, language: string): string
 }
 
 /**
+ * VP-20: step 4 of the `simple` flow when the client configures `postalCodeLookup`: postal code,
+ * read back and confirmed digit by digit, looked up server-side, area confirmed, then only the
+ * building and room are free text. Any failure falls back to the spoken full address. Returns
+ * `undefined` when the client doesn't configure it, so the plain spoken-address step is kept.
+ */
+function postalCodeAddressInstructions(config: ClientConfig, language: string): string | undefined {
+  const flow = config.reservationFlow;
+  const lookup = flow?.postalCodeLookup;
+  if (!lookup || !flow.askServiceAddress) return undefined;
+
+  return [
+    'Collect the service address in these parts, each as its own turn:',
+    `(a) Ask for the postal code: "${pick(lookup.askPostalCode, language)}" Then read the seven ` +
+      'digits back one digit at a time, in the usual groups of three and four, and ask for an ' +
+      'explicit yes. If the caller says no or corrects you, take the corrected digits and read ' +
+      'them back again; never guess a digit.',
+    `(b) After a clear yes, call ${LOOKUP_POSTAL_CODE_FUNCTION_NAME} with the seven digits ` +
+      '(digits only, no hyphen). Never state or guess an area without calling it.',
+    `(c) If it returns an area, say: "${pick(lookup.confirmArea, language)}" — you fill ` +
+      '[[postalCode]] (as three digits, hyphen, four digits) and [[area]] (prefecture, city and ' +
+      'town, in the language of this call; use the readings the tool gives for the spoken form), ' +
+      'never speaking the placeholder text itself. If it lists several areas, offer them and ' +
+      'let the caller pick. Wait for an explicit yes. If the caller says it is wrong, ask for ' +
+      'the postal code once more and repeat (a)-(c); a second mismatch goes to (d).',
+    `(d) If ${LOOKUP_POSTAL_CODE_FUNCTION_NAME} returns an error, or the caller does not know ` +
+      `their postal code, or the area is wrong twice: say "${pick(lookup.lookupFailed, language)}" ` +
+      `and then ask "${pick(flow.askServiceAddress, language)}" and take the full spoken ` +
+      'address. Hear it clearly once; if speech recognition is uncertain, ask the caller to ' +
+      'repeat or spell the unclear part; never guess. Then skip (e) and (f). Never leave the ' +
+      'caller stuck and never end the booking because of a failed lookup.',
+    `(e) Otherwise ask: "${pick(lookup.askBuildingAndRoom, language)}" — only the building ` +
+      'name and room number are spoken; the prefecture, city and town come from the lookup and ' +
+      'are not asked again. Hear it clearly once; if speech recognition is uncertain, ask the ' +
+      'caller to repeat or spell the unclear part; never guess. If there is no building or ' +
+      'room, accept that.',
+    '(f) Say the complete address once, in one sentence, as: postal code, prefecture, city, ' +
+      'town, then building and room exactly as heard. Do not ask for another confirmation of it ' +
+      '(the caller can correct you if it is wrong), and go straight on to the next step in the ' +
+      'same turn. The address is not an argument of any tool; saying it aloud is what puts the ' +
+      'whole address in the call record.',
+  ].join('\n');
+}
+
+/**
  * The `simple` booking flow: no first-time / returning split and no record lookup — service, date
  * and time, availability, an optional address, name, then book. Used by clients whose callers are
  * not "patients" (VP-19: gas opening / closing visits). The address, when asked for, is not a tool
@@ -81,13 +126,13 @@ export function simpleReservationSection(
 
   const address = config.reservationFlow?.askServiceAddress;
   const noun = businessNoun(config);
+  const spokenAddressStep =
+    `Ask, as its own turn: "${address ? pick(address, language) : ''}" — hear it clearly once. ` +
+    'If speech recognition is uncertain, ask the caller to repeat or spell the unclear part; ' +
+    'never guess. Do not read the whole address back unless the caller asks. It is not an ' +
+    'argument of any tool; it is kept in the call record, so just make sure you heard it.';
   const addressStep = address
-    ? [
-        `4. Ask, as its own turn: "${pick(address, language)}" — hear it clearly once. If speech ` +
-          'recognition is uncertain, ask the caller to repeat or spell the unclear part; never ' +
-          'guess. Do not read the whole address back unless the caller asks. It is not an ' +
-          'argument of any tool; it is kept in the call record, so just make sure you heard it.',
-      ]
+    ? [`4. ${postalCodeAddressInstructions(config, language) ?? spokenAddressStep}`]
     : [];
   const nextStep = (offset: number): number => (address ? offset + 1 : offset);
 

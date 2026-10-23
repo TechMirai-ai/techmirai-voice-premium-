@@ -136,7 +136,7 @@ confirm with a real call before relying on it.
 - Account-specific billing, payment status, payment links or customer verification (no CRM / billing integration).
 - SMS (confirmations, payment links) and human call transfer (no telephony integration).
 - **Real emergency escalation for the gas-smell report — a production blocker, not just a nice-to-have.** Today it is a fixed script plus a callback flagged `SAFETY: …`; nothing is paged or dispatched, and the assistant gives no safety instructions of its own.
-- A structured service-address field on bookings (the address is asked by voice and reaches staff only through the call summary).
+- A structured service-address field on bookings (the address is asked by voice and reaches staff only through the call summary). VP-20 changed how it is collected, not where it goes: postal code → `lookup_postal_code` (zipcloud) → spoken building / room, still read aloud once in full so the summary captures it. When this field is built, the combined address is the value to store, and `lookup_postal_code`'s result already carries prefecture / city / town separately.
 - A two-tier BPO / utility tenant model (`client_id` plus `end_customer_id`), the source document's call-outcome status taxonomy, and per-client archive separation (the Google archive is still shared with sakura — VP-18 finding).
 **Why later:** The demo needs to show the receptionist, not a gas company's back office; each item needs an integration or a decision only a real utility can make.
 **Build when:** A real gas utility or BPO signs up. Emergency escalation must come first — before any live use, the utility must supply the approved emergency instructions, phone numbers, escalation recipients and failure procedure.

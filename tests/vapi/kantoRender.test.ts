@@ -91,11 +91,25 @@ describe('Kanto City Gas — prompt', () => {
     },
   );
 
-  test('asks for the service address by voice, and says it is not a tool argument', () => {
+  test('collects the address from a postal-code lookup, keeping the spoken address as the fallback (VP-20)', () => {
     const prompt = buildSystemPrompt(config, 'en', faq, SERVICES);
+    const flow = config.reservationFlow!;
+
+    expect(prompt).toContain(flow.postalCodeLookup!.askPostalCode['en']);
+    expect(prompt).toContain('call lookup_postal_code');
+    expect(prompt).toContain(flow.postalCodeLookup!.askBuildingAndRoom['en']);
+    expect(prompt).toContain(flow.postalCodeLookup!.lookupFailed['en']);
+    expect(prompt).toContain(flow.askServiceAddress!['en']);
+    expect(prompt).toContain('The address is not an argument of any tool');
+  });
+
+  test('without postalCodeLookup the plain spoken-address step is unchanged', () => {
+    const { postalCodeLookup: _removed, ...flow } = config.reservationFlow!;
+    const prompt = buildSystemPrompt({ ...config, reservationFlow: flow }, 'en', faq, SERVICES);
 
     expect(prompt).toContain(config.reservationFlow!.askServiceAddress!['en']);
     expect(prompt).toContain('It is not an argument of any tool');
+    expect(prompt).not.toContain('lookup_postal_code');
   });
 
   test('states what the assistant cannot do, so it falls back to a callback instead of claiming success', () => {
@@ -131,7 +145,7 @@ describe('Kanto City Gas — rendered assistants', () => {
     expect(assistant.name).toBe(`${KANTO_ID}--${memberId}`);
   });
 
-  test('booking tools are availability + booking only; no patient lookup, no returning-patient argument', () => {
+  test('booking tools are availability, postal-code lookup and booking; no patient lookup, no returning-patient argument', () => {
     const { reservationTools } = renderAssistant(config, 'ja', faq, OPTIONS);
     const book = reservationTools.find((tool) => tool.key === 'book-appointment')!.payload;
     const parameters = book.function.parameters as {
@@ -141,9 +155,12 @@ describe('Kanto City Gas — rendered assistants', () => {
 
     expect(reservationTools.map((tool) => tool.key)).toEqual([
       'check-availability',
+      'lookup-postal-code',
       'book-appointment',
     ]);
     expect(Object.keys(parameters.properties)).not.toContain('isReturningPatient');
+    // The address is never a booking argument (F-11): it reaches staff through the call summary.
+    expect(Object.keys(parameters.properties).join(',')).not.toMatch(/address|postal|building/i);
     expect(parameters.properties['serviceId']?.enum).toEqual([
       'kanto-gas-opening',
       'kanto-gas-closing',
@@ -157,7 +174,9 @@ describe('Kanto City Gas — rendered assistants', () => {
     expect(description).toContain(
       'MUST begin with exactly \\"SAFETY: caller reported possible gas smell/leak\\"',
     );
-    expect(description).toContain('include the address exactly as the caller said it');
+    expect(description).toContain(
+      'include the complete address — postal code, prefecture, city, town, then building and room',
+    );
     expect(description).toContain('customer-service staff');
   });
 

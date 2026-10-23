@@ -57,6 +57,8 @@ import { fileURLToPath } from 'node:url';
 import { loadClient } from '../config/loadClient.js';
 import { createPool } from '../db/pool.js';
 import { loadEnv } from '../env.js';
+import { lookupReply } from '../address/lookupReply.js';
+import { ZipcloudPostalCodeLookup, type PostalCodeLookup } from '../address/postalCodeLookup.js';
 import { FileKnowledgeSource } from '../knowledge/KnowledgeSource.js';
 import { DEMO_PLACEHOLDER_PHONE } from '../lib/demoCallerPhone.js';
 import { NO_PRIOR_CALL, PRIOR_CALL_VARIABLE } from './callVariables.js';
@@ -85,6 +87,7 @@ import {
   END_CALL_FUNCTION_NAME,
   LOG_CALL_TOPIC_FUNCTION_NAME,
   LOOKUP_PATIENT_FUNCTION_NAME,
+  LOOKUP_POSTAL_CODE_FUNCTION_NAME,
 } from './toolNames.js';
 import type { VapiFunctionDefinition, VapiHandoffDestination } from './types.js';
 
@@ -321,6 +324,8 @@ export interface ToolCallHandlerDeps {
   appointments?: AppointmentRepository;
   patients?: ReservationPatientRepository;
   services?: ReservationServiceRepository;
+  /** VP-20: defaults to the real (read-only, free) zipcloud lookup, same as a live call. */
+  postalCodes?: PostalCodeLookup;
   printLine: (text: string) => void;
 }
 
@@ -491,6 +496,16 @@ export async function handleToolCall(
 
   if (name === LOOKUP_PATIENT_FUNCTION_NAME) {
     return handleLookupPatient(call, deps);
+  }
+
+  if (name === LOOKUP_POSTAL_CODE_FUNCTION_NAME) {
+    const lookup = deps.postalCodes ?? new ZipcloudPostalCodeLookup();
+    const result = await lookup.lookup(asString(parseArgs(call).postalCode));
+    const reply = lookupReply(result);
+    return {
+      resultMessage: toolResult(call, reply.isError ? `Error: ${reply.text}` : reply.text),
+      ended: false,
+    };
   }
 
   if (name === BOOK_APPOINTMENT_FUNCTION_NAME) {

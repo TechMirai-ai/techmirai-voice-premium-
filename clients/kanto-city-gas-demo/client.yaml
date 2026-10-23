@@ -141,6 +141,22 @@ reservationFlow:
   askServiceAddress:
     en: What is the address for the service, including the building name and room number if there is one?
     ja: 対象のご住所を、建物名とお部屋番号も含めてお願いいたします。
+  # VP-20: the address is built from a postal-code lookup plus a spoken building / room. The
+  # question above is only the fallback when the lookup fails. [[postalCode]] and [[area]] are
+  # filled by the model from the caller's digits and the lookup result.
+  postalCodeLookup:
+    askPostalCode:
+      en: What is the 7-digit postal code of the address for the service?
+      ja: 対象のご住所の郵便番号を、7桁の数字でお願いいたします。
+    confirmArea:
+      en: Postal code [[postalCode]] is [[area]] — is that right?
+      ja: 郵便番号[[postalCode]]は、[[area]]でよろしいでしょうか。
+    askBuildingAndRoom:
+      en: What are the building name and the room number? If there isn't one, just let me know.
+      ja: 建物名とお部屋番号をお願いいたします。ない場合は、その旨をお伝えください。
+    lookupFailed:
+      en: I'm sorry, I couldn't look that up automatically.
+      ja: 申し訳ございません、郵便番号から自動で確認することができませんでした。
 
 # --- Gas smell / suspected leak (source doc §7). Prompt-script only: the assistant says this
 # wording, records a callback flagged with callbackReason (status needs_callback, summary starts with

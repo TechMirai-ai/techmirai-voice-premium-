@@ -194,6 +194,24 @@ const reservationFlowSchema = z.strictObject({
    * call summary the staff dashboard shows beside the reservation (VP-19 decision).
    */
   askServiceAddress: localizedTextSchema.optional(),
+  /**
+   * `simple` mode with `askServiceAddress` only (VP-20). Replaces the one free-text address
+   * question with: postal code → `lookup_postal_code` → confirm the area → building and room.
+   * `askServiceAddress` stays as the fallback when the lookup fails. Still no tool argument and
+   * no column: the combined address reaches staff through the call summary.
+   */
+  postalCodeLookup: z
+    .strictObject({
+      /** Asks for the 7-digit postal code. */
+      askPostalCode: localizedTextSchema,
+      /** Reads the looked-up area back; the model fills [[postalCode]] and [[area]]. */
+      confirmArea: localizedTextSchema,
+      /** Asks only for the building name and room / unit number. */
+      askBuildingAndRoom: localizedTextSchema,
+      /** Said when the lookup fails, right before `askServiceAddress` is asked instead. */
+      lookupFailed: localizedTextSchema,
+    })
+    .optional(),
 });
 
 /**

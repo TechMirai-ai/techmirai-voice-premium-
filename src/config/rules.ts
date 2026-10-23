@@ -61,13 +61,23 @@ export function collectCrossFieldIssues(
 /** The service-address question belongs to the `simple` booking flow only (VP-19). */
 function reservationFlowIssues(config: ClientConfig): ConfigIssue[] {
   const flow = config.reservationFlow;
-  if (!flow?.askServiceAddress || flow.mode === 'simple') return [];
-  return [
-    {
+  const issues: ConfigIssue[] = [];
+  if (flow?.askServiceAddress && flow.mode !== 'simple') {
+    issues.push({
       path: 'reservationFlow.askServiceAddress',
       message: 'is only used by the "simple" booking flow — set reservationFlow.mode to "simple"',
-    },
-  ];
+    });
+  }
+  // VP-20: the spoken-address question is the fallback when a postal-code lookup fails.
+  if (flow?.postalCodeLookup && (flow.mode !== 'simple' || !flow.askServiceAddress)) {
+    issues.push({
+      path: 'reservationFlow.postalCodeLookup',
+      message:
+        'needs the "simple" booking flow and reservationFlow.askServiceAddress (the fallback ' +
+        'asked when a lookup fails)',
+    });
+  }
+  return issues;
 }
 
 /** Unknown top-level keys are tolerated so new sections can be added (F-4). */
@@ -179,6 +189,10 @@ function localizedBlocks(config: ClientConfig): LocalizedBlock[] {
           },
         ]
       : []),
+    ...Object.entries(config.reservationFlow?.postalCodeLookup ?? {}).map(([key, text]) => ({
+      path: `reservationFlow.postalCodeLookup.${key}`,
+      text,
+    })),
     ...config.faq.flatMap((entry, index) => [
       { path: `faq[${index}].question`, text: entry.question },
       { path: `faq[${index}].answer`, text: entry.answer },

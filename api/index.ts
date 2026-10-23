@@ -10,6 +10,7 @@ import connectPgSimple from 'connect-pg-simple';
 import session from 'express-session';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
+import { ZipcloudPostalCodeLookup } from '../src/address/postalCodeLookup.js';
 import { createApp } from '../src/app.js';
 import { clinicTimeZoneLookup } from '../src/config/clinicTimeZone.js';
 import { createPool } from '../src/db/pool.js';
@@ -53,6 +54,8 @@ const app = createApp({
     appointments: new PgAppointmentRepository(pool),
     patients: new PgReservationPatientRepository(pool),
     services: new PgReservationServiceRepository(pool),
+    // VP-20: postal code → prefecture / city / town for clients that collect a service address.
+    postalCodes: new ZipcloudPostalCodeLookup(),
   },
   ...(archive ? { archiveRetry: archive.retry } : {}),
   staff: {

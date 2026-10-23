@@ -9,6 +9,7 @@ import { callTopicRouter, type CallTopicRouteDeps } from './callTopic.js';
 import { checkAvailabilityRouter, type CheckAvailabilityRouteDeps } from './checkAvailability.js';
 import { endOfCallReportRouter, type EndOfCallReportRouteDeps } from './endOfCallReport.js';
 import { lookupPatientRouter, type LookupPatientRouteDeps } from './lookupPatient.js';
+import { lookupPostalCodeRouter, type LookupPostalCodeRouteDeps } from './lookupPostalCode.js';
 import { silenceEndRouter, type SilenceEndRouteDeps } from './silenceEnd.js';
 
 export const VOICE_API_PREFIX = '/api/voice';
@@ -31,6 +32,7 @@ export interface VoiceRouterOptions
     // TypeScript merges identical-type members across intersected interfaces without conflict.
     BookAppointmentRouteDeps,
     LookupPatientRouteDeps,
+    LookupPostalCodeRouteDeps,
     SilenceEndRouteDeps {
   webhookSecret: string;
   rateLimit?: RateLimitOptions;
@@ -48,6 +50,7 @@ export function voiceRouter(options: VoiceRouterOptions): Router {
   router.use(endOfCallReportRouter(options));
   router.use(checkAvailabilityRouter(options));
   router.use(lookupPatientRouter(options));
+  router.use(lookupPostalCodeRouter(options));
   router.use(bookAppointmentRouter(options));
   router.use(silenceEndRouter(options));
 

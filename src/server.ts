@@ -10,6 +10,7 @@ import { EnvError, isProduction, loadEnv } from './env.js';
 import { LoggingNotifier } from './lib/callbackNotifier.js';
 import { logger } from './lib/logger.js';
 import { FileKnowledgeSource } from './knowledge/KnowledgeSource.js';
+import { ZipcloudPostalCodeLookup } from './address/postalCodeLookup.js';
 import { PgAppointmentRepository } from './repositories/appointmentRepository.js';
 import { PgCallbackRequestRepository } from './repositories/callbackRequestRepository.js';
 import { PgCallLogRepository } from './repositories/callLogRepository.js';
@@ -52,6 +53,8 @@ const app = createApp({
     appointments: new PgAppointmentRepository(pool),
     patients: new PgReservationPatientRepository(pool),
     services: new PgReservationServiceRepository(pool),
+    // VP-20: postal code → prefecture / city / town for clients that collect a service address.
+    postalCodes: new ZipcloudPostalCodeLookup(),
   },
   ...(archive ? { archiveRetry: archive.retry } : {}),
   staff: {

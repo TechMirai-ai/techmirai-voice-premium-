@@ -7,5 +7,7 @@ export const END_CALL_FUNCTION_NAME = 'endCall';
 export const CHECK_AVAILABILITY_FUNCTION_NAME = 'check_availability';
 export const LOOKUP_PATIENT_FUNCTION_NAME = 'lookup_patient';
 export const BOOK_APPOINTMENT_FUNCTION_NAME = 'book_appointment';
+/** VP-20: postal code → prefecture / city / town, for clients that collect a service address. */
+export const LOOKUP_POSTAL_CODE_FUNCTION_NAME = 'lookup_postal_code';
 /** VP-16: the silence-escalation hook's tool — speaks the ending announcement and hangs up via Live Call Control. */
 export const SILENCE_END_CALL_FUNCTION_NAME = 'silence_end_call';

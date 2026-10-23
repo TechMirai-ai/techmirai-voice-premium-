@@ -106,6 +106,50 @@ describe('reservationFlow', () => {
   });
 });
 
+describe('reservationFlow.postalCodeLookup (VP-20)', () => {
+  const line = { ja: '日本語', en: 'English' };
+  const postalCodeLookup = {
+    askPostalCode: line,
+    confirmArea: line,
+    askBuildingAndRoom: line,
+    lookupFailed: line,
+  };
+
+  test('accepts the postal-code flow with the spoken address as its fallback', () => {
+    const document = withChanges(sakura, (draft) => {
+      draft.reservationFlow = { mode: 'simple', askServiceAddress: line, postalCodeLookup };
+    });
+
+    expect(parse(document).config.reservationFlow?.postalCodeLookup).toEqual(postalCodeLookup);
+  });
+
+  test('rejects it without the fallback address question', () => {
+    const document = withChanges(sakura, (draft) => {
+      draft.reservationFlow = { mode: 'simple', postalCodeLookup };
+    });
+
+    const { issues } = captureIssues(() => parse(document));
+
+    expect(issueAt(issues, 'reservationFlow.postalCodeLookup')).toMatch(/askServiceAddress/);
+  });
+
+  test('requires every line in every supported language', () => {
+    const document = withChanges(sakura, (draft) => {
+      draft.reservationFlow = {
+        mode: 'simple',
+        askServiceAddress: line,
+        postalCodeLookup: { ...postalCodeLookup, lookupFailed: { ja: '日本語' } },
+      };
+    });
+
+    const { issues } = captureIssues(() => parse(document));
+
+    expect(issueAt(issues, 'reservationFlow.postalCodeLookup.lookupFailed.en')).toMatch(
+      /missing text/i,
+    );
+  });
+});
+
 describe('emergency', () => {
   test('accepts a complete emergency block', () => {
     const document = withChanges(sakura, (draft) => {

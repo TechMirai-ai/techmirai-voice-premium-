@@ -50,11 +50,17 @@ function summaryExtras(config: ClientConfig): string {
       `"${config.emergency.callbackReason}" and then continue as usual — staff rely on that prefix ` +
       'to spot a safety report.'
     : '';
-  const address = config.reservationFlow?.askServiceAddress
-    ? ' If the caller gave a service address for a booking, include the address exactly as the ' +
-      'caller said it, together with the service and the booked date and time — staff have no ' +
-      'other record of it.'
-    : '';
+  const address = config.reservationFlow?.postalCodeLookup
+    ? ' If a service address was given for a booking, include the complete address — postal ' +
+      'code, prefecture, city, town, then building and room — exactly as the assistant read it ' +
+      'back in the conversation (or as the caller said it, if it was not read back), with any ' +
+      'correction the caller made, together with the ' +
+      'service and the booked date and time — staff have no other record of it.'
+    : config.reservationFlow?.askServiceAddress
+      ? ' If the caller gave a service address for a booking, include the address exactly as the ' +
+        'caller said it, together with the service and the booked date and time — staff have no ' +
+        'other record of it.'
+      : '';
   return `${safety}${address}`;
 }
 
