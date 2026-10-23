@@ -16,7 +16,8 @@
     "kanto-city-gas-demo--ja-return--check-availability": "93f712ef-2a75-4985-a265-c4c62efeea2c",
     "kanto-city-gas-demo--ja-return--book-appointment": "b543cb3e-83ba-479a-a232-3a75fe89ebfc",
     "kanto-city-gas-demo--ja--lookup-postal-code": "d3f1bf7a-b83d-45c3-9601-cc604edc6c3a",
-    "kanto-city-gas-demo--en--lookup-postal-code": "c383ea15-b29c-42fc-bb52-0e3a5e9856b2"
+    "kanto-city-gas-demo--en--lookup-postal-code": "c383ea15-b29c-42fc-bb52-0e3a5e9856b2",
+    "kanto-city-gas-demo--ja-return--lookup-postal-code": "d1d167f8-f0da-45eb-a770-e23ebd37427a"
   },
   "assistants": {
     "kanto-city-gas-demo--ja": "ff817bb4-b78c-4db3-b750-096964153f02",
