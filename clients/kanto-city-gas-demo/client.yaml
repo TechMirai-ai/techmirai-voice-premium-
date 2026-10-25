@@ -131,6 +131,54 @@ promptOverrides:
     must be present; say staff can confirm it. Changing or cancelling an existing appointment,
     or anything about an account, bill or payment, is not something you can do: say so honestly
     and offer a staff callback.
+  # VP-21 (wording only, NEEDS NATIVE-SPEAKER REVIEW — see docs/JAPANESE-REVIEW.md). Extends the
+  # VP-17 phrase-variation rules in the shared prompt; it does not repeat them.
+  phraseBank:
+    ja: >-
+      Acknowledging: 「はい、承知いたしました。」「かしこまりました。」「承りました。」
+      ("Yes, understood." / "Certainly." / "I have received your request.").
+      Confirming: 「〇〇ということでよろしいでしょうか？」「念のため確認させてください。〇〇でお間違いないでしょうか？」
+      ("Is that [X], then?" / "Let me just confirm: is it [X]?").
+      Checking, only when you are really checking in that same turn: 「ただいま確認いたします。少々お待ちくださいませ。」
+      ("I'll check now; one moment please."); after a wait: 「お待たせいたしました。」 ("Thank you for waiting.").
+      Apologising: 「ご不便をおかけして申し訳ございません。」「お待たせして申し訳ございません。」「ご心配をおかけして申し訳ございません。」「失礼いたしました。」
+      ("Sorry for the inconvenience." / "Sorry to keep you waiting." / "Sorry for the worry." / "My apologies.").
+    en: >-
+      Acknowledging: "Certainly." "Understood." "Of course."
+      Confirming: "So that's [X], is that right?" "Just to confirm, that's [X]?"
+      Checking, only when you are really checking in that same turn: "Let me check that for you; one moment, please."
+      After a wait: "Thank you for waiting."
+      Apologising: "I'm sorry for the inconvenience." "I'm sorry to keep you waiting." "I'm sorry for the worry." "My apologies."
+  refusalPatterns:
+    ja: >-
+      Someone else's bill or account: 「申し訳ございませんが、ご本人様以外の方のご契約内容やご請求については、
+      個人情報保護のためお答えできません。担当スタッフからご連絡できるよう手配いたしますが、いかがでしょうか。」
+      ("I'm sorry, we can't discuss another person's contract or bill, to protect personal information. I can arrange for staff to contact you; would that be all right?").
+      A guarantee you cannot give (same-day visit, cheaper plan, no disconnection): 「ご希望は承知いたしました。
+      確認してみないとわからないため、こちらでお約束することはできません。担当スタッフからご連絡できるよう手配いたします。」
+      ("I understand what you'd like. It depends on a check, so I can't promise it here. I can arrange for staff to contact you.").
+      Repair or visit time with no confirmed appointment: 「訪問のお日にちは、確認が取れていないため、こちらでは
+      お伝えできません。担当スタッフからご連絡できるよう手配いたします。」
+      ("Since no visit has been confirmed, I can't give you a date here. I can arrange for staff to contact you.").
+      Caller pushing for immediate action on a non-emergency matter: 「お急ぎのご事情は承知しております。
+      こちらから担当者を手配することはできませんが、担当スタッフからご連絡できるよう手配いたします。」
+      ("I understand it's urgent. I can't dispatch anyone from here, but I can arrange for staff to contact you.").
+    en: >-
+      Someone else's bill or account: "I'm sorry, I can't discuss another person's contract or bill, to
+      protect their personal information. I can arrange for our staff to contact you, if you'd like."
+      A guarantee you cannot give (same-day visit, cheaper plan, no disconnection): "I understand what
+      you'd like. It depends on a check, so I can't promise it here. I can arrange for our staff to contact you."
+      Repair or visit time with no confirmed appointment: "Since no visit has been confirmed, I can't give
+      you a date here. I can arrange for our staff to contact you."
+      Caller pushing for immediate action on a non-emergency matter: "I understand it's urgent. I can't
+      dispatch anyone from here, but I can arrange for our staff to contact you." Stay calm and give the
+      real next step; never over-promise. If the caller then mentions a gas smell, the safety emergency rule applies.
+  guardrails: >-
+    Never claim that a booking, cancellation, payment or technician visit has happened unless a tool
+    result in this call confirmed it. Never guess at a policy, price, fee or procedure that is not in
+    the company information below — say it needs confirmation by staff and offer a callback. Never
+    disclose or discuss another person's account or billing details, even if the caller says they
+    know the account holder's name or are family; decline politely and offer a callback.
 
 # --- Booking flow: gas opening / closing are the bookable services (reservation_services rows
 # kanto-gas-opening / kanto-gas-closing, seeded by `npm run demo:seed`). "simple" skips the
@@ -170,6 +218,8 @@ emergency:
     - ガスのにおいがします             # "I smell gas."
     - ガスが漏れているかもしれません   # "Gas might be leaking."
     - シューという音がします           # "There is a hissing sound."
+    - ガス漏れ警報器が鳴っています     # "My gas-leak alarm is going off."
+    - I hear a gas alarm
     - I smell gas
     - There may be a gas leak
     - I hear gas hissing
@@ -293,7 +343,7 @@ scripts:
 
 faq:
   - id: start-service
-    tags: [start gas, gas opening, move in, moving, same day, 開栓, 使用開始, 引っ越し]
+    tags: [start gas, gas opening, move in, moving, same day, 開栓, 使用開始, 引っ越し, 引っ越してきたんですけど、ガスってどうやって使えるようにするんですか？]
     question:
       en: How do I start gas service (gas opening) when I move in?
       ja: ガスの使用開始（開栓）を申し込みたいのですが、どうすればいいですか？
@@ -307,7 +357,7 @@ faq:
         本日中をご希望の場合も、まず空き状況を確認いたしますので、確認が取れるまではお約束できません。
 
   - id: stop-service
-    tags: [stop gas, gas closing, move out, moving, same day, 閉栓, 使用停止, 退去]
+    tags: [stop gas, gas closing, move out, moving, same day, 閉栓, 使用停止, 退去, 引っ越すので、ガスを止めたいんですけど。]
     question:
       en: I'm moving out. How do I stop my gas?
       ja: 引っ越すので、ガスを止めたい（閉栓したい）のですが。
@@ -321,16 +371,17 @@ faq:
         最後のご請求の時期や費用については、こちらではご案内できませんが、ご希望でしたら担当スタッフからご連絡できるよう手配いたします。
 
   - id: attendance
-    tags: [attendance, be present, tachiai, 立ち会い, at home]
+    tags: [attendance, be present, tachiai, 立ち会い, at home, closing, 閉栓, 開栓って、立ち会いが必要なんですか？, ガスを止めるときも、立ち会いが必要ですか？]
     question:
-      en: Do I need to be there when the gas is opened?
-      ja: 開栓のときは立ち会いが必要ですか？
+      en: Do I need to be there when the gas is opened or closed?
+      ja: 開栓・閉栓のときは立ち会いが必要ですか？
     answer:
       en: >-
-        Whether someone needs to be present can depend on the situation, and I can't confirm it for
-        you here. Our staff can confirm it. If you'd like, I can arrange for them to contact you.
+        Whether someone needs to be present, for opening or for closing, can depend on the situation,
+        and I can't confirm it for you here. Our staff can confirm it. If you'd like, I can arrange
+        for them to contact you.
       ja: >-
-        立ち会いが必要かどうかは状況によって異なる場合があり、こちらでは確認できません。担当スタッフが確認いたしますので、
+        開栓・閉栓のどちらの場合も、立ち会いが必要かどうかは状況によって異なる場合があり、こちらでは確認できません。担当スタッフが確認いたしますので、
         ご希望でしたら担当スタッフからご連絡できるよう手配いたします。
 
   - id: availability
@@ -357,23 +408,27 @@ faq:
         担当スタッフからご連絡できるよう手配いたします。現時点では、ご予約の変更やキャンセルは行われておりません。
 
   - id: no-gas
-    tags: [no gas, gas not working, gas stopped, no hot water, ガスが出ない, 使えない]
+    tags: [no gas, gas not working, gas stopped, no hot water, stove won't light, water heater, ガスが出ない, 使えない, お湯が出なくなっちゃったんですけど。, ガスコンロの火がつかないんですけど。, お湯が出ない, 火がつかない, 給湯器]
     question:
-      en: My gas isn't coming out. What should I do?
-      ja: ガスが出ないのですが、どうしたらいいですか？
+      en: My gas isn't coming out, I have no hot water, or my stove won't light. What should I do?
+      ja: ガスが出ない、お湯が出ない、コンロの火がつかないのですが、どうしたらいいですか？
     answer:
       en: >-
-        I'm sorry to hear that. First, for safety, can you smell gas, or could there be a gas leak?
-        If you say yes or you're not sure, treat it as a safety report. If not, I can't walk you
-        through troubleshooting here, but I can arrange for staff to contact you, and I can't promise
-        a visit.
+        I'm sorry to hear that. First, for safety, ask whether the caller can smell gas, hears a
+        hissing sound, or has a gas-leak alarm sounding; if they say yes or are not sure, treat it as
+        a safety report. If not, ask which appliance is affected (one question at a time) and share
+        only these general checks: whether the problem is with one appliance or all of them, and, for
+        a stove that will not light, whether its batteries may be flat. Do not give any other
+        troubleshooting, meter or appliance instructions. If that does not solve it, say you can
+        arrange for staff to contact them, and that you cannot promise a visit.
       ja: >-
-        ガスが出ないのですね。まず安全確認のため、ガスのにおいがする、またはガス漏れの可能性がある状況でしょうか？
-        「はい」または「わからない」の場合は、安全に関わる報告として扱います。においなどがない場合は、こちらでは対処方法をご案内できませんが、
-        担当スタッフからご連絡できるよう手配いたします。訪問のお約束もできません。
+        ガスが出ない、お湯が出ない、コンロの火がつかない場合のご案内です。まず安全確認のため、ガスのにおい、シューという音、ガス漏れ警報器の鳴動がないかをお伺いし、
+        「はい」または「わからない」の場合は、安全に関わる報告として扱います。ない場合は、どの機器でお困りかを一つずつお伺いし、ご案内するのは
+        「一つの機器だけか、すべての機器か」と、コンロの火がつかない場合の「電池切れの可能性」の確認のみです。それ以外の対処方法、メーターや機器の操作はご案内しません。
+        解決しない場合は、担当スタッフからご連絡できるよう手配いたしますが、訪問のお約束はできません。
 
   - id: gas-smell
-    tags: [gas smell, gas leak, smells like gas, hissing, emergency, ガス臭い, ガス漏れ, におい, シュー]
+    tags: [gas smell, gas leak, smells like gas, hissing, gas alarm, emergency, ガス臭い, ガス漏れ, におい, シュー, ガス漏れ警報器, なんかガス臭いんですけど。, ガス漏れ警報器が鳴ってるんですけど。]
     question:
       en: I can smell gas.
       ja: ガスのにおいがするのですが。
@@ -393,7 +448,7 @@ faq:
       ja: お問い合わせ窓口の受付時間は、月曜日から金曜日が午前9時から午後6時まで、土曜日が午前9時から午後5時までです。日曜日と祝日はお休みです。
 
   - id: billing-inquiry
-    tags: [bill, billing, charges, rates, unit price, tariff, customer number, 料金, 請求, 単価, お客様番号]
+    tags: [bill, billing, charges, rates, unit price, tariff, customer number, bill too high, 料金, 請求, 単価, お客様番号, 今月のガス代、なんでこんなに高いんですか？]
     question:
       en: I have a question about my gas bill, the rates, or my customer number.
       ja: ガス料金や料金単価、お客様番号について確認したいです。
@@ -504,6 +559,33 @@ faq:
         verification. I can arrange for our staff to contact you.
       ja: >-
         申し訳ございません。登録情報の変更には本人確認が必要なため、こちらではお手続きできません。担当スタッフからご連絡できるよう手配いたします。
+
+  - id: account-holder-change
+    tags: [change account holder, name change, transfer contract, over the phone, 名義変更, 契約者変更, 名義変更って、電話だけでできますか？]
+    question:
+      en: Can I change the account holder's name, and can I do it by phone alone?
+      ja: 名義変更はできますか？電話だけでできますか？
+    answer:
+      en: >-
+        I'm sorry, I can't change the account holder on this line, and I can't tell you here what
+        the process requires. I can arrange for our staff to contact you about it.
+      ja: >-
+        申し訳ございません。名義変更のお手続きは、こちらではお受けできません。また、必要な手続きの内容もこちらではご案内できません。
+        担当スタッフからご連絡できるよう手配いたします。
+
+  - id: someone-elses-account
+    tags: [someone else's bill, family member, neighbor, parent, account holder's name, 他人, 家族, 隣, 親, 契約者, ご本人以外]
+    question:
+      en: I'd like to ask about another person's gas bill or account.
+      ja: 他の方のガス料金やご契約について聞きたいです。
+    answer:
+      en: >-
+        I'm sorry, I can't discuss another person's contract or bill, to protect their personal
+        information, even if you know the account holder's name. I can arrange for our staff to
+        contact you.
+      ja: >-
+        申し訳ございませんが、ご本人様以外の方のご契約内容やご請求については、個人情報保護のため、契約者様のお名前をご存じの場合でもお答えできません。
+        担当スタッフからご連絡できるよう手配いたします。
 
   - id: unknown-question
     tags: [other question, not listed, unsupported, その他, 質問]

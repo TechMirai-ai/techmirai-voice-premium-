@@ -179,6 +179,18 @@ const promptOverridesSchema = z.strictObject({
   visitingOrBooking: nonEmpty.optional(),
   /** Who reads the call summary, for the call-outcome extraction ("clinic staff"). */
   staffLabel: nonEmpty.optional(),
+  /**
+   * VP-21. Stock call-centre phrases per language (acknowledging, confirming, checking, apologising),
+   * as one block of example wording for the model — a bank to draw on and vary, not scripts to recite.
+   */
+  phraseBank: localizedTextSchema.optional(),
+  /**
+   * VP-21. Wording patterns for requests that already end in a staff callback (someone else's
+   * account, guarantees, repair ETAs, "send someone now"), per language. No new behaviour.
+   */
+  refusalPatterns: localizedTextSchema.optional(),
+  /** VP-21. Explicit "never claim / never guess / never disclose" rules (English meta-instruction). */
+  guardrails: nonEmpty.optional(),
 });
 
 /**

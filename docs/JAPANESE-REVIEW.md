@@ -758,3 +758,29 @@ English meaning: "I'll look into it. If I can't give an accurate answer, I won't
 ### English wording to review (spoken by the English assistant)
 
 Same status. The English lines are in `client.yaml` under each script's and FAQ entry's `en` field; the ones callers hear most, and where the wording is a judgement call, are: the greeting (above), `Thank you. Our staff will be in touch.` (no promised time), `Your appointment is booked.` (no "details will be sent" claim), the gas-smell script (above) and the `change-cancel`, `payment-status` and `human-operator` FAQ answers, which tell the caller plainly what the assistant cannot do.
+
+## VP-21 — Kanto City Gas wording enrichment (`promptOverrides.phraseBank` / `refusalPatterns`, FAQ, `ja` and `ja-return`)
+
+All NEEDS NATIVE-SPEAKER REVIEW. `ja` and `ja-return` use the same text. The phrase bank and refusal patterns are example wording the model draws on, not fixed scripts, so it may adapt them.
+
+**Phrase bank**
+- 「はい、承知いたしました。」 ("Yes, understood."), 「かしこまりました。」 ("Certainly."), 「承りました。」 ("I have received your request.")
+- 「〇〇ということでよろしいでしょうか？」 ("Is that [X], then?"), 「念のため確認させてください。〇〇でお間違いないでしょうか？」 ("Let me just confirm: is it [X]?")
+- 「ただいま確認いたします。少々お待ちくださいませ。」 ("I'll check now; one moment please."), 「お待たせいたしました。」 ("Thank you for waiting.")
+- 「ご不便をおかけして申し訳ございません。」 ("Sorry for the inconvenience."), 「お待たせして申し訳ございません。」 ("Sorry to keep you waiting."), 「ご心配をおかけして申し訳ございません。」 ("Sorry for the worry."), 「失礼いたしました。」 ("My apologies.")
+
+**Refusal patterns**
+- Someone else's account: 「申し訳ございませんが、ご本人様以外の方のご契約内容やご請求については、個人情報保護のためお答えできません。担当スタッフからご連絡できるよう手配いたしますが、いかがでしょうか。」 ("I'm sorry, we can't discuss another person's contract or bill, to protect personal information. I can arrange for staff to contact you; would that be all right?")
+- Guarantee: 「ご希望は承知いたしました。確認してみないとわからないため、こちらでお約束することはできません。担当スタッフからご連絡できるよう手配いたします。」 ("I understand what you'd like. It depends on a check, so I can't promise it here. I can arrange for staff to contact you.")
+- Visit date with nothing confirmed: 「訪問のお日にちは、確認が取れていないため、こちらではお伝えできません。担当スタッフからご連絡できるよう手配いたします。」 ("Since no visit has been confirmed, I can't give you a date here. I can arrange for staff to contact you.")
+- Pushing for immediate action: 「お急ぎのご事情は承知しております。こちらから担当者を手配することはできませんが、担当スタッフからご連絡できるよう手配いたします。」 ("I understand it's urgent. I can't dispatch anyone from here, but I can arrange for staff to contact you.")
+
+**FAQ changes**
+- `attendance` now covers closing too: 開栓・閉栓のときは立ち会いが必要ですか？ ("Do I need to be there when the gas is opened or closed?")
+- `no-gas` answer is now real guidance (see below). Question: ガスが出ない、お湯が出ない、コンロの火がつかないのですが、どうしたらいいですか？ ("My gas isn't coming out, I have no hot water, or my stove won't light. What should I do?")
+- New `account-holder-change`: 名義変更はできますか？電話だけでできますか？ ("Can I change the account holder's name, and can I do it by phone alone?") → callback.
+- New `someone-elses-account`: 他の方のガス料金やご契約について聞きたいです。 ("I'd like to ask about another person's gas bill or account.") → declined, callback.
+- Caller-style phrasings added as tags, e.g. 「お湯が出なくなっちゃったんですけど。」 ("I've stopped getting hot water."), 「ガスコンロの火がつかないんですけど。」 ("My gas stove won't ignite."), 「今月のガス代、なんでこんなに高いんですか？」 ("Why is my gas bill so high this month?"), 「名義変更って、電話だけでできますか？」 ("Can I change the account holder's name entirely by phone?").
+- New emergency trigger: ガス漏れ警報器が鳴っています ("My gas-leak alarm is going off.")
+
+**Content to approve (demo assumption, not utility policy):** the `no-gas` answer lets the assistant share only two general checks, whether one appliance or all are affected and whether a stove's batteries may be flat. It gives no meter or appliance instructions. Remove them if the owner or the utility does not want even that.

@@ -68,6 +68,41 @@ export function emergencySection(config: ClientConfig, language: string): string
 }
 
 /**
+ * VP-21: call-centre wording and guardrails, from `promptOverrides.phraseBank` / `refusalPatterns` /
+ * `guardrails`. Wording only — it adds no tool and no behaviour; every refusal still ends in the
+ * existing staff-callback offer. Returns `[]` when none is set, so other clients are unchanged.
+ */
+export function callCenterWordingSection(config: ClientConfig, language: string): string[] {
+  const overrides = config.promptOverrides;
+  const phrases = overrides?.phraseBank ? pick(overrides.phraseBank, language) : '';
+  const refusals = overrides?.refusalPatterns ? pick(overrides.refusalPatterns, language) : '';
+  const guardrails = overrides?.guardrails;
+  if (!phrases && !refusals && !guardrails) return [];
+
+  return [
+    [
+      'Call-centre wording and guardrails:',
+      ...(phrases
+        ? [
+            'Phrase bank — draw on these when the situation fits, vary them, and never recite a ' +
+              `list or use the same one twice in a row: ${phrases}`,
+            '- Ask one question at a time. Never read a checklist of required details aloud — ask ' +
+              'for the next missing detail only.',
+          ]
+        : []),
+      ...(refusals
+        ? [
+            'Declining gracefully — for requests you cannot do, sound handled, not fumbled. ' +
+              'Adapt the wording to the call; each ends in the staff-callback offer. ' +
+              `Examples: ${refusals}`,
+          ]
+        : []),
+      ...(guardrails ? [`Guardrails: ${guardrails}`] : []),
+    ].join('\n'),
+  ];
+}
+
+/**
  * VP-20: step 4 of the `simple` flow when the client configures `postalCodeLookup`: postal code,
  * read back and confirmed digit by digit, looked up server-side, area confirmed, then only the
  * building and room are free text. Any failure falls back to the spoken full address. Returns

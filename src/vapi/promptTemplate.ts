@@ -14,7 +14,11 @@ import { allowedTopics } from '../lib/callTopics.js';
 import { PRIOR_CALL_VARIABLE } from './callVariables.js';
 import type { FaqEntry } from '../knowledge/KnowledgeSource.js';
 import type { ReservationService } from '../repositories/reservationServiceRepository.js';
-import { emergencySection, simpleReservationSection } from './promptExtraSections.js';
+import {
+  callCenterWordingSection,
+  emergencySection,
+  simpleReservationSection,
+} from './promptExtraSections.js';
 import {
   CONFIRMATION_ACK_INSTRUCTIONS,
   businessNoun,
@@ -622,6 +626,7 @@ export function buildSystemPrompt(
     identitySection(config, language),
     ...emergencySection(config, language),
     styleSection(config),
+    ...callCenterWordingSection(config, language),
     leadingSection(config, language),
     answeringSection(config, language),
     callbackSection(config, language),

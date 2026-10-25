@@ -138,6 +138,59 @@ describe('Kanto City Gas — prompt', () => {
   });
 });
 
+describe('Kanto City Gas — call-centre wording and guardrails (VP-21)', () => {
+  test.each(['ja', 'en'])(
+    '%s: has phrase bank, refusal patterns and guardrails once',
+    (language) => {
+      const prompt = buildSystemPrompt(config, language, faq, SERVICES);
+
+      expect(prompt.match(/Call-centre wording and guardrails:/g)).toHaveLength(1);
+      expect(prompt).toContain('Phrase bank');
+      expect(prompt).toContain('Declining gracefully');
+      expect(prompt).toContain(
+        'Never claim that a booking, cancellation, payment or technician visit',
+      );
+      expect(prompt).toContain("another person's account or billing details");
+    },
+  );
+
+  test('the Japanese prompt carries Japanese wording, the English one does not', () => {
+    expect(buildSystemPrompt(config, 'ja', faq, SERVICES)).toContain(
+      'かしこまりました。」「承りました',
+    );
+    expect(buildSystemPrompt(config, 'en', faq, SERVICES)).not.toContain(
+      'かしこまりました。」「承りました',
+    );
+  });
+
+  test('ja and ja-return share the same wording block', () => {
+    const block = (memberId: string): string => {
+      const prompt = renderAssistant(config, memberId, faq, OPTIONS).assistant.model.messages[0]!
+        .content;
+      const start = prompt.indexOf('Call-centre wording');
+      return prompt.slice(start, prompt.indexOf('\n\n', start));
+    };
+
+    expect(block('ja').length).toBeGreaterThan(100);
+    expect(block('ja')).toBe(block('ja-return'));
+  });
+
+  test('a client without the overrides gets no such section', async () => {
+    const sakura = loadClient(SAKURA_ID);
+    const sakuraFaq = await new FileKnowledgeSource().listFaq(SAKURA_ID);
+
+    expect(buildSystemPrompt(sakura, 'en', sakuraFaq, [])).not.toContain('Call-centre wording');
+  });
+
+  test('the new natural phrasings are recognition tags and the emergency triggers include the alarm', () => {
+    const tags = faq.flatMap((entry) => entry.tags).join('|');
+
+    expect(tags).toContain('お湯が出なくなっちゃったんですけど。');
+    expect(tags).toContain('ガス漏れ警報器が鳴ってるんですけど。');
+    expect(config.emergency?.triggers).toContain('ガス漏れ警報器が鳴っています');
+  });
+});
+
 describe('Kanto City Gas — rendered assistants', () => {
   test.each(['ja', 'en', 'ja-return'])('%s: renders under a client-prefixed name', (memberId) => {
     const { assistant } = renderAssistant(config, memberId, faq, OPTIONS);
