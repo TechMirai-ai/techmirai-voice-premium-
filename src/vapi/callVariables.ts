@@ -23,13 +23,23 @@ const NO_SUMMARY = '(none recorded)';
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-/** Normalised caller number for this call, or undefined when the call carries none. */
-export function callerPhoneFromCall(call: unknown): string | undefined {
-  if (!isRecord(call) || !isRecord(call.assistantOverrides)) return undefined;
-  const { variableValues } = call.assistantOverrides;
-  if (!isRecord(variableValues)) return undefined;
-  const entered = variableValues[CALLER_PHONE_VARIABLE];
+/** `overrides.variableValues[callerPhone]`, normalised — undefined for anything that isn't a string. */
+function enteredPhoneIn(overrides: unknown): string | undefined {
+  if (!isRecord(overrides) || !isRecord(overrides.variableValues)) return undefined;
+  const entered = overrides.variableValues[CALLER_PHONE_VARIABLE];
   return typeof entered === 'string' ? normalizeCallerPhone(entered) : undefined;
+}
+
+/**
+ * Normalised caller number for this call, or undefined when the call carries none. A call started
+ * from a single assistant records it under `assistantOverrides`; a call started from an inline
+ * squad (the /talk page's default-language start, VP-22) records it under
+ * `squad.membersOverrides` and leaves `assistantOverrides` null.
+ */
+export function callerPhoneFromCall(call: unknown): string | undefined {
+  if (!isRecord(call)) return undefined;
+  const squad = isRecord(call.squad) ? call.squad : undefined;
+  return enteredPhoneIn(call.assistantOverrides) ?? enteredPhoneIn(squad?.membersOverrides);
 }
 
 /** One line of prompt data describing the most recent earlier call (status + summary, no transcript). */

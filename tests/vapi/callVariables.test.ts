@@ -15,6 +15,24 @@ describe('callerPhoneFromCall', () => {
     ).toBe('09012345678');
   });
 
+  test('reads the number from an inline squad call, where Vapi records it under squad.membersOverrides (VP-22 spike)', () => {
+    expect(
+      callerPhoneFromCall({
+        assistantOverrides: null,
+        squad: { membersOverrides: { variableValues: { callerPhone: '090-1234-5678' } } },
+      }),
+    ).toBe('09012345678');
+  });
+
+  test('prefers the assistant-level number when a call somehow carries both', () => {
+    expect(
+      callerPhoneFromCall({
+        assistantOverrides: { variableValues: { callerPhone: '09011112222' } },
+        squad: { membersOverrides: { variableValues: { callerPhone: '09033334444' } } },
+      }),
+    ).toBe('09011112222');
+  });
+
   test('re-normalises, so a tampered or oddly formatted value cannot reach the database raw', () => {
     expect(
       callerPhoneFromCall({
@@ -32,6 +50,10 @@ describe('callerPhoneFromCall', () => {
     {},
     { assistantOverrides: {} },
     { assistantOverrides: { variableValues: { callerPhone: 5 } } },
+    { squad: {} },
+    { squad: { membersOverrides: {} } },
+    { squad: { membersOverrides: { variableValues: { callerPhone: 5 } } } },
+    { squad: 'not-an-object' },
   ])('is undefined when the call carries no number: %j', (call) => {
     expect(callerPhoneFromCall(call)).toBeUndefined();
   });

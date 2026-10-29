@@ -357,6 +357,27 @@ export interface VapiSquadPayload {
   members: VapiSquadMember[];
 }
 
+/** A member of the inline squad the /talk page starts a call with (VP-22). */
+export interface VapiTalkSquadMember extends VapiSquadMember {
+  /** Only ever set on `members[0]`: scopes the greeting to the starting assistant. */
+  assistantOverrides?: { firstMessage: string };
+}
+
+/**
+ * The transient squad object the /talk page hands `vapi.start(undefined, undefined, squad)`.
+ * Inline rather than a `squadId` because the web SDK has no `squadOverrides` argument, and the
+ * per-call values (caller number, prior-call line, duration) can only travel inside the squad
+ * itself — VAPI-FACTS.md, VP-22.
+ */
+export interface VapiTalkSquad {
+  name: string;
+  members: VapiTalkSquadMember[];
+  membersOverrides: {
+    maxDurationSeconds: number;
+    variableValues: Readonly<Record<string, string>>;
+  };
+}
+
 /** The only part of Vapi's create/update response this project reads. */
 export interface VapiCreatedResource {
   id: string;

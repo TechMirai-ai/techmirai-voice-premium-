@@ -10,8 +10,10 @@ import {
   renderArrivalMessage,
   renderHandoffTool,
   renderSquad,
+  renderTalkSquad,
   returnMemberId,
   squadMemberIds,
+  startsWithSquad,
 } from '../../src/vapi/squad.js';
 import { UnsupportedLanguageError } from '../../src/vapi/promptTemplate.js';
 import { SAKURA_ID } from '../helpers/clientFixtures.js';
@@ -158,6 +160,76 @@ describe('renderSquad', () => {
 
   test('throws when only ja-return is missing', () => {
     expect(() => renderSquad(config, { ja: 'ja-id', en: 'en-id' })).toThrow(/"ja-return"/);
+  });
+});
+
+describe('startsWithSquad (VP-22)', () => {
+  test('only the default language starts the whole squad; the other languages start their own assistant', () => {
+    expect(startsWithSquad(config, 'ja')).toBe(true);
+    expect(startsWithSquad(config, 'en')).toBe(false);
+  });
+
+  test("is decided by the client's configured default, never by a hard-coded language code", () => {
+    const englishFirst = { ...config, languages: { ...config.languages, default: 'en' } };
+
+    expect(startsWithSquad(englishFirst, 'en')).toBe(true);
+    expect(startsWithSquad(englishFirst, 'ja')).toBe(false);
+  });
+
+  test('a single-language client has nothing to hand off to, so it never starts a squad', () => {
+    const french = buildMinimalConfig({ language: 'fr' });
+
+    expect(startsWithSquad(french, 'fr')).toBe(false);
+  });
+});
+
+describe('renderTalkSquad (VP-22)', () => {
+  const ids = { ja: 'ja-id', en: 'en-id', 'ja-return': 'ja-return-id' };
+  const values = { callerPhone: '09012345678', priorCall: 'none' };
+
+  test('puts the greeting on the starting member only, and the call-wide values on membersOverrides', () => {
+    const squad = renderTalkSquad(config, ids, {
+      maxDurationSeconds: 600,
+      variableValues: values,
+      firstMessage: 'greeting',
+    });
+
+    expect(squad).toEqual({
+      name: 'sakura-seikotsuin--squad',
+      members: [
+        { assistantId: 'ja-id', assistantOverrides: { firstMessage: 'greeting' } },
+        { assistantId: 'en-id' },
+        { assistantId: 'ja-return-id' },
+      ],
+      membersOverrides: { maxDurationSeconds: 600, variableValues: values },
+    });
+  });
+
+  test('without a greeting, no member carries an override (the saved greeting plays)', () => {
+    const squad = renderTalkSquad(config, ids, { maxDurationSeconds: 600, variableValues: values });
+
+    expect(squad.members).toEqual([
+      { assistantId: 'ja-id' },
+      { assistantId: 'en-id' },
+      { assistantId: 'ja-return-id' },
+    ]);
+  });
+
+  test('never mutates the synced squad definition it is built from', () => {
+    const before = renderSquad(config, ids);
+    renderTalkSquad(config, ids, {
+      maxDurationSeconds: 1,
+      variableValues: values,
+      firstMessage: 'x',
+    });
+
+    expect(renderSquad(config, ids)).toEqual(before);
+  });
+
+  test('throws when a member has no synced assistant, rather than starting a half-built squad', () => {
+    expect(() =>
+      renderTalkSquad(config, { ja: 'ja-id' }, { maxDurationSeconds: 1, variableValues: values }),
+    ).toThrow(/"en"/);
   });
 });
 

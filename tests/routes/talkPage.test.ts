@@ -17,6 +17,7 @@ const healthyDb: Queryable = { query: () => Promise.resolve({ rows: [{ ok: 1 }] 
 const PUBLIC_KEY = 'test-vapi-public-key';
 const JA_ASSISTANT_ID = 'ja-assistant-uuid';
 const EN_ASSISTANT_ID = 'en-assistant-uuid';
+const JA_RETURN_ASSISTANT_ID = 'ja-return-assistant-uuid';
 const RATE_LIMIT_SECRET = 'test-talk-rate-limit-secret-0123456789';
 const BYPASS_KEY = 'test-talk-bypass-key';
 const PHONE_BODY = { callerPhone: '090-1234-5678' };
@@ -46,6 +47,7 @@ describe('GET /talk', () => {
         assistants: {
           'demo-clinic--ja': JA_ASSISTANT_ID,
           'demo-clinic--en': EN_ASSISTANT_ID,
+          'demo-clinic--ja-return': JA_RETURN_ASSISTANT_ID,
         },
         squads: {},
         structuredOutputs: {},
@@ -110,6 +112,82 @@ describe('GET /talk', () => {
 
     expect(response.text).toContain('href="/talk/demo-clinic/en"');
     expect(response.text).toContain('Test Clinic');
+  });
+
+  describe('the plain URL /talk/:clientId (VP-22)', () => {
+    test('renders the default-language page, with no language segment in the URL', async () => {
+      const response = await request(app()).get('/talk/demo-clinic');
+
+      expect(response.status).toBe(200);
+      expect(response.text).toContain('テスト整骨院');
+      expect(response.text).toContain('<html lang="ja">');
+      expect(response.text).toContain('id="talk-button"');
+    });
+
+    test("drives the default language's own bootstrap script and calls endpoint", async () => {
+      const response = await request(app()).get('/talk/demo-clinic');
+
+      expect(response.text).toContain('src="/talk/demo-clinic/ja/bootstrap.js"');
+    });
+
+    test('links only to the other languages, never back to itself', async () => {
+      const response = await request(app()).get('/talk/demo-clinic');
+
+      expect(response.text).toContain('href="/talk/demo-clinic/en"');
+      expect(response.text).not.toContain('href="/talk/demo-clinic/ja"');
+    });
+
+    test('the English page links back to the plain URL, not to /ja', async () => {
+      const response = await request(app()).get('/talk/demo-clinic/en');
+
+      expect(response.text).toContain('href="/talk/demo-clinic"');
+      expect(response.text).not.toContain('href="/talk/demo-clinic/ja"');
+    });
+
+    test('/ja stays as an alias that renders the same default-language page', async () => {
+      const plain = await request(app()).get('/talk/demo-clinic');
+      const alias = await request(app()).get('/talk/demo-clinic/ja');
+
+      expect(alias.status).toBe(200);
+      expect(alias.text).toContain('テスト整骨院');
+      expect(alias.text).toContain('id="talk-button"');
+      expect(plain.text).toContain('テスト整骨院');
+    });
+
+    test('keeps the owner bypass key on the plain URL', async () => {
+      const response = await request(app()).get(`/talk/demo-clinic?key=${BYPASS_KEY}`);
+
+      expect(response.status).toBe(200);
+      expect(response.text).toContain('window.__TALK_BYPASS_KEY__');
+      expect(response.text).not.toContain('id="calls-remaining"');
+    });
+
+    test('returns the JSON 404 for an unknown clientId', async () => {
+      const response = await request(app()).get('/talk/no-such-clinic');
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({ status: 'error', error: 'not_found' });
+    });
+
+    test('returns the JSON 404 when a squad member has not been synced yet', async () => {
+      const partialRoot = mkdtempSync(path.join(tmpdir(), 'tmvp-talk-partial-'));
+      writeState(
+        'demo-clinic',
+        {
+          tools: {},
+          assistants: { 'demo-clinic--ja': JA_ASSISTANT_ID, 'demo-clinic--en': EN_ASSISTANT_ID },
+          squads: {},
+          structuredOutputs: {},
+        },
+        { repoRoot: partialRoot },
+      );
+      try {
+        const response = await request(app(false, partialRoot)).get('/talk/demo-clinic');
+        expect(response.status).toBe(404);
+      } finally {
+        rmSync(partialRoot, { recursive: true, force: true });
+      }
+    });
   });
 
   test('serves the bootstrap script with the public key and the gated calls URL — never a raw assistant id', async () => {
@@ -186,18 +264,63 @@ describe('GET /talk', () => {
   });
 
   describe('POST /talk/:clientId/:language/calls', () => {
-    test('a fresh visitor is allowed and gets the real assistant id plus the maximum Vapi call duration (no 5-minute cap)', async () => {
+    test('the default language starts the whole squad: members in call-start order, the overrides inside the squad, no top-level assistantId (VP-22)', async () => {
       const response = await request(app()).post('/talk/demo-clinic/ja/calls').send(PHONE_BODY);
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
-        assistantId: JA_ASSISTANT_ID,
+        callsRemaining: 3,
+        squad: {
+          name: 'demo-clinic--squad',
+          members: [
+            {
+              assistantId: JA_ASSISTANT_ID,
+              assistantOverrides: { firstMessage: expect.stringContaining('録音されます') },
+            },
+            { assistantId: EN_ASSISTANT_ID },
+            { assistantId: JA_RETURN_ASSISTANT_ID },
+          ],
+          membersOverrides: {
+            // The maximum Vapi call duration (no 5-minute cap).
+            maxDurationSeconds: 43200,
+            variableValues: { callerPhone: NORMALISED_PHONE, priorCall: 'none' },
+          },
+        },
+      });
+      expect(response.headers['set-cookie']?.[0]).toContain('tmvp_talk_calls_demo-clinic=');
+    });
+
+    test('a secondary language still starts its own assistant directly, with the overrides at the top level', async () => {
+      const response = await request(app()).post('/talk/demo-clinic/en/calls').send(PHONE_BODY);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        assistantId: EN_ASSISTANT_ID,
         maxDurationSeconds: 43200,
         callsRemaining: 3,
         variableValues: { callerPhone: NORMALISED_PHONE, priorCall: 'none' },
-        firstMessage: expect.stringContaining('録音されます'),
+        firstMessage: expect.stringContaining('recorded'),
       });
-      expect(response.headers['set-cookie']?.[0]).toContain('tmvp_talk_calls_demo-clinic=');
+    });
+
+    test('the squad start scopes firstMessage to the starting member only — never a squad-wide override that could leak into the English leg', async () => {
+      const { body } = await request(app()).post('/talk/demo-clinic/ja/calls').send(PHONE_BODY);
+
+      expect(body.squad.members[0].assistantOverrides.firstMessage).toBeDefined();
+      expect(body.squad.members[1]).not.toHaveProperty('assistantOverrides');
+      expect(body.squad.members[2]).not.toHaveProperty('assistantOverrides');
+      expect(body.squad.membersOverrides).not.toHaveProperty('firstMessage');
+      expect(body).not.toHaveProperty('firstMessage');
+    });
+
+    test('the /ja alias and the plain-URL page start the same squad: both pages call the default language endpoint', async () => {
+      const plain = await request(app()).get('/talk/demo-clinic');
+      const alias = await request(app()).get('/talk/demo-clinic/ja');
+      const script = await request(app()).get('/talk/demo-clinic/ja/bootstrap.js');
+
+      expect(plain.text).toContain('src="/talk/demo-clinic/ja/bootstrap.js"');
+      expect(alias.text).toContain('src="/talk/demo-clinic/ja/bootstrap.js"');
+      expect(script.text).toContain('"/talk/demo-clinic/ja/calls"');
     });
 
     test('reports one fewer remaining call after each call, down to 0 on the last allowed one', async () => {
@@ -269,7 +392,7 @@ describe('GET /talk', () => {
         .send(PHONE_BODY);
 
       expect(bypassed.status).toBe(200);
-      expect(bypassed.body.assistantId).toBe(JA_ASSISTANT_ID);
+      expect(bypassed.body.squad.members[0].assistantId).toBe(JA_ASSISTANT_ID);
     });
 
     test('a wrong key is rejected and falls back to the normal cap check', async () => {
@@ -312,7 +435,7 @@ describe('GET /talk', () => {
 
         const response = await request(app()).post('/talk/demo-clinic/ja/calls').send(PHONE_BODY);
 
-        expect(response.body.variableValues).toEqual({
+        expect(response.body.squad.membersOverrides.variableValues).toEqual({
           callerPhone: NORMALISED_PHONE,
           priorCall:
             'Last call: 2026-10-10, status: needs_callback, summary: asked about hours, requested staff follow-up',
@@ -332,12 +455,13 @@ describe('GET /talk', () => {
         const ja = await request(app()).post('/talk/demo-clinic/ja/calls').send(PHONE_BODY);
         const en = await request(app()).post('/talk/demo-clinic/en/calls').send(PHONE_BODY);
 
-        expect(ja.body.firstMessage).toContain('再度のお電話ありがとうございます');
-        expect(ja.body.firstMessage).toContain('テスト整骨院');
+        const jaGreeting = ja.body.squad.members[0].assistantOverrides.firstMessage;
+        expect(jaGreeting).toContain('再度のお電話ありがとうございます');
+        expect(jaGreeting).toContain('テスト整骨院');
         expect(en.body.firstMessage).toContain('Welcome back to');
         expect(en.body.firstMessage).toContain('This call is recorded');
-        for (const body of [ja.body, en.body]) {
-          expect(body.firstMessage).not.toMatch(/\[\[|opening hours|callback/i);
+        for (const greeting of [jaGreeting, en.body.firstMessage]) {
+          expect(greeting).not.toMatch(/\[\[|opening hours|callback/i);
         }
       });
 
@@ -352,13 +476,15 @@ describe('GET /talk', () => {
           .post('/talk/demo-clinic/en/calls')
           .send(PHONE_BODY);
 
-        expect(first.body.firstMessage).toContain('本日はどのようなご用件でしょうか？');
-        expect(last.body.firstMessage).toContain('どのようなご用件でいらっしゃいますか？');
-        expect(last.body.firstMessage).not.toContain('本日はどのようなご用件でしょうか？');
+        const firstGreeting = first.body.squad.members[0].assistantOverrides.firstMessage;
+        const lastGreeting = last.body.squad.members[0].assistantOverrides.firstMessage;
+        expect(firstGreeting).toContain('本日はどのようなご用件でしょうか？');
+        expect(lastGreeting).toContain('どのようなご用件でいらっしゃいますか？');
+        expect(lastGreeting).not.toContain('本日はどのようなご用件でしょうか？');
         expect(en.body.firstMessage).toContain('How can I help you today?');
-        for (const body of [first.body, last.body, en.body]) {
-          expect(body.firstMessage).toMatch(/録音されます|recorded/);
-          expect(body.firstMessage).not.toContain('[[');
+        for (const greeting of [firstGreeting, lastGreeting, en.body.firstMessage]) {
+          expect(greeting).toMatch(/録音されます|recorded/);
+          expect(greeting).not.toContain('[[');
         }
       });
 
@@ -402,7 +528,7 @@ describe('GET /talk', () => {
           )
             .post('/talk/demo-clinic/ja/calls')
             .send(PHONE_BODY);
-          expect(response.body).not.toHaveProperty('firstMessage');
+          expect(response.body.squad.members[0]).toEqual({ assistantId: JA_ASSISTANT_ID });
         } finally {
           single.cleanup();
         }
@@ -419,14 +545,16 @@ describe('GET /talk', () => {
           .post('/talk/demo-clinic/ja/calls')
           .send({ callerPhone: '080-0000-1111' });
 
-        expect(response.body.variableValues.priorCall).toBe('none');
+        expect(response.body.squad.membersOverrides.variableValues.priorCall).toBe('none');
       });
 
       test('the bypass-key link collects and looks up the number the same way', async () => {
         const response = await request(app())
           .post(`/talk/demo-clinic/ja/calls?key=${BYPASS_KEY}`)
           .send(PHONE_BODY);
-        expect(response.body.variableValues.callerPhone).toBe(NORMALISED_PHONE);
+        expect(response.body.squad.membersOverrides.variableValues.callerPhone).toBe(
+          NORMALISED_PHONE,
+        );
       });
 
       test('a failing lookup never blocks the call: the caller is treated as new', async () => {
@@ -435,7 +563,7 @@ describe('GET /talk', () => {
         const response = await request(app()).post('/talk/demo-clinic/ja/calls').send(PHONE_BODY);
 
         expect(response.status).toBe(200);
-        expect(response.body.variableValues.priorCall).toBe('none');
+        expect(response.body.squad.membersOverrides.variableValues.priorCall).toBe('none');
       });
     });
 

@@ -9,7 +9,7 @@
  * dynamically per request straight from the current Vapi state file, so it
  * can never go stale.
  */
-import { Router, json, type Request, type Response } from 'express';
+import { Router, json, type NextFunction, type Request, type Response } from 'express';
 import { z } from 'zod';
 
 import { ClientConfigError, loadClient } from '../config/loadClient.js';
@@ -30,7 +30,13 @@ import {
   PRIOR_CALL_VARIABLE,
   formatPriorCall,
 } from '../vapi/callVariables.js';
-import { assistantResourceName, renderOpeningMessage } from '../vapi/squad.js';
+import {
+  assistantResourceName,
+  renderOpeningMessage,
+  renderTalkSquad,
+  squadMemberIds,
+  startsWithSquad,
+} from '../vapi/squad.js';
 import { readState } from '../vapi/stateStore.js';
 import { renderTalkBootstrapScript, renderTalkPage } from '../vapi/talkPage.js';
 
@@ -54,15 +60,27 @@ export interface TalkRouterOptions {
   repoRoot?: string;
 }
 
+/**
+ * How a call from this page starts: the default language starts the whole squad (it can hand off
+ * to the others, VP-22); any other language starts its own assistant directly.
+ */
+type TalkStart =
+  | { kind: 'assistant'; assistantId: string }
+  | { kind: 'squad'; assistantIds: Readonly<Record<string, string>> };
+
 interface ResolvedTarget {
   config: ClientConfig;
-  assistantId: string;
+  language: string;
+  start: TalkStart;
 }
 
-/** Undefined for any reason at all — an unknown clientId, an unsupported language, or a language never synced. */
+/**
+ * Undefined for any reason at all — an unknown clientId, an unsupported language, or a language
+ * (for the squad start: any squad member) never synced. No `language` means the client's default.
+ */
 function resolveTarget(
   clientId: string,
-  language: string,
+  language: string | undefined,
   options: TalkRouterOptions,
 ): ResolvedTarget | undefined {
   let config: ClientConfig;
@@ -73,13 +91,29 @@ function resolveTarget(
     throw error;
   }
 
-  if (!config.languages.supported.includes(language)) return undefined;
+  const target = language ?? config.languages.default;
+  if (!config.languages.supported.includes(target)) return undefined;
 
   const state = readState(clientId, options.repoRoot ? { repoRoot: options.repoRoot } : {});
-  const assistantId = state.assistants[assistantResourceName(clientId, language)];
-  if (!assistantId) return undefined;
+  const idOf = (memberId: string): string | undefined =>
+    state.assistants[assistantResourceName(clientId, memberId)];
 
-  return { config, assistantId };
+  if (startsWithSquad(config, target)) {
+    const members = squadMemberIds(config).flatMap((memberId) => {
+      const assistantId = idOf(memberId);
+      return assistantId ? [[memberId, assistantId] as const] : [];
+    });
+    if (members.length !== squadMemberIds(config).length) return undefined;
+    return {
+      config,
+      language: target,
+      start: { kind: 'squad', assistantIds: Object.fromEntries(members) },
+    };
+  }
+
+  const assistantId = idOf(target);
+  if (!assistantId) return undefined;
+  return { config, language: target, start: { kind: 'assistant', assistantId } };
 }
 
 /** rules.ts's languageIssues check guarantees business.name has every supported language on a validated config. */
@@ -105,8 +139,16 @@ function pickOpeningQuestion(
   return questions[Math.min(questions.length - 1, Math.floor(random() * questions.length))];
 }
 
+/** The language's own endpoints (page alias, bootstrap script, calls) — always carries the language. */
 function pagePath(clientId: string, language: string): string {
   return `${TALK_URL_PREFIX}/${clientId}/${language}`;
+}
+
+/** The shareable page URL: the default language lives at the plain URL, the others under it (VP-22). */
+function shareablePath(config: ClientConfig, language: string): string {
+  return language === config.languages.default
+    ? `${TALK_URL_PREFIX}/${config.clientId}`
+    : pagePath(config.clientId, language);
 }
 
 /** The demo page's phone field (VP-15). Validation of the number itself is normalizeCallerPhone. */
@@ -115,19 +157,28 @@ const callBodySchema = z.object({ callerPhone: z.string().max(40) });
 export function talkRouter(options: TalkRouterOptions): Router {
   const router = Router();
 
-  router.get('/:clientId/:language', (req: Request, res: Response, next) => {
-    const { clientId, language } = req.params as { clientId: string; language: string };
-    const resolved = resolveTarget(clientId, language, options);
+  // One language's page (`requested` undefined = the client's default). Shared by the plain URL
+  // and the language URLs; either way the page loads its own language's bootstrap script and
+  // calls endpoint, so the default-language page starts the squad (VP-22).
+  const servePage = (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+    clientId: string,
+    requested: string | undefined,
+  ): void => {
+    const resolved = resolveTarget(clientId, requested, options);
     if (!resolved) {
       next();
       return;
     }
+    const { language } = resolved;
 
     const switchLinks = resolved.config.languages.supported
       .filter((code) => code !== language)
       .map((code) => ({
         label: clinicNameOf(resolved.config, code),
-        href: pagePath(clientId, code),
+        href: shareablePath(resolved.config, code),
       }));
     const key = typeof req.query.key === 'string' ? req.query.key : undefined;
 
@@ -146,6 +197,16 @@ export function talkRouter(options: TalkRouterOptions): Router {
         ...(key !== undefined ? { bypassKey: key } : {}),
       }),
     );
+  };
+
+  router.get('/:clientId', (req: Request, res: Response, next: NextFunction) => {
+    const { clientId } = req.params as { clientId: string };
+    servePage(req, res, next, clientId, undefined);
+  });
+
+  router.get('/:clientId/:language', (req: Request, res: Response, next: NextFunction) => {
+    const { clientId, language } = req.params as { clientId: string; language: string };
+    servePage(req, res, next, clientId, language);
   });
 
   router.get('/:clientId/:language/bootstrap.js', (req: Request, res: Response, next) => {
@@ -236,22 +297,38 @@ export function talkRouter(options: TalkRouterOptions): Router {
           ? undefined
           : renderOpeningMessage(resolved.config, language, openingQuestion);
 
+      const callsRemaining =
+        decision.remaining !== undefined ? { callsRemaining: decision.remaining } : {};
+      const variableValues = {
+        [CALLER_PHONE_VARIABLE]: callerPhone,
+        [PRIOR_CALL_VARIABLE]: formatPriorCall(priorCall, resolved.config.business.hours.timezone),
+      };
+      // A returning caller hears a plain welcome-back instead of the saved greeting, and every
+      // call can rotate the "how can I help?" wording. The greeting is spoken before the model
+      // runs, so only a firstMessage override can change it. No variants configured and a new
+      // caller = no override: the saved greeting plays exactly as synced.
+      const greeting = firstMessage !== undefined ? { firstMessage } : {};
+
+      if (resolved.start.kind === 'squad') {
+        // The per-call values travel inside the squad itself, with the greeting on the starting
+        // member only (VAPI-FACTS.md, VP-22).
+        res.json({
+          ...callsRemaining,
+          squad: renderTalkSquad(resolved.config, resolved.start.assistantIds, {
+            maxDurationSeconds: TALK_MAX_CALL_DURATION_SECONDS,
+            variableValues,
+            ...greeting,
+          }),
+        });
+        return;
+      }
+
       res.json({
-        assistantId: resolved.assistantId,
-        ...(decision.remaining !== undefined ? { callsRemaining: decision.remaining } : {}),
+        assistantId: resolved.start.assistantId,
+        ...callsRemaining,
         maxDurationSeconds: TALK_MAX_CALL_DURATION_SECONDS,
-        variableValues: {
-          [CALLER_PHONE_VARIABLE]: callerPhone,
-          [PRIOR_CALL_VARIABLE]: formatPriorCall(
-            priorCall,
-            resolved.config.business.hours.timezone,
-          ),
-        },
-        // A returning caller hears a plain welcome-back instead of the saved greeting, and every
-        // call can rotate the "how can I help?" wording. The greeting is spoken before the model
-        // runs, so only a firstMessage override can change it. No variants configured and a new
-        // caller = no override: the saved greeting plays exactly as synced.
-        ...(firstMessage !== undefined ? { firstMessage } : {}),
+        variableValues,
+        ...greeting,
       });
     },
   );
