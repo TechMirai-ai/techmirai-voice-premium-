@@ -24,7 +24,9 @@
     "sakura-seikotsuin--en": "ec3e9446-a07c-430a-b02d-16ff5d7ff4a7",
     "sakura-seikotsuin--ja-return": "0f5a3bc0-7112-4d06-8afb-e0e0096a1716"
   },
-  "squads": {},
+  "squads": {
+    "sakura-seikotsuin--squad": "30f4a4eb-637b-4d6b-8492-5e7091248dcf"
+  },
   "structuredOutputs": {
     "sakura-seikotsuin--call-outcome": "dfff9317-cc07-401b-9813-615dfcc219fa"
   }
