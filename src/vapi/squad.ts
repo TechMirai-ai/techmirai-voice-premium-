@@ -19,7 +19,6 @@ import type {
   VapiReportingConfig,
   VapiServerConfig,
   VapiSquadPayload,
-  VapiTalkSquad,
 } from './types.js';
 
 export class MissingArrivalScriptError extends Error {
@@ -188,48 +187,6 @@ export function renderHandoffTool(
       },
     ],
     messages: [{ type: 'request-start', content: '' }],
-  };
-}
-
-/**
- * Whether starting a call in `language` should start the whole squad (the default language, which
- * can hand off to the others) rather than that language's assistant on its own. A client with
- * nothing to hand off to has no use for a squad.
- */
-export function startsWithSquad(config: ClientConfig, language: string): boolean {
-  return language === config.languages.default && squadMemberIds(config).length > 1;
-}
-
-export interface TalkSquadOverrides {
-  maxDurationSeconds: number;
-  variableValues: Readonly<Record<string, string>>;
-  /** The starting member's greeting; absent = keep its saved greeting. */
-  firstMessage?: string;
-}
-
-/**
- * The inline squad for a /talk web call (VP-22): the synced squad's members, plus this call's
- * values. `firstMessage` goes on `members[0]` only — on `membersOverrides` it would apply to every
- * member — and `variableValues` / `maxDurationSeconds` are call-wide on `membersOverrides`
- * (VAPI-FACTS.md, VP-22 spike).
- */
-export function renderTalkSquad(
-  config: ClientConfig,
-  assistantIds: Readonly<Record<string, string>>,
-  overrides: TalkSquadOverrides,
-): VapiTalkSquad {
-  const { name, members } = renderSquad(config, assistantIds);
-  return {
-    name,
-    members: members.map((member, index) =>
-      index === 0 && overrides.firstMessage !== undefined
-        ? { ...member, assistantOverrides: { firstMessage: overrides.firstMessage } }
-        : member,
-    ),
-    membersOverrides: {
-      maxDurationSeconds: overrides.maxDurationSeconds,
-      variableValues: overrides.variableValues,
-    },
   };
 }
 

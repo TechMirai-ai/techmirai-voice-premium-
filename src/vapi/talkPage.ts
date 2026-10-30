@@ -373,19 +373,13 @@ button.addEventListener('click', function () {
       if (!data) return;
       showCallsRemaining(data.callsRemaining);
       if (statusEl) statusEl.textContent = 'Connecting…';
-      if (data.squad) {
-        // The default language starts the whole squad (it can hand off to the others). The squad
-        // already carries every per-call value, so nothing else is passed (VP-22).
-        vapi.start(undefined, undefined, data.squad);
-      } else {
-        var overrides = {
-          maxDurationSeconds: data.maxDurationSeconds,
-          variableValues: data.variableValues,
-        };
-        // Only a returning caller (VP-15) gets a different greeting; a new caller hears the saved one.
-        if (data.firstMessage) overrides.firstMessage = data.firstMessage;
-        vapi.start(data.assistantId, overrides);
-      }
+      var overrides = {
+        maxDurationSeconds: data.maxDurationSeconds,
+        variableValues: data.variableValues,
+      };
+      // Only a returning caller (VP-15) gets a different greeting; a new caller hears the saved one.
+      if (data.firstMessage) overrides.firstMessage = data.firstMessage;
+      vapi.start(data.assistantId, overrides);
     })
     .catch(function (e) {
       console.error('Call session error:', e);

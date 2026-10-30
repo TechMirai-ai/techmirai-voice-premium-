@@ -213,14 +213,6 @@ describe('renderTalkBootstrapScript', () => {
     expect(script).toContain('vapi.start(data.assistantId, overrides)');
   });
 
-  test('starts the squad the server returned (third argument) and falls back to the single assistant only when there is none (VP-22)', () => {
-    const script = renderTalkBootstrapScript({ publicKey: 'pk', callsUrl: '/talk/x/ja/calls' });
-
-    expect(script).toMatch(
-      /if \(data\.squad\) \{[\s\S]*?vapi\.start\(undefined, undefined, data\.squad\);[\s\S]*?\} else \{[\s\S]*vapi\.start\(data\.assistantId, overrides\);/,
-    );
-  });
-
   test('passes a returning-caller firstMessage override to Vapi only when the server sent one', () => {
     const script = renderTalkBootstrapScript({ publicKey: 'pk', callsUrl: '/talk/x/ja/calls' });
 
