@@ -375,3 +375,34 @@ faq:
     answer:
       en: If applicable, please bring your My Number health insurance card or your eligibility certificate. It also helps to bring any information about previous treatments or injuries related to your current concern.
       ja: 必要に応じて、マイナ保険証または資格確認書をお持ちください。また、今回のお悩みに関係する過去の治療やケガの情報があれば、あわせてお持ちいただくとスムーズです。
+
+# VP-23: what happens after a booking is saved. Nothing secret lives here — the *_ENV values are the
+# NAMES of variables in .env. A different client gets its own block with its own variable names.
+notifications:
+  # Confirmation SMS to the caller, sent through Telnyx. Strictly factual: business name, date and
+  # time only — no links, nothing promotional (Japan's 特定電子メール法, the Act on Regulation of
+  # Transmission of Specified Electronic Mail). The config check rejects any other placeholder or URL.
+  sms:
+    provider: telnyx
+    apiKeyEnv: TELNYX_API_KEY
+    messagingProfileId: 4001a195-9a6f-4a6b-8c61-c4c1d09caf3d
+    senderId: Sakura
+    templates:
+      # "This is Sakura Seikotsuin. We have received your reservation for <date> <time>."
+      ja: "[[businessName]]です。[[date]] [[time]]のご予約を承りました。"
+      en: "[[businessName]]: your appointment on [[date]] at [[time]] is confirmed."
+  # Alert to clinic staff on LINE. Today the single recipient is a placeholder "staff" user; moving to
+  # a staff group later means pointing LINE_STAFF_USER_ID's replacement (or an extra entry in
+  # recipientEnvs) at a group id in .env — no code change.
+  line:
+    channelAccessTokenEnv: LINE_CHANNEL_ACCESS_TOKEN
+    recipientEnvs: [LINE_STAFF_USER_ID]
+    # Glosses: 【新規予約】 = "New reservation"; 日時 = "Date and time"; お名前 = "Name";
+    # 電話 = "Phone"; メニュー = "Service"; 予約番号 = "Reservation number".
+    messageTemplate: |-
+      【新規予約】[[businessName]]
+      日時: [[date]] [[time]]
+      お名前: [[patientName]]
+      電話: [[patientPhone]]
+      メニュー: [[serviceName]]
+      予約番号: [[reservationNumber]]

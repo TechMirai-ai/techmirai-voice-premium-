@@ -7,6 +7,7 @@ import { createApp } from '../../src/app.js';
 import type { Queryable } from '../../src/db/pool.js';
 import { FileKnowledgeSource } from '../../src/knowledge/KnowledgeSource.js';
 import type { CallbackNotifier, CallbackNotification } from '../../src/lib/callbackNotifier.js';
+import type { BookingNotifier } from '../../src/notifications/bookingNotifier.js';
 import type {
   AppointmentRepository,
   BookedAppointment,
@@ -180,6 +181,8 @@ export function buildVoiceApp(
     archiveRetry?: ArchiveRetryRouteDeps;
     /** Replaces the global `fetch` the silence-end route uses to reach Vapi (VP-16). */
     fetchImpl?: typeof fetch;
+    /** VP-23: what the booking route tells after a booking. Omitted = no notifications. */
+    bookingNotifier?: BookingNotifier;
   } = {},
 ) {
   const callbacks = new MemoryCallbacks();
@@ -205,6 +208,7 @@ export function buildVoiceApp(
     ...(options.rateLimit ? { rateLimit: options.rateLimit } : {}),
     ...(options.archive ? { archive: options.archive } : {}),
     ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
+    ...(options.bookingNotifier ? { bookingNotifier: options.bookingNotifier } : {}),
   };
   const app = createApp({
     db: healthyDb,

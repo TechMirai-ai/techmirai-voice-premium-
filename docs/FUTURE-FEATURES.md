@@ -25,6 +25,8 @@ scales better than a growing inline list.
 **What:** When a caller leaves a callback request, staff are notified by email and/or LINE.
 **Why later:** Database storage plus the admin page is enough for v1.
 **Build when:** A real client needs push notifications.
+**OVERRIDDEN IN PART (2026-11-02, owner decision, VP-23):** the "build when a real client needs it" postponement was deliberately lifted for the **booking flow only**. After a successful `book_appointment`, the caller gets a factual confirmation SMS (Telnyx: business name, date, time — no links, nothing promotional) and the client's staff get a LINE alert. Everything is per-client config in `client.yaml` → `notifications` (credentials are named, never stored: `.env` holds the values), so a second client is new config, not new code. Code: `src/notifications/` behind `BookingNotifier`; delivery status is tracked separately in `notification_log` (migration 0013) and a failed send never affects the booking.
+**Still postponed under F-2:** notifications for **callback requests** (`CallbackNotifier` is still the logging-only `LoggingNotifier`) and **email**. When callback notifications are wanted, reuse `src/notifications/` providers and `notification_log` rather than building a second path.
 **Base must allow:**
 - All notifications go through the `CallbackNotifier` interface (VP-4). New channels = new notifier classes, no change to callback logic.
 - Saving a callback request must succeed even if a notifier fails. Notification delivery status is tracked separately from the callback row.
@@ -43,6 +45,7 @@ scales better than a growing inline list.
 **What:** Callers dial a real Japanese number instead of using a web call.
 **Why later:** Web calls need no phone number; phone setup waits for a paying client.
 **Build when:** A paying client needs a dial-in number.
+**OVERRIDDEN IN PART (2026-11-02, owner decision, VP-23): caller-number capture only.** `callerPhoneFromCall` (`src/vapi/callVariables.ts`) now reads `call.customer.number` first and falls back to the number typed on `/talk`, so a real phone call's caller ID is saved with its booking/callback/call log for any client, and the booking confirmation SMS goes to it. Vapi documents `customer.number` for inbound/outbound phone calls (E.164); it is **not** documented for web calls, so the code treats it as optional. **Still postponed:** everything else here — choosing and importing a real Japanese number, per-call greeting variation, removing the `/talk` phone field, switching `lookup_patient` back to caller-ID matching.
 **Notes (re-verify before building):**
 - Vapi's free numbers were reported as US-only and not usable for international calls. A Japanese number would need to be imported from a provider such as Twilio, Telnyx or Vonage.
 - Twilio has no Japan processing region. If Twilio is chosen, pin the account to the AU1 (Sydney) region, and first re-check whether Twilio can issue and route usable Japanese numbers.

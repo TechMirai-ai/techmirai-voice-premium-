@@ -12,6 +12,18 @@ const JAPAN_NATIONAL = /^0\d{9,10}$/;
 const INTERNATIONAL = /^\+\d{8,15}$/;
 const JAPAN_COUNTRY_CODE = '+81';
 
+const E164 = /^\+[1-9]\d{6,14}$/;
+
+/**
+ * The dialable E.164 form (`+819012345678`) of a number as stored by `normalizeCallerPhone`, or
+ * undefined when it cannot be dialled. A national number (leading `0`) gets `defaultCountryCode`
+ * (e.g. `+81`) with the trunk `0` dropped; a `+…` number is already international.
+ */
+export function toE164(stored: string, defaultCountryCode: string): string | undefined {
+  const candidate = stored.startsWith('0') ? `${defaultCountryCode}${stored.slice(1)}` : stored;
+  return E164.test(candidate) ? candidate : undefined;
+}
+
 export function normalizeCallerPhone(raw: string): string | undefined {
   const compact = raw
     .normalize('NFKC')

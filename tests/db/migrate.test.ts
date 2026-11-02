@@ -69,7 +69,7 @@ describe.skipIf(!TEST_DATABASE_URL)('migration runner', () => {
     await pool.query(
       'DROP TABLE IF EXISTS callback_requests, call_topics, staff_users, session, ' +
         'appointments, reservation_services, reservation_demo_patients, reservation_booked_slots, ' +
-        'call_logs, call_archive_jobs',
+        'call_logs, call_archive_jobs, notification_log',
     );
   });
 

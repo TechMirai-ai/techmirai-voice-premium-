@@ -7,6 +7,35 @@ import {
 } from '../../src/vapi/callVariables.js';
 
 describe('callerPhoneFromCall', () => {
+  test('reads the network caller ID, call.customer.number, normalised (VP-23, F-4)', () => {
+    expect(callerPhoneFromCall({ customer: { number: '+819012345678' } })).toBe('09012345678');
+    expect(callerPhoneFromCall({ customer: { number: '+14155550132' } })).toBe('+14155550132');
+  });
+
+  test('prefers the caller ID over a number typed on the demo page', () => {
+    expect(
+      callerPhoneFromCall({
+        customer: { number: '+819011112222' },
+        assistantOverrides: { variableValues: { callerPhone: '08033334444' } },
+      }),
+    ).toBe('09011112222');
+  });
+
+  test('falls back to the typed number when the caller ID is absent or unusable', () => {
+    const typed = { assistantOverrides: { variableValues: { callerPhone: '08033334444' } } };
+
+    expect(callerPhoneFromCall({ ...typed, customer: {} })).toBe('08033334444');
+    expect(callerPhoneFromCall({ ...typed, customer: { number: 'anonymous' } })).toBe(
+      '08033334444',
+    );
+    expect(callerPhoneFromCall({ ...typed, customer: { number: 5 } })).toBe('08033334444');
+    expect(callerPhoneFromCall({ ...typed, customer: 'nope' })).toBe('08033334444');
+  });
+
+  test('is undefined when the caller ID is junk and nothing else is available', () => {
+    expect(callerPhoneFromCall({ customer: { number: "x'; DROP" } })).toBeUndefined();
+  });
+
   test('reads the number the /talk page put in variableValues', () => {
     expect(
       callerPhoneFromCall({

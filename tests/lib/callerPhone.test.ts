@@ -1,6 +1,21 @@
 import { describe, expect, test } from 'vitest';
 
-import { normalizeCallerPhone } from '../../src/lib/callerPhone.js';
+import { normalizeCallerPhone, toE164 } from '../../src/lib/callerPhone.js';
+
+describe('toE164', () => {
+  test.each([
+    ['09012345678', '+81', '+819012345678'],
+    ['0312345678', '+81', '+81312345678'],
+    ['+14155550132', '+81', '+14155550132'],
+    ['0201234567', '+44', '+44201234567'],
+  ])('dials %s (default %s) as %s', (stored, countryCode, expected) => {
+    expect(toE164(stored, countryCode)).toBe(expected);
+  });
+
+  test.each(['12345', '', 'abc', '+1', '0', '000-0000-0000'])('cannot dial %j', (stored) => {
+    expect(toE164(stored, '+81')).toBeUndefined();
+  });
+});
 
 describe('normalizeCallerPhone', () => {
   test.each([

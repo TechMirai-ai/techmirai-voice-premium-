@@ -2,9 +2,10 @@
  * The per-call variables the /talk page hands Vapi through `assistantOverrides.variableValues`
  * (VP-15), and the one place that reads the caller's phone number back out of a webhook's `call`.
  *
- * SEAM FOR SV-5: `callerPhoneFromCall` is the only function that decides where "the caller's phone
- * number" comes from. When real phone calls exist, make it read `call.customer.number` (Vapi's
- * caller ID) and delete the /talk phone field — nothing else needs to change.
+ * `callerPhoneFromCall` is the only function that decides where "the caller's phone number" comes
+ * from. Since VP-23 (FUTURE-FEATURES F-4, caller-number capture) it reads `call.customer.number`
+ * (Vapi's caller ID) first and falls back to the /talk page's typed number, which stays for web
+ * calls until a real phone line replaces the demo.
  */
 import { formatClinicDateTime } from '../lib/clinicTime.js';
 import { normalizeCallerPhone } from '../lib/callerPhone.js';
@@ -23,8 +24,24 @@ const NO_SUMMARY = '(none recorded)';
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-/** Normalised caller number for this call, or undefined when the call carries none. */
+/**
+ * Normalised caller number for this call, or undefined when the call carries none.
+ *
+ * Order matters: the telephone network's caller ID (`call.customer.number`, E.164 — present on
+ * inbound/outbound phone calls, not documented for web calls) is the truth when it exists; the
+ * number typed on the demo /talk page is the fallback for web calls (VP-15).
+ */
 export function callerPhoneFromCall(call: unknown): string | undefined {
+  return callerIdFromCall(call) ?? enteredPhoneFromCall(call);
+}
+
+function callerIdFromCall(call: unknown): string | undefined {
+  if (!isRecord(call) || !isRecord(call.customer)) return undefined;
+  const { number } = call.customer;
+  return typeof number === 'string' ? normalizeCallerPhone(number) : undefined;
+}
+
+function enteredPhoneFromCall(call: unknown): string | undefined {
   if (!isRecord(call) || !isRecord(call.assistantOverrides)) return undefined;
   const { variableValues } = call.assistantOverrides;
   if (!isRecord(variableValues)) return undefined;

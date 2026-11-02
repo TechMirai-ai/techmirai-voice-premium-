@@ -126,6 +126,21 @@ export function loadEnv(
 
 export const isProduction = (env: Env): boolean => env.NODE_ENV === 'production';
 
+/**
+ * Per-client secrets and identifiers (VP-23). A client's `notifications` block in client.yaml
+ * names WHICH env var holds its Telnyx key, LINE token or LINE recipient, so the names are not
+ * known to the schema above and a second client needs no code change. This is the one place that
+ * reads them; blank values count as unset, like the rest of this file.
+ */
+export function envCredentialLookup(
+  source: NodeJS.ProcessEnv = process.env,
+): (envName: string) => string | undefined {
+  return (envName) => {
+    const value = source[envName];
+    return value === undefined || value === '' ? undefined : value;
+  };
+}
+
 const databaseUrlSchema = z.object({
   DATABASE_URL: z.string().min(1, 'is required — see .env.example'),
 });

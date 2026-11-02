@@ -8,9 +8,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
 
+import { summarizeError } from '../lib/errorSummary.js';
 import { logger } from '../lib/logger.js';
 import { loadClient } from '../config/loadClient.js';
 import { DEMO_PLACEHOLDER_PHONE } from '../lib/demoCallerPhone.js';
+import type { BookingNotification, BookingNotifier } from '../notifications/bookingNotifier.js';
 import { checkAvailability } from '../reservation/availability.js';
 import type { AppointmentRepository } from '../repositories/appointmentRepository.js';
 import type { ReservationServiceRepository } from '../repositories/reservationServiceRepository.js';
@@ -38,6 +40,28 @@ export interface BookAppointmentRouteDeps {
   resolver: AssistantResolver;
   appointments: AppointmentRepository;
   services: ReservationServiceRepository;
+  /** VP-23: caller SMS + staff LINE alert after a booking. Omitted = no notifications. */
+  bookingNotifier?: BookingNotifier;
+}
+
+/**
+ * The booking is already saved, so nothing the notifier does may turn into an error for the
+ * caller ("a system problem prevented this from being saved" would be false). The real notifier
+ * never rejects; this guards against any other implementation that does.
+ */
+async function notifyBookedSafely(
+  notifier: BookingNotifier | undefined,
+  booking: BookingNotification,
+): Promise<void> {
+  try {
+    await notifier?.notifyBooked(booking);
+  } catch (error) {
+    logger.error('booking notifier threw', {
+      clientId: booking.clientId,
+      appointmentId: booking.appointmentId,
+      ...summarizeError(error),
+    });
+  }
 }
 
 /** Names the invalid field only — never echoes the value back into logs or the model. */
@@ -106,6 +130,22 @@ export function bookAppointmentRouter(deps: BookAppointmentRouteDeps): Router {
           clientId: context.clientId,
           callId: context.callId,
           appointmentId: booked.id,
+        });
+
+        // The booking is saved; telling people about it is best-effort and never rejects. It is
+        // awaited, not fire-and-forget: a serverless function may be frozen the moment the
+        // response is sent, which would silently drop an unfinished send.
+        await notifyBookedSafely(deps.bookingNotifier, {
+          clientId: context.clientId,
+          appointmentId: booked.id,
+          reservationNumber: booked.reservationNumber,
+          language: context.language,
+          patientName: booked.patientName,
+          serviceName,
+          date,
+          time,
+          // Only a real number: the demo placeholder stored above is not dialable.
+          ...(context.callerPhone ? { callerPhone: context.callerPhone } : {}),
         });
 
         return okResult(call, `Booked. Reservation number: ${booked.reservationNumber}.`);

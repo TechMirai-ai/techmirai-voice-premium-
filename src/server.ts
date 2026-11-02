@@ -11,6 +11,7 @@ import { LoggingNotifier } from './lib/callbackNotifier.js';
 import { logger } from './lib/logger.js';
 import { FileKnowledgeSource } from './knowledge/KnowledgeSource.js';
 import { ZipcloudPostalCodeLookup } from './address/postalCodeLookup.js';
+import { createBookingNotifier } from './notifications/createBookingNotifier.js';
 import { PgAppointmentRepository } from './repositories/appointmentRepository.js';
 import { PgCallbackRequestRepository } from './repositories/callbackRequestRepository.js';
 import { PgCallLogRepository } from './repositories/callLogRepository.js';
@@ -53,6 +54,8 @@ const app = createApp({
     appointments: new PgAppointmentRepository(pool),
     patients: new PgReservationPatientRepository(pool),
     services: new PgReservationServiceRepository(pool),
+    // VP-23: booking SMS + staff LINE alert, configured per client in client.yaml.
+    bookingNotifier: createBookingNotifier(pool),
     // VP-20: postal code → prefecture / city / town for clients that collect a service address.
     postalCodes: new ZipcloudPostalCodeLookup(),
   },

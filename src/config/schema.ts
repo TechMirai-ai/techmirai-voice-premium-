@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { collectCrossFieldIssues, collectWarnings } from './rules.js';
 import type { ConfigIssue } from './issues.js';
 import { ClientConfigError } from './issues.js';
+import { notificationsSchema } from './notificationsSchema.js';
 
 /** Lowercase slug: also the folder name under `clients/` and the Vapi name prefix. */
 export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -334,6 +335,8 @@ export const clientConfigSchema = z.looseObject({
   promptOverrides: promptOverridesSchema.optional(),
   reservationFlow: reservationFlowSchema.optional(),
   emergency: emergencySchema.optional(),
+  // VP-23: booking SMS (Telnyx) + staff LINE alert. Omitted = no notifications for this client.
+  notifications: notificationsSchema.optional(),
 });
 
 export type ClientConfig = z.infer<typeof clientConfigSchema>;

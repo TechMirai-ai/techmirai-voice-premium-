@@ -323,6 +323,16 @@ as `.env.example` unless noted:
 | `TALK_BYPASS_KEY`           | Same value, or a freshly generated one (`openssl rand -hex 16`) if rotating                                             |
 | `TRUST_PROXY_HOPS`          | `1` (Vercel sits in front of the function as one reverse-proxy hop) — **required** in production, see `src/env.ts`      |
 
+**Booking notifications (VP-23) — optional, per client.** Each client's `notifications` block in
+`client.yaml` _names_ the variables that hold its credentials; the values live only in the
+environment. For `sakura-seikotsuin` that is `TELNYX_API_KEY` (booking confirmation SMS),
+`LINE_CHANNEL_ACCESS_TOKEN` and `LINE_STAFF_USER_ID` (staff alert on LINE). Add the same three to
+the Vercel project before deploying, and run `npm run db:migrate` (migration 0013, the
+`notification_log` table). A missing variable never breaks a booking: that channel is skipped and
+the log row says `missing_credentials`. A second client is a new `notifications` block plus its own
+variables (Telnyx ones start with `TELNYX_`, LINE ones with `LINE_` — the config check enforces
+it). Verified vendor facts and what is still unconfirmed: `docs/NOTIFICATION-FACTS.md`.
+
 `OPENAI_API_KEY` is not needed in production — it's only used by the local text-tester
 (`npm run vapi:test-chat`), never by the running app. **Currently broken as a validation tool**
 (VP-9): it calls OpenAI's API directly with whatever model `render.ts`'s `MODEL_ID` names, and
