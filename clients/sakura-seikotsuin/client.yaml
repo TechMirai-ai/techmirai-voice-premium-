@@ -387,6 +387,16 @@ notifications:
     apiKeyEnv: TELNYX_API_KEY
     messagingProfileId: 4001a195-9a6f-4a6b-8c61-c4c1d09caf3d
     senderId: Sakura
+    # Abuse guards for the public demo page (anyone can type a number): an SMS goes only to a number
+    # starting with one of these country codes (Japan only), and at most `maxPerDay` confirmations
+    # are sent per rolling 24 hours in total, whatever the numbers (one number is also capped at
+    # `maxPerRecipientPerDay`, default 3). A booking call also sends at most ONE SMS and ONE LINE
+    # alert in total (fixed rule, no setting). Set a spend limit on the Telnyx account as well.
+    # Codes are matched as a PREFIX and must be 2-3 digits, except "+1" and "+7" (the only one-digit
+    # codes). Careful with "+1": it admits every North American Numbering Plan country, including
+    # the Caribbean and premium-rate "+1 900"/"+1 976" ranges, not just the US and Canada.
+    allowedCountryCodes: ["+81"]
+    maxPerDay: 100
     templates:
       # "This is Sakura Seikotsuin. We have received your reservation for <date> <time>."
       ja: "[[businessName]]です。[[date]] [[time]]のご予約を承りました。"
@@ -397,6 +407,11 @@ notifications:
   line:
     channelAccessTokenEnv: LINE_CHANNEL_ACCESS_TOKEN
     recipientEnvs: [LINE_STAFF_USER_ID]
+    # At most this many staff ALERTS (bookings) per rolling 24 hours, so the public demo page cannot
+    # exhaust the LINE monthly message quota or flood the clinic's LINE. One alert is one booking
+    # however many recipients it reaches: adding a recipient never shrinks this budget, but each
+    # recipient's push still counts toward LINE's own monthly message quota.
+    maxPerDay: 50
     # Glosses: 【新規予約】 = "New reservation"; 日時 = "Date and time"; お名前 = "Name";
     # 電話 = "Phone"; メニュー = "Service"; 予約番号 = "Reservation number".
     messageTemplate: |-

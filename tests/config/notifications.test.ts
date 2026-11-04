@@ -193,6 +193,94 @@ describe('notifications config (VP-23)', () => {
       expect(() => parse(document)).not.toThrow();
     });
 
+    test('defaults to Japan-only destinations and whole-client daily caps', () => {
+      const document = withChanges(sakura, (draft) => {
+        delete draft.notifications.sms.allowedCountryCodes;
+        delete draft.notifications.sms.maxPerDay;
+        delete draft.notifications.line.maxPerDay;
+      });
+
+      const { notifications } = parse(document).config;
+
+      expect(notifications?.sms?.allowedCountryCodes).toEqual(['+81']);
+      expect(notifications?.sms?.maxPerDay).toBe(100);
+      expect(notifications?.line?.maxPerDay).toBe(50);
+    });
+
+    test('accepts more destination countries when the client lists them', () => {
+      const document = withChanges(sakura, (draft) => {
+        draft.notifications.sms.allowedCountryCodes = ['+81', '+1'];
+      });
+
+      expect(parse(document).config.notifications?.sms?.allowedCountryCodes).toEqual(['+81', '+1']);
+    });
+
+    test.each([['+1'], ['+7'], ['+81'], ['+886'], ['+81', '+82']])(
+      'accepts %s as real calling codes (+1 and +7 are the only one-digit ones)',
+      (...codes) => {
+        const document = withChanges(sakura, (draft) => {
+          draft.notifications.sms.allowedCountryCodes = [...codes, '+81'];
+        });
+
+        expect(() => parse(document)).not.toThrow();
+      },
+    );
+
+    test.each([['+8'], ['+2'], ['+9'], ['+0'], ['+1234'], ['+']])(
+      'rejects %s — a one-digit prefix would admit a whole region (+8 = China, Korea, Japan…)',
+      (code) => {
+        const document = withChanges(sakura, (draft) => {
+          draft.notifications.sms.allowedCountryCodes = [code, '+81'];
+        });
+
+        const { issues } = captureIssues(() => parse(document));
+
+        expect(issues.some((issue) => issue.path.includes('allowedCountryCodes'))).toBe(true);
+      },
+    );
+
+    test.each([
+      ['an empty list', []],
+      ['a malformed code', ['81']],
+      ['a full number instead of a code', ['+819012345678']],
+    ])('rejects %s as allowedCountryCodes', (_label, value) => {
+      const document = withChanges(sakura, (draft) => {
+        draft.notifications.sms.allowedCountryCodes = value;
+      });
+
+      const { issues } = captureIssues(() => parse(document));
+
+      expect(issues.some((issue) => issue.path.includes('allowedCountryCodes'))).toBe(true);
+    });
+
+    test('rejects a defaultCountryCode that is not an allowed country', () => {
+      const document = withChanges(sakura, (draft) => {
+        draft.notifications.sms.defaultCountryCode = '+44';
+      });
+
+      const { issues } = captureIssues(() => parse(document));
+
+      expect(issueAt(issues, 'notifications.sms.allowedCountryCodes')).toMatch(
+        /defaultCountryCode/,
+      );
+    });
+
+    test.each([
+      ['sms', 0],
+      ['sms', 1001],
+      ['sms', 2.5],
+      ['line', 0],
+      ['line', 1001],
+    ])('rejects a %s maxPerDay of %s', (channel, value) => {
+      const document = withChanges(sakura, (draft) => {
+        draft.notifications[channel].maxPerDay = value;
+      });
+
+      const { issues } = captureIssues(() => parse(document));
+
+      expect(issues.some((issue) => issue.path.endsWith('maxPerDay'))).toBe(true);
+    });
+
     test('rejects an unknown key inside the sms block (typos are errors)', () => {
       const document = withChanges(sakura, (draft) => {
         draft.notifications.sms.sendeerId = 'Sakura';

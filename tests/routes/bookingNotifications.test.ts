@@ -10,6 +10,7 @@ import type {
 import {
   AUTH,
   buildVoiceApp,
+  CALL_ID,
   callWithEnteredPhone,
   CLIENT_ID,
   toolCallsBody,
@@ -59,6 +60,8 @@ describe('book_appointment → notifications (VP-23)', () => {
       {
         clientId: CLIENT_ID,
         appointmentId: 'appt-1',
+        // The per-call limit (one SMS + one LINE per call) is keyed on the real Vapi call id.
+        callId: CALL_ID,
         reservationNumber: 'R000001',
         language: 'ja',
         patientName: 'Hanako Yamada',

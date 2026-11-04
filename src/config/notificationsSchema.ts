@@ -39,13 +39,22 @@ const E164 = /^\+[1-9]\d{6,14}$/;
  */
 const ALPHANUMERIC_SENDER_PATTERN = /^(?=.*[A-Za-z])[A-Za-z0-9]{3,11}$/;
 
-/** `+81`-style country calling code, used to dial a number stored in national form. */
-const COUNTRY_CODE_PATTERN = /^\+[1-9]\d{0,2}$/;
+/**
+ * `+81`-style country calling code, used to dial a number stored in national form and (as a prefix)
+ * to allow-list destinations. At least two digits, except `+1` and `+7`, the only one-digit codes
+ * in use — a stray `+8` would otherwise admit China, Korea, Japan, Vietnam… as a prefix.
+ */
+const COUNTRY_CODE_PATTERN = /^\+(?:[17]|[1-9]\d{1,2})$/;
 
 export const DEFAULT_SMS_COUNTRY_CODE = '+81';
 export const DEFAULT_SMS_MAX_PER_RECIPIENT_PER_DAY = 3;
+/** Japan only unless a client's yaml opts other destinations in (blocks SMS-pumping abroad). */
+export const DEFAULT_SMS_ALLOWED_COUNTRY_CODES: readonly string[] = [DEFAULT_SMS_COUNTRY_CODE];
+/** Whole-client ceilings per rolling 24 h, so rotating numbers cannot drain credit or quota. */
+export const DEFAULT_SMS_MAX_PER_DAY = 100;
+export const DEFAULT_LINE_MAX_PER_DAY = 50;
 
-const smsSchema = z.strictObject({
+const smsObjectSchema = z.strictObject({
   provider: z.literal('telnyx'),
   /** Name of the `.env` variable holding this client's Telnyx API key. */
   apiKeyEnv: envVarName('TELNYX_'),
@@ -62,6 +71,19 @@ const smsSchema = z.strictObject({
     .regex(COUNTRY_CODE_PATTERN, 'must look like "+81"')
     .default(DEFAULT_SMS_COUNTRY_CODE),
   /**
+   * Destination allow-list: an SMS is only sent to a number whose country calling code starts
+   * with one of these. Defaults to Japan only. `defaultCountryCode` must be among them.
+   */
+  allowedCountryCodes: z
+    .array(z.string().regex(COUNTRY_CODE_PATTERN, 'must look like "+81"'))
+    .min(1, 'needs at least one country code')
+    .default([...DEFAULT_SMS_ALLOWED_COUNTRY_CODES]),
+  /**
+   * Whole-client ceiling: at most this many confirmation SMS per rolling 24 hours, whatever the
+   * numbers, so an attacker rotating numbers cannot run up the client's Telnyx bill.
+   */
+  maxPerDay: z.number().int().min(1).max(1000).default(DEFAULT_SMS_MAX_PER_DAY),
+  /**
    * Abuse guard: the public demo page lets anyone type a number, so one number may receive at
    * most this many confirmations per rolling 24 hours.
    */
@@ -75,6 +97,16 @@ const smsSchema = z.strictObject({
   templates: z.record(z.string(), z.string().min(1, 'must not be empty')),
 });
 
+const smsSchema = smsObjectSchema.superRefine((sms, ctx) => {
+  if (!sms.allowedCountryCodes.includes(sms.defaultCountryCode)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['allowedCountryCodes'],
+      message: `must include defaultCountryCode "${sms.defaultCountryCode}"`,
+    });
+  }
+});
+
 const lineSchema = z.strictObject({
   /** Name of the `.env` variable holding this client's LINE channel access token. */
   channelAccessTokenEnv: envVarName('LINE_'),
@@ -83,6 +115,11 @@ const lineSchema = z.strictObject({
    * later. The push API takes either as `to`, so switching is an `.env` change.
    */
   recipientEnvs: z.array(envVarName('LINE_')).min(1, 'needs at least one recipient'),
+  /**
+   * Whole-client ceiling: at most this many staff pushes per rolling 24 hours, so the public
+   * demo page cannot exhaust the LINE monthly quota or flood the clinic's LINE.
+   */
+  maxPerDay: z.number().int().min(1).max(1000).default(DEFAULT_LINE_MAX_PER_DAY),
   /** The staff alert, written in the language the client's staff read. */
   messageTemplate: z.string().min(1, 'must not be empty'),
 });

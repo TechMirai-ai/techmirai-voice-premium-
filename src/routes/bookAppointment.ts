@@ -138,6 +138,7 @@ export function bookAppointmentRouter(deps: BookAppointmentRouteDeps): Router {
         await notifyBookedSafely(deps.bookingNotifier, {
           clientId: context.clientId,
           appointmentId: booked.id,
+          callId: context.callId,
           reservationNumber: booked.reservationNumber,
           language: context.language,
           patientName: booked.patientName,
