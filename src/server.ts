@@ -6,7 +6,7 @@ import { createApp } from './app.js';
 import { clinicTimeZoneLookup } from './config/clinicTimeZone.js';
 import { createPool } from './db/pool.js';
 import { createArchive } from './google/createArchive.js';
-import { EnvError, isProduction, loadEnv } from './env.js';
+import { EnvError, envCredentialLookup, isProduction, loadEnv } from './env.js';
 import { LoggingNotifier } from './lib/callbackNotifier.js';
 import { logger } from './lib/logger.js';
 import { FileKnowledgeSource } from './knowledge/KnowledgeSource.js';
@@ -47,6 +47,9 @@ const app = createApp({
     topics: new PgCallTopicRepository(pool),
     // VP-12: staff summary/status row written from the end-of-call-report.
     callLogs: new PgCallLogRepository(pool),
+    // VP-24: the hard transfer gate reads stored transfers (daily cap) and the staff number's env var.
+    transferCounts: new PgCallLogRepository(pool),
+    transferEnv: envCredentialLookup(),
     ...(archive ? { archive: archive.reportArchiver } : {}),
     // F-2: email/LINE are new classes implementing CallbackNotifier, swapped in here.
     notifier: new LoggingNotifier(),

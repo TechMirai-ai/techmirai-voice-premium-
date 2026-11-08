@@ -11,6 +11,7 @@ import {
   businessNoun,
   contactNumberInstructions,
   fillClinicPlaceholders,
+  formatWeeklyHours,
   nameConfirmationInstructions,
   pick,
   reservationClosingInstructions,
@@ -23,6 +24,7 @@ import {
   LOG_CALL_TOPIC_FUNCTION_NAME,
   LOOKUP_POSTAL_CODE_FUNCTION_NAME,
   REQUEST_CALLBACK_FUNCTION_NAME,
+  TRANSFER_TO_STAFF_FUNCTION_NAME,
 } from './toolNames.js';
 
 /**
@@ -63,6 +65,68 @@ export function emergencySection(config: ClientConfig, language: string): string
         `(${LOG_CALL_TOPIC_FUNCTION_NAME}, then ${END_CALL_FUNCTION_NAME}), outcome "unresolved".`,
       '6. If the caller says it was a false alarm or changes their mind, still finish the steps ' +
         'above — a safety report is never silently dropped.',
+    ].join('\n'),
+  ];
+}
+
+/**
+ * VP-24: live transfer to staff. Returns `[]` unless the client has an enabled `transfer` block.
+ *
+ * Two triggers, both gated on clinic hours (reusing `business.hours`, never a second definition):
+ *  - an explicit request for a person → call `transfer_to_staff` at once, no confirmation;
+ *  - something the assistant cannot handle → take the callback FIRST (the safety net: on Telnyx a
+ *    failed transfer cannot return the caller, docs/VAPI-FACTS.md VP-24), then offer, and transfer
+ *    only on a clear yes.
+ * The announcement is spoken by the platform when the tool runs (see transferTool.ts), so the
+ * model is told to say nothing of its own before calling it.
+ *
+ * Hours are judged by the model against "Today" at the end of the prompt so it behaves sensibly
+ * (offers, wording); the real gate is server-side — src/routes/transferToStaff.ts refuses outside
+ * hours, over the daily cap and on a second transfer, whatever the model does.
+ */
+export function transferSection(config: ClientConfig, language: string): string[] {
+  const transfer = config.transfer;
+  if (!transfer?.enabled) return [];
+
+  const noun = businessNoun(config);
+  const { hours } = config.business;
+  const line = (key: keyof typeof transfer.scripts): string =>
+    fillClinicPlaceholders(config, language, pick(transfer.scripts[key], language));
+  const callback = REQUEST_CALLBACK_FUNCTION_NAME;
+
+  return [
+    [
+      'Staff transfer (connecting the caller to a staff member by phone):',
+      ...(config.emergency ? ['The safety emergency path above overrides this section.'] : []),
+      `Staff can answer the phone only while the ${noun} is open (${hours.timezone}): ` +
+        `${formatWeeklyHours(hours.weekly)}${hours.closedOnNationalHolidays ? '; closed on national holidays' : ''}. ` +
+        `Use Today (below) to decide: "staff reachable" means the current time is inside today's ` +
+        `opening hours and at least ${transfer.closingBufferMinutes} minutes before closing. ` +
+        'If you are unsure, or the caller says today is a holiday, treat staff as not reachable.',
+      `The ${TRANSFER_TO_STAFF_FUNCTION_NAME} tool is the only way to connect the caller. Never say ` +
+        'you are connecting, transferring or putting them through unless you call the tool in ' +
+        'that same turn — and when you do call it, add no words of your own before it: the ' +
+        `system announces it ("${line('transferring')}").`,
+      '1. The caller asks to speak to a person — staff, a human, a receptionist, someone at the ' +
+        `${noun}, in any language (an explicit request, not a question you could not answer):`,
+      `   - Staff reachable: call ${TRANSFER_TO_STAFF_FUNCTION_NAME} immediately. Do not ask for ` +
+        'confirmation and do not collect a name first.',
+      `   - Staff not reachable: say "${line('closedOffer')}" then "${scriptLine(config, language, 'staffContactOffer')}" ` +
+        'and continue with the Callback requests steps. Never offer a transfer.',
+      `2. You cannot answer what the caller needs (the situation for "${scriptLine(config, language, 'noMatch')}") and staff are reachable:`,
+      `   a. Do the Callback requests steps first, through ${callback}. Do NOT offer a transfer ` +
+        `before ${callback} has succeeded: the saved callback is the safety net if the transfer ` +
+        'cannot be completed.',
+      `   b. After it succeeds, say the saved line, then instead of step 8 ask exactly once: "${line('offer')}"`,
+      `   c. An explicit yes: call ${TRANSFER_TO_STAFF_FUNCTION_NAME} right away. A clear no: accept ` +
+        'it, say staff will call back, and continue as after a normal callback. An ambiguous ' +
+        'reply ("that\'s fine", "OK"): check explicitly. Never offer a second time unless the ' +
+        'caller asks for staff themselves.',
+      `   d. If ${callback} failed or the caller declined the callback, do not offer a transfer ` +
+        '(they can still ask for staff themselves — rule 1).',
+      `   If staff are not reachable, never mention a transfer: take the callback only.`,
+      `3. If ${TRANSFER_TO_STAFF_FUNCTION_NAME} returns an error: say "${line('failed')}" and take ` +
+        `the callback if none was saved yet; never retry the tool.`,
     ].join('\n'),
   ];
 }

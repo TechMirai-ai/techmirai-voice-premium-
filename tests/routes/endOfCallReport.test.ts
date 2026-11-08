@@ -131,6 +131,55 @@ describe('POST /api/voice/end-of-call-report', () => {
     expect(callLogs.recorded[0]).toMatchObject({ status: 'unresolved' });
   });
 
+  describe('a call that ended in a transfer to staff (VP-24)', () => {
+    const transferred = { endedReason: 'assistant-forwarded-call' };
+
+    test('is never "resolved by AI" and starts its summary with the unconfirmed-outcome note', async () => {
+      const { app, callLogs } = buildVoiceApp();
+
+      await request(app).post(PATH).set(AUTH).send(reportBody({}, transferred)).expect(200);
+
+      expect(callLogs.recorded[0]).toMatchObject({
+        status: 'unresolved',
+        endedReason: 'assistant-forwarded-call',
+        summary: 'Transferred to staff (outcome unconfirmed). Caller asked about parking.',
+      });
+    });
+
+    test('still shows the note when the call had no summary at all', async () => {
+      const { app, callLogs } = buildVoiceApp();
+      const body = reportBody({ structuredOutputs: {} }, { ...transferred, analysis: {} });
+
+      await request(app).post(PATH).set(AUTH).send(body).expect(200);
+
+      expect(callLogs.recorded[0]?.summary).toBe('Transferred to staff (outcome unconfirmed).');
+    });
+
+    test('a callback taken before the transfer keeps the call in Needs Callback', async () => {
+      const { app, callLogs } = buildVoiceApp();
+      const messages = [
+        { role: 'tool_call_result', toolCallId: 't1', name: 'request_callback', result: 'saved' },
+      ];
+
+      await request(app)
+        .post(PATH)
+        .set(AUTH)
+        .send(reportBody({ messages }, transferred))
+        .expect(200);
+
+      expect(callLogs.recorded[0]).toMatchObject({ status: 'needs_callback' });
+      expect(callLogs.recorded[0]?.summary).toContain('Transferred to staff');
+    });
+
+    test('an ordinary ended call carries no transfer note', async () => {
+      const { app, callLogs } = buildVoiceApp();
+
+      await request(app).post(PATH).set(AUTH).send(reportBody()).expect(200);
+
+      expect(callLogs.recorded[0]?.summary).toBe('Caller asked about parking.');
+    });
+  });
+
   test('never stores the transcript or recording link on the staff row', async () => {
     const { app, callLogs } = buildVoiceApp();
     await request(app)

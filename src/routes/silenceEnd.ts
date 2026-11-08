@@ -64,6 +64,8 @@ export function silenceEndRouter(deps: SilenceEndRouteDeps): Router {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ type: 'say', content, endCallAfterSpoken: true }),
+          // Never follow a redirect off the *.vapi.ai host that was checked.
+          redirect: 'error',
           signal: AbortSignal.timeout(CONTROL_REQUEST_TIMEOUT_MS),
         });
 

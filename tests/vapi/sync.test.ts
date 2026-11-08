@@ -16,6 +16,7 @@ import {
 import { readState } from '../../src/vapi/stateStore.js';
 import {
   readSakuraDocument,
+  withChanges,
   writeClientFixture,
   type ClientFixture,
 } from '../helpers/clientFixtures.js';
@@ -100,6 +101,12 @@ function syncTheSquad(client: VapiSyncClient, dryRun: boolean) {
   return syncSquad(CLIENT_ID, { dryRun, client, clientsDir: fixture.clientsDir, repoRoot });
 }
 
+function sakuraWithoutTransfer(): Record<string, any> {
+  return withChanges(readSakuraDocument(), (draft) => {
+    delete draft['transfer'];
+  });
+}
+
 /** Commits the state file, matching the real workflow between two syncs. */
 function commitState(): void {
   git('add', `.vapi-state.${CLIENT_ID}.json`);
@@ -112,7 +119,9 @@ beforeEach(() => {
   git('config', 'user.email', 'test@example.com');
   git('config', 'user.name', 'Test');
 
-  fixture = writeClientFixture(CLIENT_ID, readSakuraDocument());
+  // The base sync tests describe a client WITHOUT a transfer tool; the VP-24 block at the end of
+  // this file switches it back on.
+  fixture = writeClientFixture(CLIENT_ID, sakuraWithoutTransfer());
 });
 
 afterEach(() => {
@@ -447,5 +456,88 @@ describe('syncSquad', () => {
     await sync(mock.client, false, 'ja');
 
     await expect(syncTheSquad(mock.client, true)).rejects.toThrow(UncommittedStateFileError);
+  });
+});
+
+describe('syncClient — transfer tool (VP-24)', () => {
+  beforeEach(() => {
+    // Back to the real Sakura document, which has `transfer.enabled: true`.
+    fixture.cleanup();
+    fixture = writeClientFixture(CLIENT_ID, readSakuraDocument());
+  });
+
+  test('a dry run plans one transfer tool per language leg and calls nothing', async () => {
+    const mock = createMockClient();
+
+    const ja = await sync(mock.client, true, 'ja');
+    const en = await sync(mock.client, true, 'en');
+
+    expect(ja.transferTools.map((tool) => tool.name)).toEqual([
+      'sakura-seikotsuin--ja--transfer-call',
+    ]);
+    expect(en.transferTools.map((tool) => tool.name)).toEqual([
+      'sakura-seikotsuin--en--transfer-call',
+    ]);
+    expect(ja.diffLines.join('\n')).toContain('transfer:');
+    expect(mock.callLog).toEqual([]);
+  });
+
+  test('apply creates the transfer tool last and lists its id last in model.toolIds', async () => {
+    const mock = createMockClient();
+
+    const result = await sync(mock.client, false);
+
+    const transfer = result.transferTools[0];
+    expect(transfer?.id).toBeDefined();
+    const sentAssistant = mock.assistantsCreate.mock.calls[0]?.[0] as {
+      model: { toolIds: string[] };
+    };
+    expect(sentAssistant.model.toolIds).toEqual([
+      result.tool.id,
+      result.topicTool.id,
+      result.handoffTools[0]?.id,
+      transfer?.id,
+    ]);
+    const lastToolPayload = mock.toolsCreate.mock.calls.at(-1)?.[0] as {
+      type: string;
+      function: { name: string };
+      server: { url: string };
+    };
+    expect(lastToolPayload.type).toBe('function');
+    expect(lastToolPayload.function.name).toBe('transfer_to_staff');
+    expect(lastToolPayload.server.url).toMatch(/\/api\/voice\/transfer-to-staff$/);
+    // The staff number is never sent to Vapi.
+    expect(JSON.stringify(lastToolPayload)).not.toMatch(/\+\d{6,}/);
+    expect(readState(CLIENT_ID, { repoRoot }).tools['sakura-seikotsuin--ja--transfer-call']).toBe(
+      transfer?.id,
+    );
+  });
+
+  test('syncing again updates the transfer tool in place instead of creating a second one', async () => {
+    const mock = createMockClient();
+    await sync(mock.client, false);
+    commitState();
+
+    const second = await sync(mock.client, false);
+
+    expect(second.transferTools[0]?.action).toBe('update');
+    expect(mock.toolsCreate).toHaveBeenCalledTimes(4); // only from the first sync
+    expect(mock.toolsUpdate).toHaveBeenCalledTimes(4);
+  });
+
+  test('a disabled transfer block syncs no transfer tool', async () => {
+    fixture.cleanup();
+    fixture = writeClientFixture(
+      CLIENT_ID,
+      withChanges(readSakuraDocument(), (draft) => {
+        draft['transfer'].enabled = false;
+      }),
+    );
+    const mock = createMockClient();
+
+    const result = await sync(mock.client, false);
+
+    expect(result.transferTools).toEqual([]);
+    expect(mock.toolsCreate).toHaveBeenCalledTimes(3);
   });
 });

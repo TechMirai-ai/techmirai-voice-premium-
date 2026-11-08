@@ -12,7 +12,7 @@
 import { Router, type Request, type Response } from 'express';
 
 import type { ArchiveReportInput, InlineOutcome } from '../google/archiveService.js';
-import { deriveCallStatus } from '../lib/callStatus.js';
+import { deriveCallStatus, isTransferredCall, withTransferNote } from '../lib/callStatus.js';
 import { summarizeError } from '../lib/errorSummary.js';
 import { logger } from '../lib/logger.js';
 import type { CallLogRepository, NewCallLog } from '../repositories/callLogRepository.js';
@@ -71,7 +71,9 @@ function toCallLog(
   clientId: string,
   language: string,
   status: NewCallLog['status'],
+  transferred: boolean,
 ): NewCallLog {
+  const summary = withTransferNote(report.summary, transferred);
   return {
     clientId,
     callId: report.callId,
@@ -81,7 +83,7 @@ function toCallLog(
     ...(report.callerPhone ? { callerPhone: report.callerPhone } : {}),
     ...(report.matchedPatientName ? { matchedPatientName: report.matchedPatientName } : {}),
     ...(report.topic ? { topic: report.topic } : {}),
-    ...(report.summary ? { summary: report.summary } : {}),
+    ...(summary ? { summary } : {}),
     ...(report.endedReason ? { endedReason: report.endedReason } : {}),
     ...(report.startedAt ? { startedAt: report.startedAt } : {}),
     ...(report.endedAt ? { endedAt: report.endedAt } : {}),
@@ -108,11 +110,15 @@ export function endOfCallReportRouter(deps: EndOfCallReportRouteDeps): Router {
       return;
     }
 
+    const transferred = isTransferredCall(report.endedReason);
     const status = deriveCallStatus({
       toolResults: report.toolResults,
       resolved: report.resolved,
+      transferred,
     });
-    await deps.callLogs.record(toCallLog(report, resolved.clientId, resolved.language, status));
+    await deps.callLogs.record(
+      toCallLog(report, resolved.clientId, resolved.language, status, transferred),
+    );
     logger.info('call logged', { clientId: resolved.clientId, callId: report.callId, status });
 
     await archiveSafely(deps.archive, {

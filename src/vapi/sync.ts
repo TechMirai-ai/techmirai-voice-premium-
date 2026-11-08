@@ -41,6 +41,7 @@ import {
   type VapiState,
 } from './stateStore.js';
 import { callOutcomeStateName, renderCallOutcomeOutput } from './callReporting.js';
+import { transferToolStateName } from './transferTool.js';
 import type { VapiStructuredOutputPayload, VapiToolPayload } from './types.js';
 
 export class UncommittedStateFileError extends Error {
@@ -78,6 +79,8 @@ export interface SyncResult {
   handoffTools: SyncResourceResult[];
   /** VP-8: check_availability, lookup_patient, book_appointment — empty when the client has no services. */
   reservationTools: SyncResourceResult[];
+  /** VP-24: the `transfer_to_staff` tool — empty when the client has no enabled `transfer` block. */
+  transferTools: SyncResourceResult[];
   assistant: SyncResourceResult;
   /** Human-readable diff, ready to print — see cli.ts. */
   diffLines: string[];
@@ -210,6 +213,7 @@ function buildDiffLines(
   topicTool: SyncResourceResult,
   handoffTools: SyncResourceResult[],
   reservationTools: SyncResourceResult[],
+  transferTools: SyncResourceResult[],
   assistant: SyncResourceResult,
 ): string[] {
   return [
@@ -219,6 +223,7 @@ function buildDiffLines(
     `  topic:     ${describeResource(topicTool)}`,
     ...handoffTools.map((handoff) => `  handoff:   ${describeResource(handoff)}`),
     ...reservationTools.map((reservation) => `  reservation: ${describeResource(reservation)}`),
+    ...transferTools.map((transfer) => `  transfer:  ${describeResource(transfer)}`),
     `  assistant: ${describeResource(assistant)}`,
   ];
 }
@@ -278,11 +283,21 @@ export async function syncClient(
     const name = reservationToolStateName(clientId, memberId, key);
     return { result: planResource(name, state.tools[name]), payload };
   });
+  const transferToolName = transferToolStateName(clientId, memberId);
+  const transferPlans: PlannedTool[] = rendered.transferTool
+    ? [
+        {
+          result: planResource(transferToolName, state.tools[transferToolName]),
+          payload: rendered.transferTool,
+        },
+      ]
+    : [];
   const assistantPlan = planResource(assistantName, state.assistants[assistantName]);
 
   if (options.dryRun) {
     const handoffResults = handoffPlans.map((plan) => plan.result);
     const reservationResults = reservationPlans.map((plan) => plan.result);
+    const transferResults = transferPlans.map((plan) => plan.result);
     return {
       dryRun: true,
       clientId,
@@ -292,6 +307,7 @@ export async function syncClient(
       topicTool: topicToolPlan.result,
       handoffTools: handoffResults,
       reservationTools: reservationResults,
+      transferTools: transferResults,
       assistant: assistantPlan,
       diffLines: buildDiffLines(
         clientId,
@@ -301,13 +317,14 @@ export async function syncClient(
         topicToolPlan.result,
         handoffResults,
         reservationResults,
+        transferResults,
         assistantPlan,
       ),
     };
   }
 
   const { state: stateAfterTools, results } = await applyTools(
-    [toolPlan, topicToolPlan, ...handoffPlans, ...reservationPlans],
+    [toolPlan, topicToolPlan, ...handoffPlans, ...reservationPlans, ...transferPlans],
     options.client,
     clientId,
     state,
@@ -317,7 +334,9 @@ export async function syncClient(
   if (!toolResult || !topicToolResult)
     throw new Error('unreachable: applyTools returned no results');
   const handoffResults = restResults.slice(0, handoffPlans.length);
-  const reservationResults = restResults.slice(handoffPlans.length);
+  const reservationEnd = handoffPlans.length + reservationPlans.length;
+  const reservationResults = restResults.slice(handoffPlans.length, reservationEnd);
+  const transferResults = restResults.slice(reservationEnd);
 
   const assistantToSend = {
     ...rendered.assistant,
@@ -351,6 +370,7 @@ export async function syncClient(
     topicTool: topicToolResult,
     handoffTools: handoffResults,
     reservationTools: reservationResults,
+    transferTools: transferResults,
     assistant: finalAssistant,
     diffLines: buildDiffLines(
       clientId,
@@ -360,6 +380,7 @@ export async function syncClient(
       topicToolResult,
       handoffResults,
       reservationResults,
+      transferResults,
       finalAssistant,
     ),
   };

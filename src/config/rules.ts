@@ -9,6 +9,8 @@ import type { ConfigIssue } from './issues.js';
 import { notificationIssues } from './notificationRules.js';
 import type { ClientConfig, LocalizedText } from './schema.js';
 import { KNOWN_TOP_LEVEL_KEYS, SCRIPT_KEYS } from './schema.js';
+import { transferIssues } from './transferRules.js';
+import { TRANSFER_SCRIPT_KEYS } from './transferSchema.js';
 
 /** Placeholders our renderer (VP-2) understands. Anything else is a typo. */
 export const CLINIC_PLACEHOLDERS = ['clinicName', 'clinicPhone', 'clinicAddress'] as const;
@@ -57,6 +59,7 @@ export function collectCrossFieldIssues(
     ...placeholderIssues(config),
     ...reservationFlowIssues(config),
     ...notificationIssues(config),
+    ...transferIssues(config),
   ];
 }
 
@@ -183,6 +186,7 @@ function localizedBlocks(config: ClientConfig): LocalizedBlock[] {
     { path: 'business.address', text: addressText },
     ...SCRIPT_KEYS.map((key) => ({ path: `scripts.${key}`, text: config.scripts[key] })),
     ...(config.emergency ? [{ path: 'emergency.script', text: config.emergency.script }] : []),
+    ...transferBlocks(config),
     ...(config.reservationFlow?.askServiceAddress
       ? [
           {
@@ -199,6 +203,21 @@ function localizedBlocks(config: ClientConfig): LocalizedBlock[] {
       { path: `faq[${index}].question`, text: entry.question },
       { path: `faq[${index}].answer`, text: entry.answer },
     ]),
+  ];
+}
+
+/** VP-24: the spoken transfer lines — checked like scripts (every language, known placeholders). */
+function transferBlocks(config: ClientConfig): LocalizedBlock[] {
+  const transfer = config.transfer;
+  if (!transfer) return [];
+  return [
+    ...TRANSFER_SCRIPT_KEYS.map((key) => ({
+      path: `transfer.scripts.${key}`,
+      text: transfer.scripts[key],
+    })),
+    ...(transfer.fallbackPlan
+      ? [{ path: 'transfer.fallbackPlan.message', text: transfer.fallbackPlan.message }]
+      : []),
   ];
 }
 
@@ -237,7 +256,7 @@ function placeholderIssues(config: ClientConfig): ConfigIssue[] {
   const allowedPaths = CALLER_PLACEHOLDER_SCRIPTS.map((key) => `scripts.${key}`);
   const openingPaths = OPENING_PLACEHOLDER_SCRIPTS.map((key) => `scripts.${key}`);
 
-  return [...scriptBlocks, ...faqBlocks].flatMap(({ path, text }) =>
+  return [...scriptBlocks, ...transferBlocks(config), ...faqBlocks].flatMap(({ path, text }) =>
     Object.entries(text).flatMap(([code, value]) =>
       checkPlaceholders(`${path}.${code}`, value, {
         allowCaller: allowedPaths.includes(path),

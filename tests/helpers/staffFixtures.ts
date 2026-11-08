@@ -251,6 +251,8 @@ function minimalVoiceOptions(): VoiceRouterOptions {
     services: { listByClient: () => Promise.resolve([]) },
     patients: { findByName: () => Promise.resolve(undefined) },
     postalCodes: { lookup: () => Promise.resolve({ kind: 'unavailable' as const }) },
+    transferCounts: { countTransfersSince: () => Promise.resolve(0) },
+    transferEnv: () => undefined,
     appointments: {
       listTakenTimes: () => Promise.resolve(new Set<string>()),
       create: () => Promise.reject(new Error('not used by staff dashboard tests')),

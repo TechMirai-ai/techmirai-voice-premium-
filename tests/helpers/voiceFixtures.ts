@@ -17,7 +17,11 @@ import type {
   CallbackRequestRepository,
   NewCallbackRequest,
 } from '../../src/repositories/callbackRequestRepository.js';
-import type { CallLogRepository, NewCallLog } from '../../src/repositories/callLogRepository.js';
+import type {
+  CallLogRepository,
+  NewCallLog,
+  TransferCountReader,
+} from '../../src/repositories/callLogRepository.js';
 import type {
   CallTopicRepository,
   NewCallTopic,
@@ -183,6 +187,12 @@ export function buildVoiceApp(
     fetchImpl?: typeof fetch;
     /** VP-23: what the booking route tells after a booking. Omitted = no notifications. */
     bookingNotifier?: BookingNotifier;
+    /** VP-24: stored transfers for the daily cap; default none. */
+    transferCounts?: TransferCountReader;
+    /** VP-24: the staff number's env lookup; default unset (so every transfer is refused). */
+    transferEnv?: (name: string) => string | undefined;
+    /** VP-24: the clock the transfer gate reads. */
+    now?: () => Date;
   } = {},
 ) {
   const callbacks = new MemoryCallbacks();
@@ -205,6 +215,9 @@ export function buildVoiceApp(
     patients,
     appointments,
     postalCodes,
+    transferCounts: options.transferCounts ?? { countTransfersSince: () => Promise.resolve(0) },
+    transferEnv: options.transferEnv ?? (() => undefined),
+    ...(options.now ? { now: options.now } : {}),
     ...(options.rateLimit ? { rateLimit: options.rateLimit } : {}),
     ...(options.archive ? { archive: options.archive } : {}),
     ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),

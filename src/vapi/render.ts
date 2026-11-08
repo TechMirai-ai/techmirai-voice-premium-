@@ -37,6 +37,7 @@ import {
   renderArrivalMessage,
   renderHandoffTool,
 } from './squad.js';
+import { renderTransferTool } from './transferTool.js';
 import type {
   VapiAssistantPayload,
   VapiFunctionToolPayload,
@@ -123,6 +124,8 @@ export interface RenderResult {
   handoffTools: RenderedHandoffTool[];
   /** VP-8 demo reservation tools; empty when the client has no services configured. */
   reservationTools: RenderedReservationTool[];
+  /** VP-24: the `transfer_to_staff` function tool; absent when the client has no enabled `transfer` block. */
+  transferTool?: VapiFunctionToolPayload;
 }
 
 /** Strips a trailing slash so `${baseUrl}/api/...` never ends up with `//`. */
@@ -507,6 +510,8 @@ export function renderAssistant(
       ? renderReservationTools(config, baseUrl, options.credentialId, services, pleaseWaitMessages)
       : [];
 
+  const transferTool = renderTransferTool(config, baseUrl, options.credentialId);
+
   const endCallPhrases = endCallPhrasesFor(config, language);
   const reporting = renderReportingConfig(baseUrl, options.credentialId, options.outcomeOutputId);
 
@@ -533,8 +538,8 @@ export function renderAssistant(
       ...(MODEL_REASONING_EFFORT !== undefined ? { reasoningEffort: MODEL_REASONING_EFFORT } : {}),
       messages: [{ role: 'system', content: systemPrompt }],
       // Populated by sync.ts once the tools (request_callback + log_call_topic
-      // + one handoff tool per other language + the VP-8 reservation tools,
-      // if any) have resolved UUIDs — create/update the tools first, then
+      // + one handoff tool per other language + the VP-8 reservation tools
+      // and the VP-24 transfer tool, if any) have resolved UUIDs — create/update the tools first, then
       // patch this in before the assistant create/update call.
       toolIds: [],
       // Built-in, no server round-trip — lets the model hang up itself
@@ -564,5 +569,12 @@ export function renderAssistant(
     payload: renderHandoffTool(config, language, toLanguage, silenceEndServer, reporting),
   }));
 
-  return { assistant, tool, topicTool, handoffTools, reservationTools };
+  return {
+    assistant,
+    tool,
+    topicTool,
+    handoffTools,
+    reservationTools,
+    ...(transferTool ? { transferTool } : {}),
+  };
 }

@@ -11,6 +11,7 @@ import { endOfCallReportRouter, type EndOfCallReportRouteDeps } from './endOfCal
 import { lookupPatientRouter, type LookupPatientRouteDeps } from './lookupPatient.js';
 import { lookupPostalCodeRouter, type LookupPostalCodeRouteDeps } from './lookupPostalCode.js';
 import { silenceEndRouter, type SilenceEndRouteDeps } from './silenceEnd.js';
+import { transferToStaffRouter, type TransferToStaffRouteDeps } from './transferToStaff.js';
 
 export const VOICE_API_PREFIX = '/api/voice';
 
@@ -33,7 +34,8 @@ export interface VoiceRouterOptions
     BookAppointmentRouteDeps,
     LookupPatientRouteDeps,
     LookupPostalCodeRouteDeps,
-    SilenceEndRouteDeps {
+    SilenceEndRouteDeps,
+    TransferToStaffRouteDeps {
   webhookSecret: string;
   rateLimit?: RateLimitOptions;
 }
@@ -53,6 +55,7 @@ export function voiceRouter(options: VoiceRouterOptions): Router {
   router.use(lookupPostalCodeRouter(options));
   router.use(bookAppointmentRouter(options));
   router.use(silenceEndRouter(options));
+  router.use(transferToStaffRouter(options));
 
   return router;
 }

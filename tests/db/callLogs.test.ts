@@ -131,6 +131,39 @@ describe.skipIf(!TEST_DATABASE_URL)('call_logs (real Postgres)', () => {
     ]);
   });
 
+  describe('transfer count for the daily cap (VP-24)', () => {
+    const repo = () => new PgCallLogRepository(pool);
+    const record = (clientId: string, callId: string, endedReason: string) =>
+      repo().record({ clientId, callId, language: 'ja', status: 'unresolved', endedReason });
+    const dayAgo = () => new Date(Date.now() - 24 * 60 * 60_000);
+
+    test('counts only calls that ended in a transfer, for that client, inside the window', async () => {
+      await record('c', 'transferred-1', 'assistant-forwarded-call');
+      await record('c', 'transferred-2', 'assistant-forwarded-call');
+      await record('c', 'normal', 'assistant-ended-call');
+      await record('other-client', 'transferred-3', 'assistant-forwarded-call');
+      await record('c', 'old-transfer', 'assistant-forwarded-call');
+      await pool.query(
+        `UPDATE call_logs SET created_at = now() - interval '25 hours' WHERE call_id = 'old-transfer'`,
+      );
+
+      expect(await repo().countTransfersSince('c', dayAgo())).toBe(2);
+      expect(await repo().countTransfersSince('other-client', dayAgo())).toBe(1);
+      expect(await repo().countTransfersSince('nobody', dayAgo())).toBe(0);
+    });
+
+    test('a call with no ended reason is not a transfer', async () => {
+      await repo().record({
+        clientId: 'c',
+        callId: 'no-reason',
+        language: 'ja',
+        status: 'unresolved',
+      });
+
+      expect(await repo().countTransfersSince('c', dayAgo())).toBe(0);
+    });
+  });
+
   describe('returning-caller lookup (VP-15)', () => {
     const repo = () => new PgCallLogRepository(pool);
     const log = (

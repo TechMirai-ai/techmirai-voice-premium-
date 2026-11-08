@@ -24,6 +24,33 @@ export interface CallStatusInput {
   toolResults: readonly ToolOutcome[];
   /** From the call-outcome structured output; `undefined` when it is missing or failed. */
   resolved: boolean | undefined;
+  /** VP-24: the call ended in a transfer to staff (`isTransferredCall`). Never counts as AI-resolved. */
+  transferred?: boolean | undefined;
+}
+
+/**
+ * Vapi's `endedReason` when it started a transfer or handed control to our server. It does NOT
+ * confirm the destination answered (docs.vapi.ai/call-forwarding; docs/VAPI-FACTS.md VP-24), and
+ * on Telnyx there is no other signal — so a transfer is always "outcome unconfirmed".
+ */
+export const TRANSFER_ENDED_REASON = 'assistant-forwarded-call';
+
+export function isTransferredCall(endedReason: string | undefined): boolean {
+  return endedReason === TRANSFER_ENDED_REASON;
+}
+
+/**
+ * The note staff see at the start of a transferred call's summary. A dedicated status would need a
+ * migration (`call_logs.status` has a CHECK constraint), so the marker rides in the summary.
+ */
+export const TRANSFER_SUMMARY_NOTE = 'Transferred to staff (outcome unconfirmed).';
+
+export function withTransferNote(
+  summary: string | undefined,
+  transferred: boolean,
+): string | undefined {
+  if (!transferred) return summary;
+  return summary ? `${TRANSFER_SUMMARY_NOTE} ${summary}` : TRANSFER_SUMMARY_NOTE;
 }
 
 export const BOOK_SUCCESS_PREFIX = 'Booked.';
@@ -43,6 +70,7 @@ export function deriveCallStatus(input: CallStatusInput): CallStatus {
   if (input.toolResults.some(bookingSucceeded)) return 'reservation_made';
   if (input.toolResults.some((outcome) => outcome.name === CALLBACK_TOOL)) return 'needs_callback';
   // Only an explicit `true` counts: a missing/failed classification must surface to staff.
-  if (input.resolved === true) return 'resolved_by_ai';
+  // A transfer's outcome is never confirmed (see TRANSFER_ENDED_REASON), so it is never "resolved".
+  if (input.resolved === true && !input.transferred) return 'resolved_by_ai';
   return 'unresolved';
 }

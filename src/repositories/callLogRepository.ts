@@ -1,5 +1,5 @@
 import type { Queryable } from '../db/pool.js';
-import type { CallStatus } from '../lib/callStatus.js';
+import { TRANSFER_ENDED_REASON, type CallStatus } from '../lib/callStatus.js';
 
 /**
  * The staff-visible record of one call (db/migrations/0009_call_logs.sql).
@@ -115,6 +115,12 @@ export interface CallLogReader {
   listReservations(clientId: string, limit?: number): Promise<StaffReservationSummary[]>;
 }
 
+/** VP-24: the stored half of the transfer daily cap. */
+export interface TransferCountReader {
+  /** Calls of this client that ended in a transfer to staff since `since`. */
+  countTransfersSince(clientId: string, since: Date): Promise<number>;
+}
+
 /** A page of the dashboard; busy clinics get the most recent calls, never an unbounded query. */
 export const STAFF_LIST_LIMIT = 100;
 
@@ -183,8 +189,20 @@ function toStaffCall(row: StaffCallRow): StaffCallSummary {
   };
 }
 
-export class PgCallLogRepository implements CallLogRepository, CallLogReader, PriorCallReader {
+export class PgCallLogRepository
+  implements CallLogRepository, CallLogReader, PriorCallReader, TransferCountReader
+{
   constructor(private readonly db: Queryable) {}
+
+  async countTransfersSince(clientId: string, since: Date): Promise<number> {
+    const { rows } = await this.db.query(
+      `SELECT count(*)::text AS transfers
+       FROM call_logs
+       WHERE client_id = $1 AND ended_reason = $2 AND created_at >= $3`,
+      [clientId, TRANSFER_ENDED_REASON, since],
+    );
+    return Number((rows as { transfers: string }[])[0]?.transfers ?? 0);
+  }
 
   async listByClient(
     clientId: string,

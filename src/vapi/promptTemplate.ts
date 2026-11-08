@@ -18,6 +18,7 @@ import {
   callCenterWordingSection,
   emergencySection,
   simpleReservationSection,
+  transferSection,
 } from './promptExtraSections.js';
 import {
   CONFIRMATION_ACK_INSTRUCTIONS,
@@ -25,6 +26,7 @@ import {
   businessNounTitle,
   contactNumberInstructions,
   fillClinicPlaceholders,
+  formatWeeklyHours,
   nameConfirmationInstructions,
   pick,
   reservationClosingInstructions,
@@ -52,17 +54,6 @@ export class UnsupportedLanguageError extends Error {
   }
 }
 
-const DAY_ORDER = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
-const DAY_LABELS: Record<(typeof DAY_ORDER)[number], string> = {
-  mon: 'Mon',
-  tue: 'Tue',
-  wed: 'Wed',
-  thu: 'Thu',
-  fri: 'Fri',
-  sat: 'Sat',
-  sun: 'Sun',
-};
-
 /**
  * `language`'s goodbye line, clinic placeholders filled — the single source
  * used both for the assistant's own `endCallMessage` (render.ts) and for a
@@ -71,15 +62,6 @@ const DAY_LABELS: Record<(typeof DAY_ORDER)[number], string> = {
  */
 export function goodbyeMessage(config: ClientConfig, language: string): string {
   return fillClinicPlaceholders(config, language, pick(config.scripts.goodbye, language));
-}
-
-function formatWeeklyHours(weekly: ClientConfig['business']['hours']['weekly']): string {
-  return DAY_ORDER.map((day) => {
-    const hours = weekly[day];
-    return hours === 'closed'
-      ? `${DAY_LABELS[day]} closed`
-      : `${DAY_LABELS[day]} ${hours.open}-${hours.close}`;
-  }).join(', ');
 }
 
 function formatFaqEntry(config: ClientConfig, language: string, entry: FaqEntry): string {
@@ -138,8 +120,14 @@ function identitySection(config: ClientConfig, language: string): string {
   return (
     `You are the AI phone receptionist for ${clinicName}. You speak with callers over the phone ` +
     'and can answer questions about the clinic, or take a message for staff to call them back. ' +
-    'You cannot see the appointment schedule, make or change bookings, transfer calls, or give ' +
-    'medical advice. If asked directly whether you are a real person or an AI, answer honestly — ' +
+    // VP-24: with an enabled `transfer` block the "transfer calls" limit is replaced by the rule
+    // that transfers happen only as the "Staff transfer" section allows.
+    (config.transfer?.enabled
+      ? 'You cannot see the appointment schedule, make or change bookings, or give medical ' +
+        'advice, and you connect a caller to staff only as the "Staff transfer" section allows. '
+      : 'You cannot see the appointment schedule, make or change bookings, transfer calls, or ' +
+        'give medical advice. ') +
+    'If asked directly whether you are a real person or an AI, answer honestly — ' +
     "say you're the clinic's AI receptionist — but never bring it up yourself."
   );
 }
@@ -263,8 +251,13 @@ function callbackSection(config: ClientConfig, language: string): string {
     'Callback requests:',
     "Take one only when you can't answer a question, or when the caller asks for a staff member " +
       'directly. Never ask for a name after answering a question normally.',
-    `- If the caller asks for staff: "${scriptLine(config, language, 'staffContactOffer')}" — ` +
-      'never claim you can transfer the call.',
+    config.transfer?.enabled
+      ? // VP-24: a live transfer exists, so the "never claim you can transfer" rule would contradict it.
+        `- If the caller asks for staff: follow "Staff transfer" below. When staff cannot be ` +
+        `reached by phone, say: "${scriptLine(config, language, 'staffContactOffer')}" and take ` +
+        'the callback — never claim you can transfer the call in any other case.'
+      : `- If the caller asks for staff: "${scriptLine(config, language, 'staffContactOffer')}" — ` +
+        'never claim you can transfer the call.',
     `- If you can't answer their question: "${scriptLine(config, language, 'noMatch')}"`,
     '- A reply like "that\'s fine" / "I\'m good" (or the equivalent in whatever language you\'re ' +
       'speaking) to either offer above often means "no thank you," not agreement — if it\'s ' +
@@ -630,6 +623,7 @@ export function buildSystemPrompt(
     leadingSection(config, language),
     answeringSection(config, language),
     callbackSection(config, language),
+    ...transferSection(config, language),
     ...reservationSection(config, language, services),
     ...medicalSection(config, language),
     ...languageSwitchSection(config, language),

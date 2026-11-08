@@ -65,6 +65,17 @@ describe('buildToolDefs', () => {
     expect(names).not.toContain('handoff_to_ja-return');
   });
 
+  test('a client with a transfer block gets the transfer_to_staff tool, which takes no arguments (VP-24)', async () => {
+    const rendered = await renderedFor('ja');
+
+    const transfer = buildToolDefs(rendered).find(
+      (tool) => tool.function.name === 'transfer_to_staff',
+    );
+
+    expect(transfer?.function.parameters.properties).toEqual({});
+    expect(transfer?.function.parameters.required).toEqual([]);
+  });
+
   test('a single-language client gets no handoff tools, just the three fixed ones', () => {
     const config = buildMinimalConfig({ language: 'fr' });
     const rendered = renderAssistant(config, 'fr', config.faq, OPTIONS);
@@ -236,6 +247,18 @@ describe('handleToolCall', () => {
     expect(lines.some((line) => line.includes('LIMITATION') && line.includes('--member en'))).toBe(
       true,
     );
+  });
+
+  test('transfer_to_staff is a stub: it ends the session and says nothing was placed (VP-24)', async () => {
+    const { deps, lines } = makeDeps();
+    const call = toolCall('c1', 'transfer_to_staff', {});
+
+    const outcome = await handleToolCall(call, deps);
+
+    expect(outcome.ended).toBe(true);
+    expect(outcome.resultMessage.content).toBe('');
+    expect(lines.some((line) => line.includes('Tool call: transfer_to_staff'))).toBe(true);
+    expect(lines.some((line) => line.includes('STUB: transfer not placed'))).toBe(true);
   });
 
   test('log_call_topic does not end the session', async () => {

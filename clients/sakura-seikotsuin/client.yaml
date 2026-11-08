@@ -421,3 +421,40 @@ notifications:
       電話: [[patientPhone]]
       メニュー: [[serviceName]]
       予約番号: [[reservationNumber]]
+
+# VP-24: hand a live call to a staff phone. The model calls our `transfer_to_staff` tool; the server
+# checks hours, daily cap and the number, then moves the call (Live Call Control). The staff number
+# is in `.env`, not here. Docs: docs/VP24-CALL-TRANSFER.md.
+# KNOWN LIMIT (unverified for this mechanism): this number is imported into Vapi as a Telnyx number,
+# and for Telnyx a blind transfer that rings out / is busy / fails is documented as NOT returning the
+# caller to the assistant (the call just ends) — docs/VAPI-FACTS.md VP-24. That is why an out-of-scope
+# caller leaves a callback request BEFORE a transfer is offered. `fallbackPlan` is therefore left
+# unset here and is not sent to Vapi today.
+transfer:
+  enabled: true
+  numberEnv: TRANSFER_STAFF_NUMBER_SAKURA  # .env variable holding the staff phone (E.164) — never the number itself
+  allowedCountryCodes: ["+81"]   # Japan only — the server refuses a number outside these; the Telnyx profile is +81-only too
+  mode: blind-transfer           # not sent today (see docs/VAPI-FACTS.md VP-24 R7)
+  closingBufferMinutes: 10       # no transfer in the last 10 minutes before closing (server-enforced)
+  maxPerDay: 10                  # at most 10 transfers per rolling 24 h; over it the server refuses -> callback
+  # Days the server refuses transfers on top of the weekly hours: national holidays and clinic closures,
+  # "YYYY-MM-DD" in the clinic timezone. The platform has no holiday calendar — list them here.
+  closedDates: []
+  # NEEDS NATIVE-SPEAKER REVIEW. English glosses are in the comments above each line.
+  scripts:
+    # "If you like, I can also connect you to a staff member by phone right now — shall I connect you?"
+    offer:
+      ja: よろしければ、今すぐスタッフにお電話をおつなぎすることもできますが、おつなぎいたしましょうか？
+      en: If you'd like, I can also try to connect you to a staff member by phone right now. Would you like me to do that?
+    # "Certainly. I'll connect you to a staff member. One moment please." (spoken by the platform)
+    transferring:
+      ja: かしこまりました。スタッフにおつなぎいたします。少々お待ちくださいませ。
+      en: Certainly. I'll connect you to a staff member now. One moment, please.
+    # "I'm very sorry. We're currently outside business hours, so I can't connect you to a staff member by phone."
+    closedOffer:
+      ja: 申し訳ございません。ただいま営業時間外のため、スタッフにお電話をおつなぎすることができません。
+      en: I'm sorry, we're outside business hours right now, so I can't connect you to a staff member by phone.
+    # "I'm very sorry. I was unable to connect you to a staff member."
+    failed:
+      ja: 申し訳ございません。スタッフにおつなぎすることができませんでした。
+      en: I'm sorry, I wasn't able to connect you to a staff member.

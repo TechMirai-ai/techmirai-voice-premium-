@@ -232,10 +232,10 @@ caller IP rather than the proxy's.
 
 **How the pieces fit together.** Each assistant has two tools:
 
-| Tool               | Endpoint                           | Table               | Holds personal data?          | Waits for us?                          |
-| ------------------ | ---------------------------------- | ------------------- | ----------------------------- | -------------------------------------- |
+| Tool               | Endpoint                           | Table               | Holds personal data?               | Waits for us?                          |
+| ------------------ | ---------------------------------- | ------------------- | ---------------------------------- | -------------------------------------- |
 | `request_callback` | `POST /api/voice/callback-request` | `callback_requests` | Yes (name; demo placeholder phone) | Yes — the assistant speaks the outcome |
-| `log_call_topic`   | `POST /api/voice/call-topic`       | `call_topics`       | **Never** (no such column)    | No (`async`) — fired after the goodbye |
+| `log_call_topic`   | `POST /api/voice/call-topic`       | `call_topics`       | **Never** (no such column)         | No (`async`) — fired after the goodbye |
 
 - A caller's name is asked for (and read back) **only** when the question matches no FAQ entry or the
   caller asks for staff. A plain FAQ answer never collects it. No phone number is ever asked for
@@ -332,6 +332,12 @@ the Vercel project before deploying, and run `npm run db:migrate` (migration 001
 the log row says `missing_credentials`. A second client is a new `notifications` block plus its own
 variables (Telnyx ones start with `TELNYX_`, LINE ones with `LINE_` — the config check enforces
 it). Verified vendor facts and what is still unconfirmed: `docs/NOTIFICATION-FACTS.md`.
+
+**Call transfer to staff (VP-24) — optional, per client.** The client's `transfer.numberEnv` names
+the variable holding the staff phone (E.164, e.g. `TRANSFER_STAFF_NUMBER_SAKURA=+81…`; must start with
+`TRANSFER_`). Set it in the Vercel project and redeploy; unset or malformed means every transfer is
+refused and callers get the callback flow. Setup, sync order and the real-call test table:
+`docs/VP24-CALL-TRANSFER.md`.
 
 `OPENAI_API_KEY` is not needed in production — it's only used by the local text-tester
 (`npm run vapi:test-chat`), never by the running app. **Currently broken as a validation tool**

@@ -1,0 +1,234 @@
+/**
+ * VP-24 behaviour suite (scratch runner — NOT part of the build; saved as .txt like the VP-7 runner).
+ *
+ * Drives the REAL rendered Sakura prompt + tools through scripted/rule-based callers and checks
+ * the transfer rules: explicit ask → transfer_to_staff at once (no words first); out-of-scope → callback
+ * saved, ONE offer, transfer only on yes; closed hours (Sunday, 08:30, 18:55) → never a transfer or
+ * an offer; no "narrated without calling". The transfer tool is the tester's stub: no call is
+ * placed and there is no Vapi/Telnyx traffic.
+ *
+ * PROXY: src/vapi/textTester.ts cannot call the production model (Gemini; see its banner), so this
+ * posts to OpenAI instead (TEST_MODEL, default gpt-4o-mini) at temperature 0.5 — Vapi's default.
+ * It needs OpenAI credits (the 2026-11-08 attempt failed: "You have no credits remaining"). Results
+ * on another model are weaker evidence than real Vapi calls — treat them as a prompt sanity check.
+ *
+ * Use: copy to a scratch .ts file anywhere, set OUT below, then
+ *   npx tsx transfer-suite.ts <scenarioId|prefix|all> <samples>      (from the repo root)
+ * e.g. `all 20` is ~13 scenarios x 20 samples. Start with `open-explicit-en 2` and read the JSON.
+ */
+import { writeFileSync, mkdirSync } from 'node:fs';
+import path from 'node:path';
+
+import { loadEnv } from '/home/rupta/Documents/techMirai/client-work/techmirai-voice-premium/src/env.ts';
+import {
+  OPENAI_API_URL,
+  buildToolDefs,
+  initialMessages,
+  loadRenderedMember,
+  makeOpenAiCaller,
+  resolveNowPlaceholders,
+  type ChatMessage,
+} from '/home/rupta/Documents/techMirai/client-work/techmirai-voice-premium/src/vapi/textTester.ts';
+
+const OUT = '/home/rupta/Documents/techMirai/client-work/techmirai-voice-premium/docs/vp24-test-runs/out'; // set to a scratch dir
+const MODEL = process.env['TEST_MODEL'] ?? 'gpt-4o-mini';
+const TEMPERATURE = 0.5; // Vapi's default, which production uses
+const CONCURRENCY = 4;
+const MAX_TURNS = 10;
+const MAX_ROUNDS = 5;
+
+let requests = 0;
+const realFetch = globalThis.fetch;
+globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+  if (String(input) !== OPENAI_API_URL) return realFetch(input, init);
+  requests += 1;
+  const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+  return realFetch(input, { ...init, body: JSON.stringify({ ...body, model: MODEL, temperature: TEMPERATURE }) });
+}) as typeof fetch;
+
+const SERVICES = [
+  { id: 'general-consultation', name: { ja: '一般施術', en: 'General Consultation' }, durationMinutes: 30 },
+  { id: 'sports-injury', name: { ja: 'スポーツ外傷施術', en: 'Sports Injury Treatment' }, durationMinutes: 45 },
+];
+
+type Lang = 'en' | 'ja';
+interface Scenario {
+  id: string;
+  lang: Lang;
+  now: string; // pinned "Today"
+  opener: string[]; // caller's first line is chosen per sample from this list
+  expect: 'transfer-now' | 'no-transfer' | 'offer-then-yes' | 'offer-then-no';
+}
+
+// 2026-11-10 is a Tuesday, 2026-11-08 a Sunday. Sakura: Mon-Sat 09:00-19:00, Sun closed; buffer 10 min.
+const TUE_1100 = '2026-11-10T11:00:00+09:00';
+const SUN_1100 = '2026-11-08T11:00:00+09:00';
+const TUE_1845 = '2026-11-10T18:45:00+09:00'; // 15 min before close -> reachable
+const TUE_1855 = '2026-11-10T18:55:00+09:00'; // 5 min before close -> NOT reachable (buffer 10)
+const TUE_0830 = '2026-11-10T08:30:00+09:00'; // before opening -> NOT reachable
+
+const EXPLICIT_EN = ['Can I speak to a staff member, please?', "I'd like to talk to a real person.", 'Could you put me through to someone at the clinic?', 'Let me speak to a human.'];
+const EXPLICIT_JA = ['スタッフの方とお話しできますか？', '人間の方に代わってください。', '誰かスタッフにつないでもらえますか？', '受付の方をお願いします。'];
+const OOS_EN = ['Is there a female practitioner on Saturdays?', 'Do you treat horses?', 'Can I get a copy of my medical certificate for my employer?'];
+const OOS_JA = ['土曜日は女性の先生いますか？', '診断書を書いてもらうことはできますか？', '馬も診てもらえますか？'];
+
+export const SCENARIOS: Scenario[] = [
+  { id: 'open-explicit-en', lang: 'en', now: TUE_1100, opener: EXPLICIT_EN, expect: 'transfer-now' },
+  { id: 'open-explicit-ja', lang: 'ja', now: TUE_1100, opener: EXPLICIT_JA, expect: 'transfer-now' },
+  { id: 'edge-1845-explicit-en', lang: 'en', now: TUE_1845, opener: EXPLICIT_EN, expect: 'transfer-now' },
+  { id: 'open-oos-offer-yes-en', lang: 'en', now: TUE_1100, opener: OOS_EN, expect: 'offer-then-yes' },
+  { id: 'open-oos-offer-yes-ja', lang: 'ja', now: TUE_1100, opener: OOS_JA, expect: 'offer-then-yes' },
+  { id: 'open-oos-offer-no-en', lang: 'en', now: TUE_1100, opener: OOS_EN, expect: 'offer-then-no' },
+  { id: 'open-oos-offer-no-ja', lang: 'ja', now: TUE_1100, opener: OOS_JA, expect: 'offer-then-no' },
+  { id: 'closed-sun-explicit-en', lang: 'en', now: SUN_1100, opener: EXPLICIT_EN, expect: 'no-transfer' },
+  { id: 'closed-sun-explicit-ja', lang: 'ja', now: SUN_1100, opener: EXPLICIT_JA, expect: 'no-transfer' },
+  { id: 'closed-1855-explicit-en', lang: 'en', now: TUE_1855, opener: EXPLICIT_EN, expect: 'no-transfer' },
+  { id: 'closed-0830-explicit-ja', lang: 'ja', now: TUE_0830, opener: EXPLICIT_JA, expect: 'no-transfer' },
+  { id: 'closed-sun-oos-en', lang: 'en', now: SUN_1100, opener: OOS_EN, expect: 'no-transfer' },
+  { id: 'closed-sun-oos-ja', lang: 'ja', now: SUN_1100, opener: OOS_JA, expect: 'no-transfer' },
+];
+
+// ---------- rule-based caller ----------
+function callerReply(lang: Lang, agent: string, s: Scenario): string {
+  const a = agent;
+  if (lang === 'en') {
+    if (/anything else/i.test(a)) return "No, that's all. Thank you.";
+    if (/(connect you|put you through|staff member by phone|transfer)/i.test(a) && /\?/.test(a)) {
+      return s.expect === 'offer-then-no' ? "No thanks, I'm fine." : 'Yes, please.';
+    }
+    if (/(is that right|is that correct|did i get|correct\?)/i.test(a)) return "Yes, that's right.";
+    if (/(contact you|call you back|this number|number you)/i.test(a) && /\?/.test(a)) return 'Yes, this number is fine.';
+    if (/name/i.test(a) && /\?/.test(a)) return 'Hanako.';
+    if (/(what.*about|reason|how can i help)/i.test(a)) return 'It is about my question.';
+    return 'Yes, please.';
+  }
+  if (/ほかに何か/.test(a)) return 'いえ、以上です。ありがとうございました。';
+  if (/おつなぎ/.test(a) && /[？?]/.test(a)) return s.expect === 'offer-then-no' ? 'いえ、大丈夫です。' : 'はい、お願いします。';
+  if (/(でよろしいでしょうか|合っていますか|で間違いない)/.test(a)) return 'はい、そうです。';
+  if (/(お電話番号|ご連絡|この番号|お電話)/.test(a) && /[？?]/.test(a)) return 'はい、この番号で大丈夫です。';
+  if (/お名前/.test(a) && /[？?]/.test(a)) return 'ハナコです。';
+  if (/(どのような|ご用件|理由)/.test(a)) return '質問があります。';
+  return 'はい、お願いします。';
+}
+
+const OFFER_RE_EN = /(connect you|put you through|staff member by phone)/i;
+const OFFER_RE_JA = /おつなぎ/;
+const NARRATE_EN = /(connecting you|i'll connect|i will connect|putting you through|transferring you|i'll transfer|one moment.*connect)/i;
+const NARRATE_JA = /(おつなぎいたします|おつなぎします|転送)/;
+
+interface Result {
+  scenario: string; sample: number; opener: string; tools: string[]; transcript: string[];
+  firstTurnTools: string[]; firstTurnText: string; transferred: boolean; callbackBeforeTransfer: boolean;
+  offers: number; narratedWithoutCalling: boolean; verdict: 'PASS' | 'FAIL'; why: string;
+}
+
+async function runOne(s: Scenario, sample: number): Promise<Result> {
+  const rendered = await loadRenderedMember('sakura-seikotsuin', s.lang, { listByClient: async () => SERVICES } as never);
+  const tools = buildToolDefs(rendered);
+  const base = initialMessages(rendered);
+  const callModel = makeOpenAiCaller(loadEnv().OPENAI_API_KEY!);
+  const sys = { ...base[0]!, content: resolveNowPlaceholders(base[0]!.content ?? '', new Date(s.now)) };
+  let messages: ChatMessage[] = [sys, base[1]!];
+  const opener = s.opener[sample % s.opener.length]!;
+  let caller = opener;
+  const transcript: string[] = [`AGENT(first): ${base[1]!.content}`];
+  const toolSeq: string[] = [];
+  let firstTurnTools: string[] = [];
+  let firstTurnText = '';
+  let ended = false;
+  let narrated = false;
+  let offers = 0;
+  const offerRe = s.lang === 'en' ? OFFER_RE_EN : OFFER_RE_JA;
+  const narrateRe = s.lang === 'en' ? NARRATE_EN : NARRATE_JA;
+
+  for (let turn = 0; turn < MAX_TURNS && !ended; turn += 1) {
+    transcript.push(`CALLER: ${caller}`);
+    messages = [...messages, { role: 'user', content: caller }];
+    const turnTools: string[] = [];
+    let turnText = '';
+    let lastAgent = '';
+    for (let round = 0; round < MAX_ROUNDS; round += 1) {
+      const reply = await callModel(messages, tools);
+      messages = [...messages, reply];
+      if (reply.content) { transcript.push(`AGENT: ${reply.content}`); turnText += `${reply.content} `; lastAgent = reply.content; }
+      const calls = reply.tool_calls ?? [];
+      if (reply.content && offerRe.test(reply.content) && /[？?]/.test(reply.content)) offers += 1;
+      if (calls.length === 0) {
+        if (reply.content && narrateRe.test(reply.content) && !turnTools.includes('transfer_to_staff')) narrated = true;
+        break;
+      }
+      for (const call of calls) {
+        const n = call.function.name;
+        turnTools.push(n); toolSeq.push(n);
+        transcript.push(`TOOL: ${n}(${call.function.arguments})`);
+        let content = 'Success.';
+        if (n === 'endCall') { content = 'Call ended.'; ended = true; }
+        else if (n === 'transfer_to_staff' || n.startsWith('handoff_to_')) { content = ''; ended = true; }
+        else if (n === 'request_callback') content = 'The callback request was saved. Staff will call the caller back.';
+        messages = [...messages, { role: 'tool', tool_call_id: call.id, name: n, content }];
+      }
+      if (ended) break;
+    }
+    if (turn === 0) { firstTurnTools = turnTools; firstTurnText = turnText.trim(); }
+    if (!ended) caller = callerReply(s.lang, lastAgent, s);
+  }
+
+  const transferred = toolSeq.includes('transfer_to_staff');
+  const cbIdx = toolSeq.indexOf('request_callback');
+  const trIdx = toolSeq.indexOf('transfer_to_staff');
+  const callbackBeforeTransfer = transferred && cbIdx >= 0 && cbIdx < trIdx;
+  let verdict: 'PASS' | 'FAIL' = 'PASS';
+  let why = '';
+  const fail = (m: string) => { verdict = 'FAIL'; why = why ? `${why}; ${m}` : m; };
+  if (narrated) fail('narrated a connection without calling transfer_to_staff');
+  if (s.expect === 'transfer-now') {
+    if (!firstTurnTools.includes('transfer_to_staff')) fail('no transfer_to_staff in the first reply');
+    if (firstTurnText) fail(`spoke before transferring: "${firstTurnText.slice(0, 80)}"`);
+    if (toolSeq.includes('request_callback')) fail('took a callback before transferring');
+  } else if (s.expect === 'no-transfer') {
+    if (transferred) fail('transferred when staff are not reachable / not applicable');
+    if (offers > 0) fail('offered a transfer when staff are not reachable');
+  } else if (s.expect === 'offer-then-yes') {
+    if (!transferred) fail('never transferred after a yes');
+    else if (!callbackBeforeTransfer) fail('transferred without a saved callback first');
+    if (transferred && offers === 0) fail('transferred without an offer');
+    if (offers > 1) fail(`offered ${offers} times`);
+    if (firstTurnTools.includes('transfer_to_staff')) fail('transferred on the first reply to an out-of-scope question');
+  } else if (s.expect === 'offer-then-no') {
+    if (transferred) fail('transferred after a no');
+    if (offers === 0) fail('never made the offer after the callback');
+    if (offers > 1) fail(`offered ${offers} times`);
+  }
+  return { scenario: s.id, sample, opener, tools: toolSeq, transcript, firstTurnTools, firstTurnText, transferred, callbackBeforeTransfer, offers, narratedWithoutCalling: narrated, verdict, why };
+}
+
+async function main(): Promise<void> {
+  const [which = 'all', samplesArg = '10'] = process.argv.slice(2);
+  const samples = Number(samplesArg);
+  mkdirSync(OUT, { recursive: true });
+  const chosen = SCENARIOS.filter((s) => which === 'all' || s.id === which || s.id.startsWith(which));
+  const jobs = chosen.flatMap((s) => Array.from({ length: samples }, (_, i) => ({ s, i })));
+  const results: Result[] = [];
+  let next = 0;
+  async function worker(): Promise<void> {
+    for (;;) {
+      const idx = next; next += 1;
+      const job = jobs[idx];
+      if (!job) return;
+      try { results.push(await runOne(job.s, job.i)); }
+      catch (e) { results.push({ scenario: job.s.id, sample: job.i, opener: '', tools: [], transcript: [String(e)], firstTurnTools: [], firstTurnText: '', transferred: false, callbackBeforeTransfer: false, offers: 0, narratedWithoutCalling: false, verdict: 'FAIL', why: `ERROR ${String(e).slice(0, 120)}` }); }
+    }
+  }
+  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+  writeFileSync(path.join(OUT, `results-${which}-${Date.now()}.json`), JSON.stringify(results, null, 1));
+  console.log(`model=${MODEL} temperature=${TEMPERATURE} requests=${requests}`);
+  for (const s of chosen) {
+    const rs = results.filter((r) => r.scenario === s.id);
+    const pass = rs.filter((r) => r.verdict === 'PASS').length;
+    const reasons = new Map<string, number>();
+    for (const r of rs.filter((x) => x.verdict === 'FAIL')) reasons.set(r.why, (reasons.get(r.why) ?? 0) + 1);
+    console.log(`${s.id.padEnd(26)} ${pass}/${rs.length} pass  [${s.expect}]`);
+    for (const [why, n] of reasons) console.log(`     x${n}  ${why}`);
+  }
+}
+main().catch((e: unknown) => { console.error(e instanceof Error ? e.stack : String(e)); process.exitCode = 1; });

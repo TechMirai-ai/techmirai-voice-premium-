@@ -10,6 +10,27 @@ import { BOOK_APPOINTMENT_FUNCTION_NAME } from './toolNames.js';
 
 const PLACEHOLDER_PATTERN = /\[\[([^\][]*)\]\]/g;
 
+const DAY_ORDER = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+const DAY_LABELS: Record<(typeof DAY_ORDER)[number], string> = {
+  mon: 'Mon',
+  tue: 'Tue',
+  wed: 'Wed',
+  thu: 'Thu',
+  fri: 'Fri',
+  sat: 'Sat',
+  sun: 'Sun',
+};
+
+/** `Mon 09:00-19:00, …, Sun closed` — the one place opening hours are spelled out for the model. */
+export function formatWeeklyHours(weekly: ClientConfig['business']['hours']['weekly']): string {
+  return DAY_ORDER.map((day) => {
+    const hours = weekly[day];
+    return hours === 'closed'
+      ? `${DAY_LABELS[day]} closed`
+      : `${DAY_LABELS[day]} ${hours.open}-${hours.close}`;
+  }).join(', ');
+}
+
 /** Picks one language's text out of a `{ ja: "...", en: "..." }`-shaped block. */
 export function pick(source: Record<string, string>, language: string): string {
   return source[language] ?? '';

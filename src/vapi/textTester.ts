@@ -88,6 +88,7 @@ import {
   LOG_CALL_TOPIC_FUNCTION_NAME,
   LOOKUP_PATIENT_FUNCTION_NAME,
   LOOKUP_POSTAL_CODE_FUNCTION_NAME,
+  TRANSFER_TO_STAFF_FUNCTION_NAME,
 } from './toolNames.js';
 import type { VapiFunctionDefinition, VapiHandoffDestination } from './types.js';
 
@@ -151,6 +152,7 @@ export function buildToolDefs(rendered: RenderResult): OpenAiFunctionToolDef[] {
     toOpenAiTool(rendered.tool.function),
     toOpenAiTool(rendered.topicTool.function),
     ...rendered.reservationTools.map(({ payload }) => toOpenAiTool(payload.function)),
+    ...(rendered.transferTool ? [toOpenAiTool(rendered.transferTool.function)] : []),
     END_CALL_TOOL,
     ...rendered.handoffTools.map(({ toLanguage, payload }) => {
       const destination = payload.destinations[0];
@@ -454,8 +456,8 @@ export async function handleToolCall(
   call: ChatToolCall,
   deps: ToolCallHandlerDeps,
 ): Promise<ToolCallOutcome> {
-  deps.printLine(formatToolCallLine(call));
   const name = call.function.name;
+  deps.printLine(formatToolCallLine(call));
 
   if (name === END_CALL_FUNCTION_NAME) {
     return { resultMessage: toolResult(call, 'Call ended.'), ended: true };
@@ -466,6 +468,15 @@ export async function handleToolCall(
     deps.printLine(
       'LIMITATION: the real Squad handoff cannot be exercised by this tool — re-run with ' +
         `--member ${asString(args.destination, '<target>')} to keep testing from that side.`,
+    );
+    return { resultMessage: toolResult(call, ''), ended: true };
+  }
+
+  if (name === TRANSFER_TO_STAFF_FUNCTION_NAME) {
+    // The real server may refuse (hours, cap) and otherwise the call leaves the assistant. The
+    // tester cannot run that gate, so it ends the session: it only shows WHEN the model calls it.
+    deps.printLine(
+      'STUB: transfer not placed — no call, no Telnyx/Vapi traffic. The real server would run its hours/volume gate here, then move the call.',
     );
     return { resultMessage: toolResult(call, ''), ended: true };
   }

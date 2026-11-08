@@ -15,36 +15,14 @@
  */
 import { z } from 'zod';
 
-/**
- * `.env` variable names, upper snake case, restricted to the provider's own prefix
- * (`TELNYX_…`, `LINE_…`). The value of the named variable is sent to that provider as a
- * credential, so an unrestricted name — a typo such as `DATABASE_URL` — would hand an unrelated
- * secret to a third party.
- */
-function envVarName(prefix: string): z.ZodString {
-  return z
-    .string()
-    .regex(
-      new RegExp(`^${prefix}[A-Z0-9_]+$`),
-      `must be an UPPER_SNAKE_CASE environment variable name starting with ${prefix}`,
-    );
-}
-
-/** Same shape as E164_PATTERN in ./schema.ts: `+` then 7–15 digits, first digit non-zero. */
-const E164 = /^\+[1-9]\d{6,14}$/;
+import { envVarName } from './envVarName.js';
+import { COUNTRY_CODE_PATTERN, E164 } from './phoneFormats.js';
 
 /**
  * Alphanumeric sender ID: 3–11 characters (Telnyx's documented range), letters and digits only,
  * at least one letter. Telnyx also allows spaces; we don't, to keep the id unambiguous.
  */
 const ALPHANUMERIC_SENDER_PATTERN = /^(?=.*[A-Za-z])[A-Za-z0-9]{3,11}$/;
-
-/**
- * `+81`-style country calling code, used to dial a number stored in national form and (as a prefix)
- * to allow-list destinations. At least two digits, except `+1` and `+7`, the only one-digit codes
- * in use — a stray `+8` would otherwise admit China, Korea, Japan, Vietnam… as a prefix.
- */
-const COUNTRY_CODE_PATTERN = /^\+(?:[17]|[1-9]\d{1,2})$/;
 
 export const DEFAULT_SMS_COUNTRY_CODE = '+81';
 export const DEFAULT_SMS_MAX_PER_RECIPIENT_PER_DAY = 3;
