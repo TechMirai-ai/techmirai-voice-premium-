@@ -25,15 +25,15 @@ business:
   hours:
     timezone: Asia/Tokyo
     weekly:
-      # TEMP: 24/7 hours for VP-24 live transfer test — REVERT before go-live.
+      mon: { open: "09:00", close: "19:00" }
+      tue: { open: "09:00", close: "19:00" }
+      wed: { open: "09:00", close: "19:00" }
+      thu: { open: "09:00", close: "19:00" }
+      fri: { open: "09:00", close: "19:00" }
+      # TEMP: Saturday closed / Sunday open (swapped) for VP-24 live transfer test — REVERT before go-live.
       # Real hours: Mon-Sat 09:00-19:00, Sunday closed.
-      mon: { open: "00:00", close: "23:59" }
-      tue: { open: "00:00", close: "23:59" }
-      wed: { open: "00:00", close: "23:59" }
-      thu: { open: "00:00", close: "23:59" }
-      fri: { open: "00:00", close: "23:59" }
-      sat: { open: "00:00", close: "23:59" }
-      sun: { open: "00:00", close: "23:59" }
+      sat: closed
+      sun: { open: "09:00", close: "19:00" }
     closedOnNationalHolidays: true
 
 languages:
