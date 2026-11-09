@@ -1,0 +1,148 @@
+{
+ "id": "X05-unintelligible-three-times",
+ "category": "error",
+ "n": 5,
+ "finishedAt": "2026-11-09T13:40:34+00:00",
+ "runs": [
+  {
+   "evalId": "X05-unintelligible-three-times",
+   "runId": "74d9863d-f69a-4396-833a-ae74bce2e4ae",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0005,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "fail",
+     "reason": "Assistant responded with tool calls (log_call_topic) but expected it to be empty",
+     "text": "申し訳ございません。お電話が遠いようですので、お手数ですが、少し時間をおいておかけ直しいただけますでしょうか。失礼いたします。\n\n",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"outcome\": \"unresolved\", \"topic\": \"unresolved\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "X05-unintelligible-three-times",
+   "runId": "8a653b91-1c7f-423c-ab35-2344b827241c",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0005,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "fail",
+     "reason": "Assistant responded with tool calls (log_call_topic) but expected it to be empty",
+     "text": "申し訳ございません。お電話が遠いようですので、お手数ですが、 少し時間をおいておかけ直しいただけますでしょうか。失礼いたします。\n\n",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"outcome\": \"unresolved\", \"topic\": \"unresolved\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "X05-unintelligible-three-times",
+   "runId": "e07f2a59-36c6-4552-bb24-cc25483fdedc",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0005,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "fail",
+     "reason": "Assistant responded with tool calls (log_call_topic) but expected it to be empty",
+     "text": "申し訳ございません。お電話が遠いようですので、お手数ですが、少し時間をおいておかけ直しいただけますでしょうか。失礼いたします。\n\n",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"topic\": \"unresolved\", \"outcome\": \"unresolved\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "X05-unintelligible-three-times",
+   "runId": "03d8b862-55e3-45b1-8b42-2624742d3e3a",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0009999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "fail",
+     "reason": "Assistant content did not match expected. Expected: \"聞き取れ|もう一度|お聞かせ\" but got: \"申し訳ございません。お電話が遠いようですので、お手数ですが、 少し時間をおいておかけ直しいただけますでしょうか。失礼いたします。\"",
+     "text": "申し訳ございません。お電話が遠いようですので、お手数ですが、 少し時間をおいておかけ直しいただけますでしょうか。失礼いたします。",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "X05-unintelligible-three-times",
+   "runId": "70608eb4-ef61-4b47-a441-2e0e765f01cb",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0005,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "fail",
+     "reason": "Assistant responded with tool calls (log_call_topic) but expected it to be empty",
+     "text": "申し訳ございません。お電話が遠いようですので、お手数ですが、 少し時間をおいておかけ直しいただけますでしょうか。失礼いたします。\n\n",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"outcome\": \"unresolved\", \"topic\": \"unresolved\"}"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

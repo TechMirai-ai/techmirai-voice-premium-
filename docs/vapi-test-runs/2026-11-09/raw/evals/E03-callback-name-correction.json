@@ -1,0 +1,293 @@
+{
+ "id": "E03-callback-name-correction",
+ "category": "edge",
+ "n": 5,
+ "finishedAt": "2026-11-09T13:38:29+00:00",
+ "runs": [
+  {
+   "evalId": "E03-callback-name-correction",
+   "runId": "236c259e-1bdc-49b6-bd4d-13dd2649a308",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0019999999999999983,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマモトタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "request_callback",
+       "arguments": "{\n  \"callerName\": \"ヤマモトタロウ\",\n  \"reason\": \"女性の先生が在籍しているかどうかの問い合わせ\"\n}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "E03-callback-name-correction",
+   "runId": "82b47de4-e2e3-4971-8b86-a2579484d642",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0019999999999999983,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマモトタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "request_callback",
+       "arguments": "{\n  \"callerName\": \"ヤマモトタロウ\",\n  \"reason\": \"女性の先生がいるかどうかの問い合わせ\"\n}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "E03-callback-name-correction",
+   "runId": "44404a2b-99f9-4bd4-90c7-f1301a822996",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0019999999999999983,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマモトタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "request_callback",
+       "arguments": "{\n  \"reason\": \"女性の先生が在籍しているかどうかの問い合わせ\",\n  \"callerName\": \"ヤマモトタロウ\"\n}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "E03-callback-name-correction",
+   "runId": "53b4ba6b-c019-4d3c-bb20-250b951a07e9",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0019999999999999983,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマモトタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "request_callback",
+       "arguments": "{\n  \"reason\": \"女性の先生が在籍しているかどうかの問い合わせ\",\n  \"callerName\": \"ヤマモトタロウ\"\n}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "E03-callback-name-correction",
+   "runId": "35ecae1b-b3d7-4010-a474-9bfe5257b545",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0019999999999999983,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。\n\nスタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "承知いたしました。確認いたします。お名前はヤマモトタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "request_callback",
+       "arguments": "{\n  \"reason\": \"女性の先生がいるかどうかの問い合わせ\",\n  \"callerName\": \"ヤマモトタロウ\"\n}"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,188 @@
+{
+ "id": "R02-appointment-needed",
+ "category": "routine",
+ "n": 5,
+ "finishedAt": "2026-11-09T13:38:29+00:00",
+ "runs": [
+  {
+   "evalId": "R02-appointment-needed",
+   "runId": "6113982b-5a2e-4c8c-926a-142ad5aca204",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0004999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "初めてご来院の方は、事前のご予約をおすすめしています。ただし、予約状況によっては、予約なしでもご来院いただけます。\n\nもしご予約をご希望でしたら、このままお取りすることもできますが、いかがなさいますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\n  \"topic\": \"appointment-needed\",\n  \"outcome\": \"resolved\"\n}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R02-appointment-needed",
+   "runId": "0d85cf99-6d2e-40bb-8891-c39df51fcbaa",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0004999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "初めてご来院の方は、事前のご予約をおすすめしております。ただ、予約状況によっては、予約なしでもご案内できる場合がございます。\n\nご予約をご希望でしたら、このままお取りすることもできますが、いかがいたしましょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\n  \"topic\": \"appointment-needed\",\n  \"outcome\": \"resolved\"\n}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R02-appointment-needed",
+   "runId": "55158d4b-90ff-4ea3-9f74-8ac2d75a9b58",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0004999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "初めてご来院の方は、事前のご予約をおすすめしています。ただし、予約状況によっては、予約なしでもご来院いただけます。\n\nもしご予約をご希望でしたら、このままお取りすることもできますが、いかがなさいますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\n  \"outcome\": \"resolved\",\n  \"topic\": \"appointment-needed\"\n}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R02-appointment-needed",
+   "runId": "4e36c104-cd8c-4069-92c2-bdf7a8c9e5d6",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0004999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "初めてご来院の方は、事前のご予約をおすすめしています。ただし、予約状況によっては予約なしでもご案内できる場合がございます。\n\nもしご予約をご希望でしたら、このままお取りすることもできますが、いかがいたしましょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\n  \"outcome\": \"resolved\",\n  \"topic\": \"appointment-needed\"\n}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R02-appointment-needed",
+   "runId": "60956812-ce32-49df-8d8c-84ab8fffacc0",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0004999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "初めてご来院の方は、事前のご予約をおすすめしています。ただし、予約状況によっては、予約なしでもご来院いただけます。\n\nもしご予約をご希望でしたら、このままお取りすることもできますが、いかがなさいますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\n  \"outcome\": \"resolved\",\n  \"topic\": \"appointment-needed\"\n}"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

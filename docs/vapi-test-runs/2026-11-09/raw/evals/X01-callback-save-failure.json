@@ -1,0 +1,303 @@
+{
+ "id": "X01-callback-save-failure",
+ "category": "error",
+ "n": 5,
+ "finishedAt": "2026-11-09T13:38:29+00:00",
+ "runs": [
+  {
+   "evalId": "X01-callback-save-failure",
+   "runId": "28dcf587-bcb1-45aa-840e-825e1a4dfde3",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0018219999999999988,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "request_callback",
+       "arguments": "{\n  \"callerName\": \"ヤマダタロウ\",\n  \"reason\": \"女性の先生が在籍しているかどうかの問い合わせ\"\n}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。情報を保存できませんでした。恐れ入りますが、時間をおいて、もう一度お電話いただけますでしょうか。ほかに何かお手伝いできることはございますか？\n\n",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"topic\": \"other\", \"outcome\": \"unresolved\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "X01-callback-save-failure",
+   "runId": "c492e3f7-8ae2-4e67-8df5-2aa5b8cbaa32",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0018219999999999988,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "request_callback",
+       "arguments": "{\n  \"callerName\": \"ヤマダタロウ\",\n  \"reason\": \"女性の先生が在籍しているかどうかの問い合わせ\"\n}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。情報を保存できませんでした。恐れ入りますが、時間をおいて、もう一度お電話いただけますでしょうか。ほかに何かお手伝いできることはございますか？\n\n",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"outcome\": \"unresolved\", \"topic\": \"other\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "X01-callback-save-failure",
+   "runId": "8a77ab9a-3859-48dd-ab3c-dc510e28d69f",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0023019999999999985,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "request_callback",
+       "arguments": "{\n  \"callerName\": \"ヤマダタロウ\",\n  \"reason\": \"女性の先生が在籍しているかどうかの問い合わせ。\"\n}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。情報を保存できませんでした。恐れ入りますが、時間をおいて、もう一度お電話いただけますでしょうか。ほかに何かお手伝いできることはございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "X01-callback-save-failure",
+   "runId": "8e308e06-0823-461a-a058-98a7b93f8620",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0023015999999999983,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "request_callback",
+       "arguments": "{\n  \"callerName\": \"ヤマダタロウ\",\n  \"reason\": \"女性の先生が在籍しているかどうかの確認\"\n}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。情報を保存できませんでした。恐れ入りますが、時間をおいて、もう一度お電話いただけますでしょうか。ほかに何かお手伝いできることはございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "X01-callback-save-failure",
+   "runId": "5f524583-8344-48fe-9a26-2b44f12ceab5",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0024047999999999986,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。\n\nスタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "request_callback",
+       "arguments": "{\n  \"reason\": \"女性の先生が在籍しているかどうかの問い合わせ\",\n  \"callerName\": \"ヤマダタロウ\"\n}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。情報を保存できませんでした。恐れ入りますが、時間をおいて、もう一度お電話いただけますでしょうか。\n\nほかに何かお手伝いできることはございますか？",
+     "tools": []
+    }
+   ]
+  }
+ ]
+}

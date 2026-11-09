@@ -1,0 +1,188 @@
+{
+ "id": "R10-first-visit",
+ "category": "routine",
+ "n": 5,
+ "finishedAt": "2026-11-09T13:38:29+00:00",
+ "runs": [
+  {
+   "evalId": "R10-first-visit",
+   "runId": "a71eac95-c60f-4021-b6fa-68581b53fbcf",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0004999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "初めてのご来院ですね。必要に応じて、マイナ保険証または資格確認書をお持ちください。また、今回のお悩みに関係する過去の治療やケガの情報があれば、あわせてお持ちいただくとスムーズです。\n\nほかに何かお手伝いできることはございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"outcome\": \"resolved\", \"topic\": \"first-visit\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R10-first-visit",
+   "runId": "a1c6b166-966b-45f8-82ec-7c2e4105aa85",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0004999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "初めてのご来院ですね、ありがとうございます。必要に応じて、マイナ保険証または健康保険証をお持ちください。また、今回のお悩みに関係する過去の治療やケガの情報があれば、あわせてお持ちいただくとスムーズです。\n\nほかに何かお手伝いできることはございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"outcome\": \"resolved\", \"topic\": \"first-visit\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R10-first-visit",
+   "runId": "f9133f39-94a5-48d2-872b-d17706476dc8",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0004999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "初めてのご来院ですね。必要に応じて、マイナ保険証または資格確認書をお持ちください。また、今回のお悩みに関係する過去の治療やケガの情報があれば、あわせてお持ちいただくとスムーズです。\n\nほかに何かお手伝いできることはございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"outcome\": \"resolved\", \"topic\": \"first-visit\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R10-first-visit",
+   "runId": "0e1e2ce9-8d69-4b38-b8fb-a3df515a8664",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0004999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "初めてのご来院ですね、ありがとうございます。必要に応じて、マイナ保険証または資格確認書をお持ちください。また、今回のお悩みに関係する過去の治療やケガの情報があれば、あわせてお持ちいただくとスムーズです。\n\nほかに何かお手伝いできることはございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"outcome\": \"resolved\", \"topic\": \"first-visit\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R10-first-visit",
+   "runId": "250c24a9-99e0-4836-a3ce-a243c83b9665",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0004999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "初めてのご来院ですね。必要に応じて、マイナ保険証または資格確認書をお持ちください。また、今回のお悩みに関係する過去の治療やケガの情報があれば、あわせてお持ちいただくとスムーズです。\n\nほかに何かお手伝いできることはございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"topic\": \"first-visit\", \"outcome\": \"resolved\"}"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

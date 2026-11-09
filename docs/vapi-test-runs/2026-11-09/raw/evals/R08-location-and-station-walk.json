@@ -1,0 +1,223 @@
+{
+ "id": "R08-location-and-station-walk",
+ "category": "routine",
+ "n": 5,
+ "finishedAt": "2026-11-09T13:38:29+00:00",
+ "runs": [
+  {
+   "evalId": "R08-location-and-station-walk",
+   "runId": "d26c34fc-ea92-46e8-ac76-a2995af28e32",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.001219999999999999,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "当院は埼玉県さいたま市浦和区サンプル町1丁目2番3号にございます。地図やアクセス方法は、当院のホームページをご確認いただけます。\n\nほかに何かお手伝いできることはございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"topic\": \"location\", \"outcome\": \"resolved\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R08-location-and-station-walk",
+   "runId": "ba5ede46-08b7-49df-9426-85cfb1c1236f",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.001203199999999999,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "当院は、埼玉県さいたま市浦和区サンプル町1丁目2番3号にございます。地図やアクセス方法は、当院のホームページでもご確認いただけます。\n\nほかに何かお手伝いできることはございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"topic\": \"location\", \"outcome\": \"resolved\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R08-location-and-station-walk",
+   "runId": "329fa903-4681-4494-88dd-192b09a89b4a",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0012227999999999991,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "当院は、埼玉県さいたま市浦和区サンプル町1丁目2番3号にございます。地図やアクセス方法の詳細は、当院のホームページをご確認いただけます。\n\nほかに何かお手伝いできることはございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"topic\": \"location\", \"outcome\": \"resolved\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R08-location-and-station-walk",
+   "runId": "cd00d3da-f094-419d-ab16-e925bc19a421",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0012135999999999991,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "当院は、埼玉県さいたま市浦和区サンプル町1丁目2番3号にございます。地図やアクセス方法の詳細は、当院のホームページでもご確認いただけます。\n\nほかに何かお手伝いできることはございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"topic\": \"location\", \"outcome\": \"resolved\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R08-location-and-station-walk",
+   "runId": "69c8eaed-5456-47ff-b292-4d1da707e046",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0012219999999999991,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "当院は、埼玉県さいたま市浦和区サンプル町1丁目2番3号にございます。地図やアクセス方法は当院のホームページでもご確認いただけます。\n\nほかに何かお手伝いできることはございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"outcome\": \"resolved\", \"topic\": \"location\"}"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

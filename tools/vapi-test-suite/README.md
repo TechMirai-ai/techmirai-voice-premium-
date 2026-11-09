@@ -27,7 +27,10 @@ Automated behaviour tests for the Sakura assistants, run on Vapi against the **r
   only when the reply contains **no** tool call, so it also asserts "no tool call this turn".
 - The target's own replies, not the mock text, carry the conversation forward. A run stops at its first
   failed checkpoint, so a failure at checkpoint _k_ says nothing about later checkpoints.
-- Simulation transcripts hold spoken text only, so tool-call assertions live in Evals.
+- Simulation transcripts include `tool_calls` entries (function name and arguments), but Simulation criteria are
+  judged by an LLM from the conversation, so exact tool-call assertions live in Evals.
+- Judge verdicts can be wrong (e.g. an LLM criterion read "may we contact you on this number?" as asking for a
+  phone number). Read failing transcripts before trusting a failure, and keep criteria wording precise.
 - AI judges use `gpt-4.1-mini`; treat their verdicts as a second opinion, and read failing transcripts.
 
 ## Cost

@@ -1,0 +1,293 @@
+{
+ "id": "E09-transfer-offer-declined",
+ "category": "edge",
+ "n": 5,
+ "finishedAt": "2026-11-09T13:38:29+00:00",
+ "runs": [
+  {
+   "evalId": "E09-transfer-offer-declined",
+   "runId": "ddc42ae0-3f2a-426d-886e-22fc9c4e21bf",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0024999999999999983,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "request_callback",
+       "arguments": "{\n  \"reason\": \"女性の先生が在籍しているかどうかの問い合わせ\",\n  \"callerName\": \"ヤマダタロウ\"\n}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "fail",
+     "reason": "Assistant content did not match expected. Expected: \"(?s)翌営業日.*おつなぎ\" but got: \"ありがとうございます。スタッフより、翌営業日までにご連絡いたします。ほかに何かお手伝いできることはございますか？\"",
+     "text": "ありがとうございます。スタッフより、翌営業日までにご連絡いたします。ほかに何かお手伝いできることはございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "E09-transfer-offer-declined",
+   "runId": "0b9f1d5a-eb3e-4b51-a406-81df40315ca3",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0024999999999999983,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "request_callback",
+       "arguments": "{\n  \"reason\": \"女性の先生が在籍しているかどうかの問い合わせ。\",\n  \"callerName\": \"ヤマダタロウ\"\n}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "fail",
+     "reason": "Assistant content did not match expected. Expected: \"(?s)翌営業日.*おつなぎ\" but got: \"ありがとうございます。スタッフより、翌営業日までにご連絡いたします。ほかに何かお手伝いできることはございますか？\"",
+     "text": "ありがとうございます。スタッフより、翌営業日までにご連絡いたします。ほかに何かお手伝いできることはございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "E09-transfer-offer-declined",
+   "runId": "c708213b-a0ed-4569-abfd-e98bf9c4b8e3",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0024999999999999983,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "request_callback",
+       "arguments": "{\n  \"callerName\": \"ヤマダタロウ\",\n  \"reason\": \"女性の先生が在籍しているかどうかの確認\"\n}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "fail",
+     "reason": "Assistant content did not match expected. Expected: \"(?s)翌営業日.*おつなぎ\" but got: \"ありがとうございます。スタッフより、翌営業日までにご連絡いたします。ほかに何かお手伝いできることはございますか？\"",
+     "text": "ありがとうございます。スタッフより、翌営業日までにご連絡いたします。ほかに何かお手伝いできることはございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "E09-transfer-offer-declined",
+   "runId": "efaec054-11e1-44a1-8b4b-bd0cbb4a2986",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0024999999999999983,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "request_callback",
+       "arguments": "{\n  \"callerName\": \"ヤマダタロウ\",\n  \"reason\": \"女性の先生がいるかどうかの確認\"\n}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "fail",
+     "reason": "Assistant content did not match expected. Expected: \"(?s)翌営業日.*おつなぎ\" but got: \"ありがとうございます。スタッフより、翌営業日までにご連絡いたします。ほかに何かお手伝いできることはございますか？\"",
+     "text": "ありがとうございます。スタッフより、翌営業日までにご連絡いたします。ほかに何かお手伝いできることはございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "E09-transfer-offer-declined",
+   "runId": "4957d99a-43be-409a-a11c-0a779155100e",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0024999999999999983,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "request_callback",
+       "arguments": "{\n  \"callerName\": \"ヤマダタロウ\",\n  \"reason\": \"女性の先生が在籍しているかどうかの確認\"\n}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "fail",
+     "reason": "Assistant content did not match expected. Expected: \"(?s)翌営業日.*おつなぎ\" but got: \"ありがとうございます。スタッフより、翌営業日までにご連絡いたします。ほかに何かお手伝いできることはございますか？\"",
+     "text": "ありがとうございます。スタッフより、翌営業日までにご連絡いたします。ほかに何かお手伝いできることはございますか？",
+     "tools": []
+    }
+   ]
+  }
+ ]
+}

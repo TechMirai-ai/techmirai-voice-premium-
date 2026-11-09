@@ -1,0 +1,146 @@
+{
+ "id": "S08-english-caller-hours",
+ "category": "routine",
+ "n": 4,
+ "runId": "168e1bcb-9fcd-4b25-b6b7-a9097a42e5e9",
+ "endedReason": "completed",
+ "finishedAt": "2026-11-09T13:44:59+00:00",
+ "items": [
+  {
+   "status": "passed",
+   "passed": true,
+   "failureReason": "",
+   "criteria": [
+    {
+     "name": "hours_answered",
+     "passed": true,
+     "value": true
+    }
+   ],
+   "transcript": [
+    {
+     "role": "bot",
+     "text": "Thank you for calling Sakura Say-koh-tsoo-in. I am your AI receptionist, Jenny. This call is recorded to improve our service. How may I assist you today? Are you calling to make an appointment?"
+    },
+    {
+     "role": "user",
+     "text": "Hi, can you please tell me your opening hours?"
+    },
+    {
+     "role": "bot",
+     "text": "We are open Monday to Friday and on Sundays, from 9:00 AM to 7:00 PM. We are closed on Saturdays and national holidays. Is there anything else I can help you with today?"
+    },
+    {
+     "role": "user",
+     "text": "Goodbye"
+    },
+    {
+     "role": "user",
+     "text": "No, thanks, that is all. Goodbye."
+    }
+   ]
+  },
+  {
+   "status": "passed",
+   "passed": true,
+   "failureReason": "",
+   "criteria": [
+    {
+     "name": "hours_answered",
+     "passed": true,
+     "value": true
+    }
+   ],
+   "transcript": [
+    {
+     "role": "bot",
+     "text": "Thank you for calling Sakura Say-koh-tsoo-in. I am your AI receptionist, Jenny. This call is recorded to improve our service. How may I assist you today? Are you calling to make an appointment?"
+    },
+    {
+     "role": "user",
+     "text": "Hi, can you please tell me your opening hours?"
+    },
+    {
+     "role": "bot",
+     "text": "We are open Monday to Friday and on Sundays, from 9:00 AM to 7:00 PM. We are closed on Saturdays and national holidays. Is there anything else I can help you with today?"
+    },
+    {
+     "role": "user",
+     "text": "Goodbye"
+    },
+    {
+     "role": "user",
+     "text": "No thanks, that is all. Goodbye."
+    }
+   ]
+  },
+  {
+   "status": "passed",
+   "passed": true,
+   "failureReason": "",
+   "criteria": [
+    {
+     "name": "hours_answered",
+     "passed": true,
+     "value": true
+    }
+   ],
+   "transcript": [
+    {
+     "role": "bot",
+     "text": "Thank you for calling Sakura Say-koh-tsoo-in. I am your AI receptionist, Jenny. This call is recorded to improve our service. How may I assist you today? Are you calling to make an appointment?"
+    },
+    {
+     "role": "user",
+     "text": "Hello. Can you please tell me your opening hours?"
+    },
+    {
+     "role": "bot",
+     "text": "We are open Monday to Friday and on Sundays, from 9:00 AM to 7:00 PM. We are closed on Saturdays and national holidays. Is there anything else I can help you with today?"
+    },
+    {
+     "role": "user",
+     "text": "Goodbye"
+    },
+    {
+     "role": "user",
+     "text": "No thanks, that is all. Goodbye."
+    }
+   ]
+  },
+  {
+   "status": "passed",
+   "passed": true,
+   "failureReason": "",
+   "criteria": [
+    {
+     "name": "hours_answered",
+     "passed": true,
+     "value": true
+    }
+   ],
+   "transcript": [
+    {
+     "role": "bot",
+     "text": "Thank you for calling Sakura Say-koh-tsoo-in. I am your AI receptionist, Jenny. This call is recorded to improve our service. How may I assist you today? Are you calling to make an appointment?"
+    },
+    {
+     "role": "user",
+     "text": "Hi. Can you please tell me your opening hours?"
+    },
+    {
+     "role": "bot",
+     "text": "We are open Monday to Friday and on Sundays, from 9:00 AM to 7:00 PM. We are closed on Saturdays and national holidays. Is there anything else I can help you with today?"
+    },
+    {
+     "role": "user",
+     "text": "Goodbye"
+    },
+    {
+     "role": "user",
+     "text": "No thanks, that is all. Goodbye."
+    }
+   ]
+  }
+ ]
+}

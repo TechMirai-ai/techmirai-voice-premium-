@@ -1,0 +1,578 @@
+{
+ "id": "X03-closed-day-date",
+ "category": "error",
+ "n": 10,
+ "finishedAt": "2026-11-09T13:40:34+00:00",
+ "runs": [
+  {
+   "evalId": "X03-closed-day-date",
+   "runId": "0bbfadc5-5c98-4dd8-83bd-1d727dc4d028",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0022611999999999984,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "承知いたしました。今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "どちらの施術をご希望でしょうか。一般的な施術と、スポーツによるケガの施術がございます。",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "ご希望の日時はございますか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "check_availability",
+       "arguments": "{\"date\": \"2026-11-17\", \"time\": \"10:00\"}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。来週の火曜日は当院の休診日となっております。別の日程でご希望はございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "X03-closed-day-date",
+   "runId": "b1d29d7c-f514-43e9-9804-739250e2727b",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0022679999999999983,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "承知いたしました。今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "どちらの施術をご希望でしょうか？当院では、30分程度の「一般施術」と、45分程度の「スポーツ外傷施術」がございます。",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "ご希望の日時はございますか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "check_availability",
+       "arguments": "{\"time\": \"10:00\", \"date\": \"2026-11-17\"}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。来週の火曜日はあいにく休診となっております。別の日程でご希望はございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "X03-closed-day-date",
+   "runId": "6e836ab8-ce8c-432b-9411-49e037065cc8",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.002262399999999998,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "承知いたしました。今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "どちらの施術をご希望でしょうか。一般施術と、スポーツ外傷施術がございます。",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "ご希望の日時はございますか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "check_availability",
+       "arguments": "{\"time\": \"10:00\", \"date\": \"2026-11-17\"}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません、来週の火曜日は当院がお休みをいただいております。別の日程でご希望はございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "X03-closed-day-date",
+   "runId": "22c1e178-be08-4979-872d-10e398fd5d5a",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0022651999999999985,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "承知いたしました。今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "どちらの施術をご希望でしょうか？一般施術、またはスポーツ外傷施術からお選びいただけます。",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "ご希望の日時はございますか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "check_availability",
+       "arguments": "{\"time\": \"10:00\", \"date\": \"2026-11-17\"}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。来週の火曜日は当院がお休みをいただいております。別の日にちでご希望はございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "X03-closed-day-date",
+   "runId": "ca057c79-081b-40c6-8c70-560602876438",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.002258399999999998,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "どちらの施術をご希望でしょうか？一般施術、またはスポーツ外傷施術からお選びいただけます。",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "ご希望の日時はございますか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "check_availability",
+       "arguments": "{\"time\": \"10:00\", \"date\": \"2026-11-17\"}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません、来週の火曜日は休診日となっております。別の日程でご希望はございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "X03-closed-day-date",
+   "runId": "833729c1-c745-4327-82d9-bb74531c1015",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0022595999999999983,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "どちらの施術をご希望でしょうか？一般施術、またはスポーツ外傷施術からお選びいただけます。",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "ご希望の日時はございますか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "check_availability",
+       "arguments": "{\"time\": \"10:00\", \"date\": \"2026-11-17\"}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません、来週の火曜日は当院の休診日となっております。別の日程でご希望はございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "X03-closed-day-date",
+   "runId": "a2cb97ff-b593-4923-9eee-3c5fbfe48b69",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0022595999999999983,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "どちらの施術をご希望でしょうか？一般施術、またはスポーツ外傷施術からお選びいただけます。",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "ご希望の日時はございますか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "check_availability",
+       "arguments": "{\"time\": \"10:00\", \"date\": \"2026-11-17\"}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません、来週の火曜日は当院がお休みをいただいております。別の日程でご希望はございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "X03-closed-day-date",
+   "runId": "1aa674c5-fe24-4f73-912a-3db60520efb0",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.002263199999999998,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "どちらの施術をご希望でしょうか？一般施術、またはスポーツ外傷施術からお選びいただけます。",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "ご希望の日時はございますか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "check_availability",
+       "arguments": "{\"date\": \"2026-11-17\", \"time\": \"10:00\"}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。来週の火曜日、11月17日は休診日となっております。別の日程でご希望はございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "X03-closed-day-date",
+   "runId": "02d86c5b-da11-46c6-8b2f-64be680a0f21",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0023715999999999984,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "承知いたしました。今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "初めてのご来院ですね、ありがとうございます。どちらの施術をご希望でしょうか？一般施術、またはスポーツ外傷施術からお選びいただけます。",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "一般施術ですね。ご希望の日時はございますか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "check_availability",
+       "arguments": "{\"time\": \"10:00\", \"date\": \"2026-11-17\"}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。来週の火曜日、11月17日は当院の定休日となっております。恐れ入りますが、別の日程でご希望はございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "X03-closed-day-date",
+   "runId": "ec697c8e-5ab1-48ec-b8ce-c05a1df1d454",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0022671999999999983,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "承知いたしました。今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "ありがとうございます。どちらの施術をご希望でしょうか？一般施術、またはスポーツ外傷施術からお選びいただけます。",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "ご希望の日時はございますか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "check_availability",
+       "arguments": "{\"date\": \"2026-11-17\", \"time\": \"10:00\"}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。あいにく来週の火曜日は当院の定休日となっております。別の日時をご希望いただけますでしょうか？",
+     "tools": []
+    }
+   ]
+  }
+ ]
+}

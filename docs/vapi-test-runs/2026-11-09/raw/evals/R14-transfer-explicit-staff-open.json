@@ -1,0 +1,298 @@
+{
+ "id": "R14-transfer-explicit-staff-open",
+ "category": "routine",
+ "n": 10,
+ "finishedAt": "2026-11-09T13:38:29+00:00",
+ "runs": [
+  {
+   "evalId": "R14-transfer-explicit-staff-open",
+   "runId": "08fc75fb-9fe6-4732-94e2-31b6e3467db5",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0005,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "fail",
+     "reason": "Assistant responded with a message かしこまりました。スタッフにおつなぎいたします。少々お待ちくださいませ。\n\n but expected it to be empty",
+     "text": "かしこまりました。スタッフにおつなぎいたします。少々お待ちくださいませ。\n\n",
+     "tools": [
+      {
+       "name": "transfer_to_staff",
+       "arguments": "{}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R14-transfer-explicit-staff-open",
+   "runId": "b42c7c60-6bae-4a16-8a55-16695fa242c9",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0005,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "fail",
+     "reason": "Assistant responded with a message かしこまりました。スタッフにおつなぎいたします。少々お待ちくださいませ。\n\n but expected it to be empty",
+     "text": "かしこまりました。スタッフにおつなぎいたします。少々お待ちくださいませ。\n\n",
+     "tools": [
+      {
+       "name": "transfer_to_staff",
+       "arguments": "{}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R14-transfer-explicit-staff-open",
+   "runId": "1bdbb714-d787-4244-827e-7aa59f92d9bf",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0005,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "fail",
+     "reason": "Assistant responded with a message かしこまりました。ただいまスタッフにおつなぎいたします。少々お待ちくださいませ。\n\n but expected it to be empty",
+     "text": "かしこまりました。ただいまスタッフにおつなぎいたします。少々お待ちくださいませ。\n\n",
+     "tools": [
+      {
+       "name": "transfer_to_staff",
+       "arguments": "{}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R14-transfer-explicit-staff-open",
+   "runId": "04d155f3-9342-423b-94c4-6fdfecdb9b9d",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0005,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "fail",
+     "reason": "Assistant responded with a message かしこまりました。スタッフにおつなぎいたします。少々お待ちくださいませ。\n\n but expected it to be empty",
+     "text": "かしこまりました。スタッフにおつなぎいたします。少々お待ちくださいませ。\n\n",
+     "tools": [
+      {
+       "name": "transfer_to_staff",
+       "arguments": "{}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R14-transfer-explicit-staff-open",
+   "runId": "1bd7341a-19ac-4780-8e51-9c092cddd034",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0005,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "fail",
+     "reason": "Assistant responded with a message かしこまりました。スタッフにおつなぎいたします。少々お待ちくださいませ。\n\n but expected it to be empty",
+     "text": "かしこまりました。スタッフにおつなぎいたします。少々お待ちくださいませ。\n\n",
+     "tools": [
+      {
+       "name": "transfer_to_staff",
+       "arguments": "{}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R14-transfer-explicit-staff-open",
+   "runId": "ac3b73eb-1f69-458a-8097-593292a2f914",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0005,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "fail",
+     "reason": "Assistant responded with a message かしこまりました。ただいまスタッフにおつなぎいたします。少々お待ちくださいませ。\n\n but expected it to be empty",
+     "text": "かしこまりました。ただいまスタッフにおつなぎいたします。少々お待ちくださいませ。\n\n",
+     "tools": [
+      {
+       "name": "transfer_to_staff",
+       "arguments": "{}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R14-transfer-explicit-staff-open",
+   "runId": "01f9df0a-789f-466a-b63c-f7e8196c1c6c",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0005,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "fail",
+     "reason": "Assistant responded with a message かしこまりました。ただいまスタッフにおつなぎいたします。少々お待ちくださいませ。\n\n but expected it to be empty",
+     "text": "かしこまりました。ただいまスタッフにおつなぎいたします。少々お待ちくださいませ。\n\n",
+     "tools": [
+      {
+       "name": "transfer_to_staff",
+       "arguments": "{}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R14-transfer-explicit-staff-open",
+   "runId": "2b3b3cae-846a-4b3e-b77f-1b0befe66074",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0005,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "fail",
+     "reason": "Assistant responded with a message かしこまりました。ただいまスタッフにおつなぎいたします。少々お待ちくださいませ。\n\n but expected it to be empty",
+     "text": "かしこまりました。ただいまスタッフにおつなぎいたします。少々お待ちくださいませ。\n\n",
+     "tools": [
+      {
+       "name": "transfer_to_staff",
+       "arguments": "{}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R14-transfer-explicit-staff-open",
+   "runId": "2a046bd7-853d-42fa-bd39-3f643f18cdf4",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0005,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "fail",
+     "reason": "Assistant responded with a message 申し訳ございません。ただいま営業時間内ですので、スタッフにおつなぎいたします。少々お待ちくださいませ。\n\n but expected it to be empty",
+     "text": "申し訳ございません。ただいま営業時間内ですので、スタッフにおつなぎいたします。少々お待ちくださいませ。\n\n",
+     "tools": [
+      {
+       "name": "transfer_to_staff",
+       "arguments": "{}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R14-transfer-explicit-staff-open",
+   "runId": "16cf7724-4578-4d7a-aa0c-d87d89a49bce",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0005,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "fail",
+     "reason": "Assistant responded with a message かしこまりました。スタッフにおつなぎいたします。少々お待ちくださいませ。\n\n but expected it to be empty",
+     "text": "かしこまりました。スタッフにおつなぎいたします。少々お待ちくださいませ。\n\n",
+     "tools": [
+      {
+       "name": "transfer_to_staff",
+       "arguments": "{}"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

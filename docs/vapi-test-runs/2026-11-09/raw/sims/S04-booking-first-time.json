@@ -1,0 +1,512 @@
+{
+ "id": "S04-booking-first-time",
+ "category": "routine",
+ "n": 4,
+ "runId": "e2dfcd46-9bd4-48f5-adc8-675ceee40d19",
+ "endedReason": "completed",
+ "finishedAt": "2026-11-09T13:46:59+00:00",
+ "items": [
+  {
+   "status": "passed",
+   "passed": true,
+   "failureReason": "",
+   "criteria": [
+    {
+     "name": "booking_confirmed_with_time",
+     "passed": true,
+     "value": true
+    },
+    {
+     "name": "no_phone_or_email_requested",
+     "passed": true,
+     "value": true
+    },
+    {
+     "name": "reservation_number_not_spoken",
+     "passed": true,
+     "value": true
+    }
+   ],
+   "transcript": [
+    {
+     "role": "bot",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "はい、予約をお願いしたいです。初めてなのですが、来週の水曜日の10時に一般施術を受けたいです。",
+     "tools": []
+    },
+    {
+     "role": "tool_calls",
+     "text": "",
+     "tools": [
+      "check_availability:{\"time\": \"10:00\", \"date\": \"2026-11-18\"}"
+     ]
+    },
+    {
+     "role": "bot",
+     "text": "少々お待ちいただけますでしょうか。",
+     "tools": []
+    },
+    {
+     "role": "tool_call_result",
+     "text": "",
+     "tools": []
+    },
+    {
+     "role": "bot",
+     "text": "お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "ヤマダタロウと申します。",
+     "tools": []
+    },
+    {
+     "role": "bot",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "はい、ヤマダタロウで間違いありません。",
+     "tools": []
+    },
+    {
+     "role": "bot",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "はい、大丈夫です。よろしくお願いします。",
+     "tools": []
+    },
+    {
+     "role": "tool_calls",
+     "text": "",
+     "tools": [
+      "book_appointment:{\n  \"isReturningPatient\": false,\n  \"date\": \"2026-11-18\",\n  \"serviceId\": \"general-consultation\",\n  \"time\": \"10:00\",\n  \"patientName\": \"ヤマダタロウ\"\n}"
+     ]
+    },
+    {
+     "role": "bot",
+     "text": "恐れ入ります、少々お待ちくださいませ。",
+     "tools": []
+    },
+    {
+     "role": "tool_call_result",
+     "text": "",
+     "tools": []
+    },
+    {
+     "role": "bot",
+     "text": "ご予約が完了いたしました。11月18日水曜日の午前10時から、一般施術のご予約を承りました。詳細はこちらのお電話番号にお送りいたします。\n\nほかに何かお手伝いできることはございますか？",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "ありがとうございました。大丈夫です。よろしくお願いします。",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "さようなら",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "ありがとうございました。失礼いたします。",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "status": "passed",
+   "passed": true,
+   "failureReason": "",
+   "criteria": [
+    {
+     "name": "booking_confirmed_with_time",
+     "passed": true,
+     "value": true
+    },
+    {
+     "name": "no_phone_or_email_requested",
+     "passed": true,
+     "value": true
+    },
+    {
+     "name": "reservation_number_not_spoken",
+     "passed": true,
+     "value": true
+    }
+   ],
+   "transcript": [
+    {
+     "role": "bot",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "はい、予約をお願いしたいです。初めてなのですが、来週の水曜日の10時に一般施術で予約できますか？",
+     "tools": []
+    },
+    {
+     "role": "tool_calls",
+     "text": "",
+     "tools": [
+      "check_availability:{\"time\": \"10:00\", \"date\": \"2026-11-18\"}"
+     ]
+    },
+    {
+     "role": "bot",
+     "text": "少々お待ちくださいませ。",
+     "tools": []
+    },
+    {
+     "role": "tool_call_result",
+     "text": "",
+     "tools": []
+    },
+    {
+     "role": "bot",
+     "text": "お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "ヤマダタロウと申します。",
+     "tools": []
+    },
+    {
+     "role": "bot",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "はい、ヤマダタロウで間違いありません。",
+     "tools": []
+    },
+    {
+     "role": "bot",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "はい、大丈夫です。お願いします。",
+     "tools": []
+    },
+    {
+     "role": "tool_calls",
+     "text": "",
+     "tools": [
+      "book_appointment:{\n  \"time\": \"10:00\",\n  \"patientName\": \"ヤマダタロウ\",\n  \"date\": \"2026-11-18\",\n  \"serviceId\": \"general-consultation\",\n  \"isReturningPatient\": false\n}"
+     ]
+    },
+    {
+     "role": "bot",
+     "text": "恐れ入ります、少々お待ちくださいませ。",
+     "tools": []
+    },
+    {
+     "role": "tool_call_result",
+     "text": "",
+     "tools": []
+    },
+    {
+     "role": "bot",
+     "text": "ご予約が完了いたしました。11月18日水曜日の午前10時から、一般施術で承っております。詳細はこちらのお電話番号にお送りいたします。\n\nほかに何かお手伝いできることはございますか？",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "ありがとうございました。大丈夫です。よろしくお願いいたします。",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "さようなら",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "ありがとうございました。失礼いたします。",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "status": "passed",
+   "passed": true,
+   "failureReason": "",
+   "criteria": [
+    {
+     "name": "booking_confirmed_with_time",
+     "passed": true,
+     "value": true
+    },
+    {
+     "name": "no_phone_or_email_requested",
+     "passed": true,
+     "value": true
+    },
+    {
+     "name": "reservation_number_not_spoken",
+     "passed": true,
+     "value": true
+    }
+   ],
+   "transcript": [
+    {
+     "role": "bot",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "はい、予約をお願いしたいです。",
+     "tools": []
+    },
+    {
+     "role": "bot",
+     "text": "承知いたしました。今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "初めてです。",
+     "tools": []
+    },
+    {
+     "role": "bot",
+     "text": "どちらの施術をご希望でしょうか？「一般施術」と「スポーツ外傷施術」がございます。",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "一般施術をお願いします。",
+     "tools": []
+    },
+    {
+     "role": "bot",
+     "text": "ご希望の日時はございますか？",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "来週の水曜日の10時でお願いしたいです。",
+     "tools": []
+    },
+    {
+     "role": "tool_calls",
+     "text": "",
+     "tools": [
+      "check_availability:{\"date\": \"2026-11-18\", \"time\": \"10:00\"}"
+     ]
+    },
+    {
+     "role": "bot",
+     "text": "恐れ入ります、少々お待ちくださいませ。",
+     "tools": []
+    },
+    {
+     "role": "tool_call_result",
+     "text": "",
+     "tools": []
+    },
+    {
+     "role": "bot",
+     "text": "お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "ヤマダタロウです。",
+     "tools": []
+    },
+    {
+     "role": "bot",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "はい、ヤマダタロウです。よろしくお願いします。",
+     "tools": []
+    },
+    {
+     "role": "bot",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "はい、大丈夫です。お願いします。",
+     "tools": []
+    },
+    {
+     "role": "tool_calls",
+     "text": "",
+     "tools": [
+      "book_appointment:{\n  \"patientName\": \"ヤマダタロウ\",\n  \"date\": \"2026-11-18\",\n  \"serviceId\": \"general-consultation\",\n  \"time\": \"10:00\",\n  \"isReturningPatient\": false\n}"
+     ]
+    },
+    {
+     "role": "bot",
+     "text": "少々お待ちいただけますでしょうか。",
+     "tools": []
+    },
+    {
+     "role": "tool_call_result",
+     "text": "",
+     "tools": []
+    },
+    {
+     "role": "bot",
+     "text": "11月18日、水曜日の午前10時にご予約を承りました。詳細はこちらのお電話番号にお送りいたします。ほかに何かお手伝いできることはございますか？",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "大丈夫です。ありがとうございました。",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "さようなら",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "ありがとうございました。失礼いたします。",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "status": "passed",
+   "passed": true,
+   "failureReason": "",
+   "criteria": [
+    {
+     "name": "booking_confirmed_with_time",
+     "passed": true,
+     "value": true
+    },
+    {
+     "name": "no_phone_or_email_requested",
+     "passed": true,
+     "value": true
+    },
+    {
+     "name": "reservation_number_not_spoken",
+     "passed": true,
+     "value": true
+    }
+   ],
+   "transcript": [
+    {
+     "role": "bot",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "はい、予約をお願いしたいです。初めてなのですが、来週の水曜日の午前10時に一般施術を受けたいです。",
+     "tools": []
+    },
+    {
+     "role": "tool_calls",
+     "text": "",
+     "tools": [
+      "check_availability:{\"date\": \"2026-11-18\", \"time\": \"10:00\"}"
+     ]
+    },
+    {
+     "role": "bot",
+     "text": "恐れ入ります、少々お待ちくださいませ。",
+     "tools": []
+    },
+    {
+     "role": "tool_call_result",
+     "text": "",
+     "tools": []
+    },
+    {
+     "role": "bot",
+     "text": "ありがとうございます。ご予約を承ります。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "ヤマダタロウと申します。よろしくお願いします。",
+     "tools": []
+    },
+    {
+     "role": "bot",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "はい、ヤマダタロウで間違いありません。",
+     "tools": []
+    },
+    {
+     "role": "bot",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "はい、大丈夫です。こちらの番号でお願いします。",
+     "tools": []
+    },
+    {
+     "role": "tool_calls",
+     "text": "",
+     "tools": [
+      "book_appointment:{\n  \"isReturningPatient\": false,\n  \"patientName\": \"ヤマダタロウ\",\n  \"serviceId\": \"general-consultation\",\n  \"date\": \"2026-11-18\",\n  \"time\": \"10:00\"\n}"
+     ]
+    },
+    {
+     "role": "bot",
+     "text": "少々お待ちくださいませ。",
+     "tools": []
+    },
+    {
+     "role": "tool_call_result",
+     "text": "",
+     "tools": []
+    },
+    {
+     "role": "bot",
+     "text": "ヤマダタロウ様、ご予約が完了いたしました。11月18日水曜日の午前10時から、一般施術のご予約を承りました。詳細はこちらのお電話番号にお送りいたします。\n\nほかに何かお手伝いできることはございますか？",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "大丈夫です。ありがとうございました。",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "さようなら",
+     "tools": []
+    },
+    {
+     "role": "user",
+     "text": "ありがとうございました。失礼いたします。",
+     "tools": []
+    }
+   ]
+  }
+ ]
+}

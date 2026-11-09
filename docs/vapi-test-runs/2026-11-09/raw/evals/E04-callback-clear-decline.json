@@ -1,0 +1,188 @@
+{
+ "id": "E04-callback-clear-decline",
+ "category": "edge",
+ "n": 5,
+ "finishedAt": "2026-11-09T13:38:29+00:00",
+ "runs": [
+  {
+   "evalId": "E04-callback-clear-decline",
+   "runId": "61f2df88-dca3-4bf1-93d8-5313ea89ed07",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0009999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "fail",
+     "reason": "Assistant responded with tool calls (log_call_topic) but expected it to be empty",
+     "text": "承知いたしました。それでは、何か他にお手伝いできることはございますか？\n\n",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"outcome\": \"resolved\", \"topic\": \"other\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "E04-callback-clear-decline",
+   "runId": "d31272b6-9446-4212-95fa-2210e07cd830",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0009999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "fail",
+     "reason": "Assistant responded with tool calls (log_call_topic) but expected it to be empty",
+     "text": "承知いたしました。ほかに何かお手伝いできることはございますか？\n",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"topic\": \"other\", \"outcome\": \"resolved\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "E04-callback-clear-decline",
+   "runId": "d52e4a70-bd81-4c0e-9fb7-55a2b84e4160",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0009999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "fail",
+     "reason": "Assistant responded with tool calls (log_call_topic) but expected it to be empty",
+     "text": "承知いたしました。それでは、何か他にお手伝いできることはございますか？\n\n",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"topic\": \"other\", \"outcome\": \"resolved\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "E04-callback-clear-decline",
+   "runId": "987757bf-f199-4439-8a7e-b52301f76a0e",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0009999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "fail",
+     "reason": "Assistant responded with tool calls (log_call_topic) but expected it to be empty",
+     "text": "承知いたしました。それでは、また何かございましたらお気軽にお電話ください。\n\nほかに何かお手伝いできることはございますか？\n\n",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"topic\": \"other\", \"outcome\": \"resolved\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "E04-callback-clear-decline",
+   "runId": "a58aec63-b77e-459d-ad73-5f0efad0fada",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0009999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "fail",
+     "reason": "Assistant responded with tool calls (log_call_topic) but expected it to be empty",
+     "text": "かしこまりました。それでは、ほかに何かお手伝いできることはございますか？\n",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"topic\": \"other\", \"outcome\": \"resolved\"}"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

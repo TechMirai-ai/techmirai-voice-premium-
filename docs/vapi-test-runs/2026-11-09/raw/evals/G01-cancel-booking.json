@@ -1,0 +1,138 @@
+{
+ "id": "G01-cancel-booking",
+ "category": "gap",
+ "n": 5,
+ "finishedAt": "2026-11-09T13:38:29+00:00",
+ "runs": [
+  {
+   "evalId": "G01-cancel-booking",
+   "runId": "db54d166-b2fc-452d-a23f-b3976692196c",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0006799999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。当院のシステムでは、ご予約の変更やキャンセルをお受けすることができません。\n\nスタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "G01-cancel-booking",
+   "runId": "425187d7-5934-485a-90c1-950326a17ff1",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0006879999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。当院のシステムでは、ご予約の変更やキャンセルを承ることができません。\n\n恐れ入りますが、スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？\n\n（※この後、コールバックの受付手順に進みます）",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "G01-cancel-booking",
+   "runId": "d3ce0615-4c66-45a8-91d7-8f83ffb9fb06",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0002004,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。当院のシステムでは、ご予約の変更やキャンセルを承ることができません。\n\n恐れ入りますが、スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？\n\n",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"outcome\": \"unresolved\", \"topic\": \"other\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "G01-cancel-booking",
+   "runId": "704f3850-a7a2-4303-852b-10d9fce209dc",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0006863999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。当院のシステムでは、ご予約の変更やキャンセルを承ることができません。\n\n恐れ入りますが、スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？\n\n（※この後、コールバックの受付手順に進みます）",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "G01-cancel-booking",
+   "runId": "3860b2ea-bc6f-47f3-80fe-a5d97a59c35a",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0001988,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。当院のシステムでは、ご予約の変更やキャンセルを承ることができません。\n\n恐れ入りますが、スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？\n\n",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"topic\": \"other\", \"outcome\": \"unresolved\"}"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,153 @@
+{
+ "id": "E15-handoff-back-to-japanese",
+ "category": "edge",
+ "n": 5,
+ "finishedAt": "2026-11-09T13:38:29+00:00",
+ "runs": [
+  {
+   "evalId": "E15-handoff-back-to-japanese",
+   "runId": "e46e4c5a-08d3-4d11-af37-7dab35b2782c",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "Thank you for calling Sakura Say-koh-tsoo-in. I am your AI receptionist, Jenny. This call is recorded to improve our service. How may I assist you today? Are you calling to make an appointment?",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "handoff_to_sakura-seikotsuin--ja-return",
+       "arguments": "{\"destination\": \"sakura-seikotsuin--ja-return\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "E15-handoff-back-to-japanese",
+   "runId": "2dfd52d9-78d3-4b43-94d8-0d519e0c55f9",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "Thank you for calling Sakura Say-koh-tsoo-in. I am your AI receptionist, Jenny. This call is recorded to improve our service. How may I assist you today? Are you calling to make an appointment?",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "handoff_to_sakura-seikotsuin--ja-return",
+       "arguments": "{\"destination\": \"sakura-seikotsuin--ja-return\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "E15-handoff-back-to-japanese",
+   "runId": "fa9e4aa8-419e-4e24-abaf-9dda4edd3da5",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "Thank you for calling Sakura Say-koh-tsoo-in. I am your AI receptionist, Jenny. This call is recorded to improve our service. How may I assist you today? Are you calling to make an appointment?",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "handoff_to_sakura-seikotsuin--ja-return",
+       "arguments": "{\"destination\": \"sakura-seikotsuin--ja-return\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "E15-handoff-back-to-japanese",
+   "runId": "6b09b791-2760-4fc2-8a3d-29ec9ab9260c",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "Thank you for calling Sakura Say-koh-tsoo-in. I am your AI receptionist, Jenny. This call is recorded to improve our service. How may I assist you today? Are you calling to make an appointment?",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "handoff_to_sakura-seikotsuin--ja-return",
+       "arguments": "{\"destination\": \"sakura-seikotsuin--ja-return\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "E15-handoff-back-to-japanese",
+   "runId": "ab97cfdb-dd11-498d-a3bf-240c72f90d61",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "Thank you for calling Sakura Say-koh-tsoo-in. I am your AI receptionist, Jenny. This call is recorded to improve our service. How may I assist you today? Are you calling to make an appointment?",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "handoff_to_sakura-seikotsuin--ja-return",
+       "arguments": "{\"destination\": \"sakura-seikotsuin--ja-return\"}"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

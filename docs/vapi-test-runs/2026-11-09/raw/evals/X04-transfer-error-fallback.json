@@ -1,0 +1,153 @@
+{
+ "id": "X04-transfer-error-fallback",
+ "category": "error",
+ "n": 5,
+ "finishedAt": "2026-11-09T13:38:29+00:00",
+ "runs": [
+  {
+   "evalId": "X04-transfer-error-fallback",
+   "runId": "96cdcd8f-30e0-4462-99b3-f4a439e22da4",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0005,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "fail",
+     "reason": "Assistant responded with a message かしこまりました。スタッフにおつなぎいたします。少々お待ちくださいませ。\n\n but expected it to be empty",
+     "text": "かしこまりました。スタッフにおつなぎいたします。少々お待ちくださいませ。\n\n",
+     "tools": [
+      {
+       "name": "transfer_to_staff",
+       "arguments": "{}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "X04-transfer-error-fallback",
+   "runId": "7aa67080-c1d2-4600-bbcb-3a4ffb6198e9",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0005,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "fail",
+     "reason": "Assistant responded with a message かしこまりました。スタッフにおつなぎいたします。少々お待ちくださいませ。\n\n but expected it to be empty",
+     "text": "かしこまりました。スタッフにおつなぎいたします。少々お待ちくださいませ。\n\n",
+     "tools": [
+      {
+       "name": "transfer_to_staff",
+       "arguments": "{}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "X04-transfer-error-fallback",
+   "runId": "53da43ef-2440-4eee-b3e7-d33d536c79a4",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0005,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "fail",
+     "reason": "Assistant responded with a message かしこまりました。ただいまスタッフにおつなぎいたします。少々お待ちくださいませ。\n\n but expected it to be empty",
+     "text": "かしこまりました。ただいまスタッフにおつなぎいたします。少々お待ちくださいませ。\n\n",
+     "tools": [
+      {
+       "name": "transfer_to_staff",
+       "arguments": "{}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "X04-transfer-error-fallback",
+   "runId": "6494f3bb-d3f6-46bc-b09e-ae60baf53a0b",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0005,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "fail",
+     "reason": "Assistant responded with a message かしこまりました。ただいまスタッフにおつなぎいたします。少々お待ちくださいませ。\n\n but expected it to be empty",
+     "text": "かしこまりました。ただいまスタッフにおつなぎいたします。少々お待ちくださいませ。\n\n",
+     "tools": [
+      {
+       "name": "transfer_to_staff",
+       "arguments": "{}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "X04-transfer-error-fallback",
+   "runId": "6dc20578-5401-4560-a8be-bf17648bef76",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0005,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "fail",
+     "reason": "Assistant responded with a message かしこまりました。ただいまスタッフにおつなぎいたします。少々お待ちくださいませ。\n\n but expected it to be empty",
+     "text": "かしこまりました。ただいまスタッフにおつなぎいたします。少々お待ちくださいませ。\n\n",
+     "tools": [
+      {
+       "name": "transfer_to_staff",
+       "arguments": "{}"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

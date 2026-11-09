@@ -1,0 +1,128 @@
+{
+ "id": "E14-handoff-false-positive",
+ "category": "edge",
+ "n": 5,
+ "finishedAt": "2026-11-09T13:38:29+00:00",
+ "runs": [
+  {
+   "evalId": "E14-handoff-false-positive",
+   "runId": "3c4725fb-1941-4872-8043-25dba6cdf132",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0004999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "それは大変でしたね。お大事になさってください。\n\n当院ではスポーツや日常生活でのケガの施術を行っております。お子様の症状について詳しく伺った上で対応させていただきますので、ぜひ一度ご来院ください。\n\nご予約をご希望でしょうか？それとも、何かご質問がございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "E14-handoff-false-positive",
+   "runId": "615464b0-d89e-4df7-ad66-4bf05fb2011f",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0004999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "それはご心配ですね。スポーツや活動中のおケガについても、当院で施術を行っております。\n\nご来院のご予約をご希望でしょうか？それとも、何かご質問がございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "E14-handoff-false-positive",
+   "runId": "9e72b09f-1720-4015-b1b7-b12c036e9712",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0004999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "それはご心配ですね。スポーツや活動中のおケガについても対応しております。\n\n初めてのご来院でしょうか？それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "E14-handoff-false-positive",
+   "runId": "09764e67-9adf-4c94-8b07-6422a5fdbc99",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0004999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "それは大変でしたね。心配ですね。\n\n当院ではスポーツや日常生活でのケガの施術を行っております。お子様のご来院は初めてでしょうか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "E14-handoff-false-positive",
+   "runId": "981152b1-6f62-4790-8f60-cb751dec7b32",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0004999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "それはご心配ですね。スポーツや運動中のケガについても対応しておりますので、ぜひご相談ください。\n\n初めてのご来院でしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    }
+   ]
+  }
+ ]
+}

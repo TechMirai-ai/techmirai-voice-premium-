@@ -1,0 +1,908 @@
+{
+ "id": "X02-booking-slot-taken-at-book-time",
+ "category": "error",
+ "n": 10,
+ "finishedAt": "2026-11-09T13:38:29+00:00",
+ "runs": [
+  {
+   "evalId": "X02-booking-slot-taken-at-book-time",
+   "runId": "3dc11768-0be9-43ba-83db-6f9230c96e81",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.004099999999999998,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "どちらの施術をご希望でしょうか？一般施術、またはスポーツ外傷施術からお選びいただけます。",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "ご希望の日時はございますか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "check_availability",
+       "arguments": "{\"time\": \"10:00\", \"date\": \"2026-11-18\"}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 6,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 7,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 8,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "book_appointment",
+       "arguments": "{\n  \"serviceId\": \"general-consultation\",\n  \"time\": \"10:00\",\n  \"isReturningPatient\": false,\n  \"patientName\": \"ヤマダタロウ\",\n  \"date\": \"2026-11-18\"\n}"
+      }
+     ]
+    },
+    {
+     "i": 9,
+     "judge": "fail",
+     "reason": "Assistant responded with a message 申し訳ございません。あいにくそのお時間は埋まってしまいました。\n\n別の日時をご案内いたします。来週の水曜日、11月18日の午後2時、または午後4時はいかがでしょうか？ but expected it to be empty",
+     "text": "申し訳ございません。あいにくそのお時間は埋まってしまいました。\n\n別の日時をご案内いたします。来週の水曜日、11月18日の午後2時、または午後4時はいかがでしょうか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "X02-booking-slot-taken-at-book-time",
+   "runId": "a50bf1d0-2e91-47a1-b56b-4fd141c28d15",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.004099999999999998,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "承知いたしました。今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "どちらの施術をご希望でしょうか？一般施術、またはスポーツ外傷施術からお選びいただけます。",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "ご希望の日時はございますか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "check_availability",
+       "arguments": "{\"date\": \"2026-11-18\", \"time\": \"10:00\"}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 6,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 7,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 8,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "book_appointment",
+       "arguments": "{\n  \"date\": \"2026-11-18\",\n  \"serviceId\": \"general-consultation\",\n  \"isReturningPatient\": false,\n  \"time\": \"10:00\",\n  \"patientName\": \"ヤマダタロウ\"\n}"
+      }
+     ]
+    },
+    {
+     "i": 9,
+     "judge": "fail",
+     "reason": "Assistant responded with a message 申し訳ございません。先ほどお選びいただいたお時間は、ただいま予約が埋まってしまいました。\n\n11月18日水曜日ですと、午前11時でしたらご案内可能ですが、いかがでしょうか？ but expected it to be empty",
+     "text": "申し訳ございません。先ほどお選びいただいたお時間は、ただいま予約が埋まってしまいました。\n\n11月18日水曜日ですと、午前11時でしたらご案内可能ですが、いかがでしょうか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "X02-booking-slot-taken-at-book-time",
+   "runId": "84996dc6-fd6d-4312-abe2-ecb20a2e35b6",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.004099999999999998,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "承知いたしました。今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "ご来院をご検討いただきありがとうございます。どちらの施術をご希望でしょうか？一般施術、またはスポーツ外傷施術からお選びいただけます。",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "ありがとうございます。ご希望の日時はございますか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "check_availability",
+       "arguments": "{\"time\": \"10:00\", \"date\": \"2026-11-18\"}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 6,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 7,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 8,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "book_appointment",
+       "arguments": "{\n  \"date\": \"2026-11-18\",\n  \"serviceId\": \"general-consultation\",\n  \"isReturningPatient\": false,\n  \"patientName\": \"ヤマダタロウ\",\n  \"time\": \"10:00\"\n}"
+      }
+     ]
+    },
+    {
+     "i": 9,
+     "judge": "fail",
+     "reason": "Assistant responded with a message 申し訳ございません。ご希望の日時はただいま予約が埋まってしまったようです。\n\n恐れ入りますが、別のお時間をお選びいただけますでしょうか。水曜日の午前10時以外で、ご都合の良い日時はございますか？ but expected it to be empty",
+     "text": "申し訳ございません。ご希望の日時はただいま予約が埋まってしまったようです。\n\n恐れ入りますが、別のお時間をお選びいただけますでしょうか。水曜日の午前10時以外で、ご都合の良い日時はございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "X02-booking-slot-taken-at-book-time",
+   "runId": "aa44a5e5-e5ed-4fac-9161-efde9cc42b90",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.004099999999999998,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "どちらの施術をご希望でしょうか？一般施術、またはスポーツ外傷施術からお選びいただけます。",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "ご希望の日時はございますか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "check_availability",
+       "arguments": "{\"date\": \"2026-11-18\", \"time\": \"10:00\"}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 6,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 7,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 8,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "book_appointment",
+       "arguments": "{\n  \"date\": \"2026-11-18\",\n  \"time\": \"10:00\",\n  \"serviceId\": \"general-consultation\",\n  \"isReturningPatient\": false,\n  \"patientName\": \"ヤマダタロウ\"\n}"
+      }
+     ]
+    },
+    {
+     "i": 9,
+     "judge": "fail",
+     "reason": "Assistant responded with a message 申し訳ございません。ご希望の日時はただいま予約が埋まってしまったようです。\n\n11月18日水曜日の午後2時、または午後4時でしたらご案内可能ですが、いかがでしょうか？ but expected it to be empty",
+     "text": "申し訳ございません。ご希望の日時はただいま予約が埋まってしまったようです。\n\n11月18日水曜日の午後2時、または午後4時でしたらご案内可能ですが、いかがでしょうか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "X02-booking-slot-taken-at-book-time",
+   "runId": "8b708135-54b5-4e9e-87e8-bb566bd62bae",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.004099999999999998,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "承知いたしました。今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "どちらの施術をご希望でしょうか？当院では、30分程度の「一般施術」と、45分程度の「スポーツ外傷施術」がございます。",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "ご希望の日時はございますか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "check_availability",
+       "arguments": "{\"date\": \"2026-11-18\", \"time\": \"10:00\"}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 6,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 7,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 8,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "book_appointment",
+       "arguments": "{\n  \"isReturningPatient\": false,\n  \"time\": \"10:00\",\n  \"date\": \"2026-11-18\",\n  \"serviceId\": \"general-consultation\",\n  \"patientName\": \"ヤマダタロウ\"\n}"
+      }
+     ]
+    },
+    {
+     "i": 9,
+     "judge": "fail",
+     "reason": "Assistant responded with a message 申し訳ございません。ご希望の日時は先ほど予約が入ってしまったようです。\n\n11月18日水曜日ですと、午後2時または午後4時でしたらご案内可能ですが、いかがでしょうか？ but expected it to be empty",
+     "text": "申し訳ございません。ご希望の日時は先ほど予約が入ってしまったようです。\n\n11月18日水曜日ですと、午後2時または午後4時でしたらご案内可能ですが、いかがでしょうか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "X02-booking-slot-taken-at-book-time",
+   "runId": "eceec04e-911a-4bcc-8e82-e3a5365a36ea",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.004099999999999998,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "どちらの施術をご希望でしょうか？一般施術、またはスポーツ外傷施術からお選びいただけます。",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "ご希望の日時はございますか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "check_availability",
+       "arguments": "{\"date\": \"2026-11-18\", \"time\": \"10:00\"}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 6,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 7,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 8,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "book_appointment",
+       "arguments": "{\n  \"patientName\": \"ヤマダタロウ\",\n  \"date\": \"2026-11-18\",\n  \"serviceId\": \"general-consultation\",\n  \"time\": \"10:00\",\n  \"isReturningPatient\": false\n}"
+      }
+     ]
+    },
+    {
+     "i": 9,
+     "judge": "fail",
+     "reason": "Assistant responded with a message 申し訳ございません。先ほどお伝えしたお時間が、ただいま予約で埋まってしまいました。\n\n11月18日水曜日ですと、午後2時、または午後4時でしたらご案内可能ですが、いかがでしょうか？ but expected it to be empty",
+     "text": "申し訳ございません。先ほどお伝えしたお時間が、ただいま予約で埋まってしまいました。\n\n11月18日水曜日ですと、午後2時、または午後4時でしたらご案内可能ですが、いかがでしょうか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "X02-booking-slot-taken-at-book-time",
+   "runId": "d1295a64-1908-4a47-bc0a-ff27ac4a82f5",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.004099999999999998,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "承知いたしました。今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "どちらの施術をご希望でしょうか？一般施術、またはスポーツ外傷施術からお選びいただけます。",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "ご希望の日時はございますか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "check_availability",
+       "arguments": "{\"date\": \"2026-11-18\", \"time\": \"10:00\"}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 6,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 7,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 8,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "book_appointment",
+       "arguments": "{\n  \"time\": \"10:00\",\n  \"patientName\": \"ヤマダタロウ\",\n  \"date\": \"2026-11-18\",\n  \"serviceId\": \"general-consultation\",\n  \"isReturningPatient\": false\n}"
+      }
+     ]
+    },
+    {
+     "i": 9,
+     "judge": "fail",
+     "reason": "Assistant responded with a message 申し訳ございません。ご希望の日時はただいま予約が埋まってしまったようです。\n\n11月18日水曜日ですと、午後2時または午後4時でしたらご案内可能ですが、いかがでしょうか？ but expected it to be empty",
+     "text": "申し訳ございません。ご希望の日時はただいま予約が埋まってしまったようです。\n\n11月18日水曜日ですと、午後2時または午後4時でしたらご案内可能ですが、いかがでしょうか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "X02-booking-slot-taken-at-book-time",
+   "runId": "39cbc84b-e061-423e-8aba-dec8f420578f",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.004099999999999998,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "承知いたしました。今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "どちらの施術をご希望でしょうか？当院では、30分程度の「一般施術」と、45分程度の「スポーツ外傷施術」がございます。",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "ご希望の日時はございますか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "check_availability",
+       "arguments": "{\"time\": \"10:00\", \"date\": \"2026-11-18\"}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 6,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 7,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 8,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "book_appointment",
+       "arguments": "{\n  \"date\": \"2026-11-18\",\n  \"serviceId\": \"general-consultation\",\n  \"patientName\": \"ヤマダタロウ\",\n  \"time\": \"10:00\",\n  \"isReturningPatient\": false\n}"
+      }
+     ]
+    },
+    {
+     "i": 9,
+     "judge": "fail",
+     "reason": "Assistant responded with a message 申し訳ございません、先ほどご案内したお時間が現在埋まってしまったようです。\n\n恐れ入りますが、別のお時間をご検討いただけますでしょうか。来週の水曜日、11月18日の午後2時以降でしたらご案内可能ですが、いかがでしょうか？ but expected it to be empty",
+     "text": "申し訳ございません、先ほどご案内したお時間が現在埋まってしまったようです。\n\n恐れ入りますが、別のお時間をご検討いただけますでしょうか。来週の水曜日、11月18日の午後2時以降でしたらご案内可能ですが、いかがでしょうか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "X02-booking-slot-taken-at-book-time",
+   "runId": "54609ad4-eabf-472d-af15-7d3fa15084b2",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.004099999999999998,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "承知いたしました。今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "どちらの施術をご希望でしょうか？一般施術、またはスポーツ外傷施術からお選びいただけます。",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "ご希望の日時はございますか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "check_availability",
+       "arguments": "{\"time\": \"10:00\", \"date\": \"2026-11-18\"}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 6,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 7,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 8,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "book_appointment",
+       "arguments": "{\n  \"time\": \"10:00\",\n  \"patientName\": \"ヤマダタロウ\",\n  \"serviceId\": \"general-consultation\",\n  \"date\": \"2026-11-18\",\n  \"isReturningPatient\": false\n}"
+      }
+     ]
+    },
+    {
+     "i": 9,
+     "judge": "fail",
+     "reason": "Assistant responded with a message 申し訳ございません。ご希望の日時はただいま予約が埋まってしまったようです。\n\n11月18日水曜日の午後2時、または午後4時でしたらご案内可能ですが、いかがでしょうか？ but expected it to be empty",
+     "text": "申し訳ございません。ご希望の日時はただいま予約が埋まってしまったようです。\n\n11月18日水曜日の午後2時、または午後4時でしたらご案内可能ですが、いかがでしょうか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "X02-booking-slot-taken-at-book-time",
+   "runId": "a0019ece-526d-4c01-8118-7fe363c335cf",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.004099999999999998,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "どちらの施術をご希望でしょうか？一般施術、またはスポーツ外傷施術からお選びいただけます。",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "ご希望の日時はございますか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "check_availability",
+       "arguments": "{\"time\": \"10:00\", \"date\": \"2026-11-18\"}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 6,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 7,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 8,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "book_appointment",
+       "arguments": "{\n  \"time\": \"10:00\",\n  \"date\": \"2026-11-18\",\n  \"serviceId\": \"general-consultation\",\n  \"isReturningPatient\": false,\n  \"patientName\": \"ヤマダタロウ\"\n}"
+      }
+     ]
+    },
+    {
+     "i": 9,
+     "judge": "fail",
+     "reason": "Assistant responded with a message 申し訳ございません。ご希望の日時はただいま予約が埋まってしまったようです。\n\n11月18日水曜日ですと、午後2時、または午後4時でしたらご案内可能ですが、いかがでしょうか？ but expected it to be empty",
+     "text": "申し訳ございません。ご希望の日時はただいま予約が埋まってしまったようです。\n\n11月18日水曜日ですと、午後2時、または午後4時でしたらご案内可能ですが、いかがでしょうか？",
+     "tools": []
+    }
+   ]
+  }
+ ]
+}

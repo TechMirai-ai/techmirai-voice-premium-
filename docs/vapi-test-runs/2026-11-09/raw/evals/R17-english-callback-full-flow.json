@@ -1,0 +1,353 @@
+{
+ "id": "R17-english-callback-full-flow",
+ "category": "routine",
+ "n": 5,
+ "finishedAt": "2026-11-09T13:38:29+00:00",
+ "runs": [
+  {
+   "evalId": "R17-english-callback-full-flow",
+   "runId": "217ddc8e-4f58-4517-bc01-316a1c7c47ce",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0037999999999999987,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "Thank you for calling Sakura Say-koh-tsoo-in. I am your AI receptionist, Jenny. This call is recorded to improve our service. How may I assist you today? Are you calling to make an appointment?",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "I'm sorry, I don't have that information right now. I can pass your details to our staff so they can get back to you. May I have your name, please?",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "Just to confirm, that's John Smith, correct?",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "Is it okay to contact you at the number you're calling from right now?",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "request_callback",
+       "arguments": "{\n  \"reason\": \"Inquiry about female practitioner.\",\n  \"callerName\": \"John Smith\"\n}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "Thank you. Our staff will contact you by the next business day. If you'd like, I can also try to connect you to a staff member by phone right now. Would you like me to do that?",
+     "tools": []
+    },
+    {
+     "i": 6,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"outcome\": \"unresolved\", \"topic\": \"other\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R17-english-callback-full-flow",
+   "runId": "5eefcd7a-799f-4de3-9313-29a46fea539c",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0019999999999999983,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "Thank you for calling Sakura Say-koh-tsoo-in. I am your AI receptionist, Jenny. This call is recorded to improve our service. How may I assist you today? Are you calling to make an appointment?",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "I'm sorry, I don't have that information right now. I can pass your details to our staff so they can get back to you. May I have your name, please?",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "Just to confirm, that's John, correct?",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "Is it okay to contact you at the number you're calling from right now?",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "request_callback",
+       "arguments": "{\n  \"reason\": \"Inquiring about female practitioner availability.\",\n  \"callerName\": \"John\"\n}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "Thank you. Our staff will contact you by the next business day. Is there anything else I can help you with today?",
+     "tools": []
+    },
+    {
+     "i": 6,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"outcome\": \"unresolved\", \"topic\": \"other\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R17-english-callback-full-flow",
+   "runId": "26a747ce-1493-43bc-a2ce-d5324f968273",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0019999999999999983,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "Thank you for calling Sakura Say-koh-tsoo-in. I am your AI receptionist, Jenny. This call is recorded to improve our service. How may I assist you today? Are you calling to make an appointment?",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "I'm sorry, I don't have that information right now. I can pass your details to our staff so they can get back to you. May I have your name, please?",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "Just to confirm, that's John, correct?",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "Is it okay to contact you at the number you're calling from right now?",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "request_callback",
+       "arguments": "{\n  \"callerName\": \"John\",\n  \"reason\": \"Inquiry about female practitioners.\"\n}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "Thank you. Our staff will contact you by the next business day. Is there anything else I can help you with today?",
+     "tools": []
+    },
+    {
+     "i": 6,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"topic\": \"other\", \"outcome\": \"unresolved\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R17-english-callback-full-flow",
+   "runId": "e5a1d946-54a2-4f9c-9c6e-7c863cd06fab",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0019999999999999983,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "Thank you for calling Sakura Say-koh-tsoo-in. I am your AI receptionist, Jenny. This call is recorded to improve our service. How may I assist you today? Are you calling to make an appointment?",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "I'm sorry, I don't have that information right now. I can pass your details to our staff so they can get back to you. May I have your name, please?",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "Just to confirm, that's John, correct?",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "Is it okay to contact you at the number you're calling from right now?",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "request_callback",
+       "arguments": "{\n  \"callerName\": \"John\",\n  \"reason\": \"Inquiry about female practitioners.\"\n}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "Thank you. Our staff will contact you by the next business day. Is there anything else I can help you with today?",
+     "tools": []
+    },
+    {
+     "i": 6,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"topic\": \"other\", \"outcome\": \"unresolved\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R17-english-callback-full-flow",
+   "runId": "715048c4-b8bb-4140-94c7-62f2d804187c",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0019999999999999983,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "Thank you for calling Sakura Say-koh-tsoo-in. I am your AI receptionist, Jenny. This call is recorded to improve our service. How may I assist you today? Are you calling to make an appointment?",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "I'm sorry, I don't have that information right now. I can pass your details to our staff so they can get back to you. May I have your name, please?",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "Just to confirm, that's John Smith, correct?",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "Is it okay to contact you at the number you're calling from right now?",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "request_callback",
+       "arguments": "{\n  \"reason\": \"Caller is asking if there is a female practitioner available.\",\n  \"callerName\": \"John Smith\"\n}"
+      }
+     ]
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "Thank you. Our staff will contact you by the next business day. Is there anything else I can help you with today?",
+     "tools": []
+    },
+    {
+     "i": 6,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"topic\": \"other\", \"outcome\": \"unresolved\"}"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

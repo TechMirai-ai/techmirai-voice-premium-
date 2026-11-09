@@ -1,0 +1,188 @@
+{
+ "id": "R04-fees",
+ "category": "routine",
+ "n": 5,
+ "finishedAt": "2026-11-09T13:38:29+00:00",
+ "runs": [
+  {
+   "evalId": "R04-fees",
+   "runId": "0bdb2072-ca8c-4de9-bf4f-da3bf8b45e52",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0007115999999999995,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "施術料金は、施術内容やお身体の状態によって異なります。料金は当院ホームページでご確認いただけるほか、詳しくはスタッフがご説明いたします。\n\nほかに何かお手伝いできることはございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"outcome\": \"resolved\", \"topic\": \"fees\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R04-fees",
+   "runId": "58ce3649-cab8-43ca-87f8-def28997c1d6",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0007099999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "施術料金は、施術内容やお身体の状態によって異なります。料金は当院ホームページでご確認いただけるほか、詳しくはスタッフがご説明いたします。\n\nほかに何かお手伝いできることはございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"topic\": \"fees\", \"outcome\": \"resolved\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R04-fees",
+   "runId": "d798097d-12ba-41b7-9fc5-b0f00d333d40",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0007099999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "施術料金は、施術内容やお身体の状態によって異なります。料金は当院ホームページでご確認いただけるほか、詳しくはスタッフがご説明いたします。\n\nほかに何かお手伝いできることはございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"outcome\": \"resolved\", \"topic\": \"fees\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R04-fees",
+   "runId": "10c0f3f2-f3d0-4cfa-8453-f22c7fa83eff",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0007099999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "施術料金は、施術内容やお身体の状態によって異なります。料金は当院ホームページでご確認いただけるほか、詳しくはスタッフがご説明いたします。\n\nほかに何かお手伝いできることはございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"topic\": \"fees\", \"outcome\": \"resolved\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R04-fees",
+   "runId": "02df6b2a-1a3a-4ce0-9030-d528c973ab20",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0007099999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "施術料金は、施術内容やお身体の状態によって異なります。料金は当院ホームページでご確認いただけるほか、詳しくはスタッフがご説明いたします。\n\nほかに何かお手伝いできることはございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "log_call_topic",
+       "arguments": "{\"topic\": \"fees\", \"outcome\": \"resolved\"}"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

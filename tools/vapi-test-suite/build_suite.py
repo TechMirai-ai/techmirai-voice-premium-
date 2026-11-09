@@ -73,13 +73,20 @@ def main():
 
     for e in D.EVALS:
         name = "SUITE " + e["id"]
-        if name not in have_eval:
-            status, result = safe_api("POST", "/eval", {"name": name, "description": e["note"] or e["category"],
-                                                        "type": "chat.mockConversation", "messages": e["messages"]})
-            if status >= 300:
-                print("EVAL FAILED", e["id"], status, str(result)[:300])
-                continue
-            have_eval[name] = result["id"]
+        # A real call always starts with the assistant's firstMessage; an Eval history without it makes the model greet
+        # again on the first turn. A leading assistant message with no judgePlan is accepted and unjudged (probed 2026-11-09).
+        greeting = {"role": "assistant", "content": live_assistant(e["member"])["firstMessage"]}
+        messages = [greeting] + e["messages"]
+        payload = {"description": e["note"] or e["category"], "messages": messages}
+        if name in have_eval:  # keep existing objects in sync with suite_defs.py
+            status, result = safe_api("PATCH", "/eval/" + have_eval[name], payload)
+        else:
+            status, result = safe_api("POST", "/eval", {"name": name, "type": "chat.mockConversation", **payload})
+            if status < 300:
+                have_eval[name] = result["id"]
+        if status >= 300:
+            print("EVAL FAILED", e["id"], status, str(result)[:300])
+            continue
         ids["evals"][e["id"]] = have_eval[name]
 
     for key, (name, language_text, language_code, voice) in PERSONALITIES.items():
@@ -99,13 +106,16 @@ def main():
         name = "SUITE " + sim_id
         evaluations = [{"structuredOutput": {"name": c, "description": d, "schema": {"type": "boolean"}},
                         "comparator": "=", "value": True, "required": True} for c, d in criteria]
-        if name not in have_scenario:
-            status, result = safe_api("POST", "/eval/simulation/scenario", {"name": name, "instructions": instructions,
-                                                                            "evaluations": evaluations, "toolMocks": SIM_MOCKS})
-            if status >= 300:
-                print("SCENARIO FAILED", sim_id, status, str(result)[:300])
-                continue
-            have_scenario[name] = result["id"]
+        scenario_body = {"instructions": instructions, "evaluations": evaluations, "toolMocks": SIM_MOCKS}
+        if name in have_scenario:  # keep existing objects in sync with suite_defs.py
+            status, result = safe_api("PATCH", "/eval/simulation/scenario/" + have_scenario[name], scenario_body)
+        else:
+            status, result = safe_api("POST", "/eval/simulation/scenario", {"name": name, **scenario_body})
+            if status < 300:
+                have_scenario[name] = result["id"]
+        if status >= 300:
+            print("SCENARIO FAILED", sim_id, status, str(result)[:300])
+            continue
         if name not in have_sim:
             status, result = safe_api("POST", "/eval/simulation", {"name": name, "scenarioId": have_scenario[name],
                                                                    "personalityId": ids["personalities"][persona]})

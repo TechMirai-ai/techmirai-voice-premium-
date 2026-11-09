@@ -1,0 +1,153 @@
+{
+ "id": "R16-handoff-to-english",
+ "category": "routine",
+ "n": 5,
+ "finishedAt": "2026-11-09T13:38:29+00:00",
+ "runs": [
+  {
+   "evalId": "R16-handoff-to-english",
+   "runId": "cdd88300-6da6-4136-ae22-5b594c054b73",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "handoff_to_sakura-seikotsuin--en",
+       "arguments": "{\"destination\": \"sakura-seikotsuin--en\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R16-handoff-to-english",
+   "runId": "ac7cedcc-87bf-4272-9882-3d73f6c580ff",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "handoff_to_sakura-seikotsuin--en",
+       "arguments": "{\"destination\": \"sakura-seikotsuin--en\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R16-handoff-to-english",
+   "runId": "a620adba-7a4f-40fb-bb9c-ec89a3681524",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "handoff_to_sakura-seikotsuin--en",
+       "arguments": "{\"destination\": \"sakura-seikotsuin--en\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R16-handoff-to-english",
+   "runId": "50450b84-7e61-4a18-91ad-656c48b00c92",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "handoff_to_sakura-seikotsuin--en",
+       "arguments": "{\"destination\": \"sakura-seikotsuin--en\"}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "evalId": "R16-handoff-to-english",
+   "runId": "ba7a349d-9373-4054-a347-e2d115d990ac",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "handoff_to_sakura-seikotsuin--en",
+       "arguments": "{\"destination\": \"sakura-seikotsuin--en\"}"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,328 @@
+{
+ "id": "E12-returning-patient-not-found",
+ "category": "edge",
+ "n": 5,
+ "finishedAt": "2026-11-09T13:38:29+00:00",
+ "runs": [
+  {
+   "evalId": "E12-returning-patient-not-found",
+   "runId": "7e501cb2-514e-47f9-8f9d-32b93daa87c9",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.002794799999999998,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "承知いたしました。今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "承知いたしました。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダ タロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "lookup_patient",
+       "arguments": "{\"callerName\": \"ヤマダ タロウ\"}"
+      }
+     ]
+    },
+    {
+     "i": 6,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。そのお名前は当院の記録に見つかりませんでした。恐れ入りますが、初めてご来院の方として承ります。どちらの施術をご希望でしょうか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "E12-returning-patient-not-found",
+   "runId": "75687931-a765-4335-9507-bfabd4a12e72",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.002803999999999998,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "承知いたしました。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "lookup_patient",
+       "arguments": "{\"callerName\": \"ヤマダタロウ\"}"
+      }
+     ]
+    },
+    {
+     "i": 6,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。そのお名前は当院の記録に見つかりませんでした。恐れ入りますが、初めてご来院の方として承ります。どちらの施術をご希望でしょうか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "E12-returning-patient-not-found",
+   "runId": "1d85e836-514f-4617-9e5f-b5643ab85c53",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.002901599999999998,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "承知いたしました。今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "lookup_patient",
+       "arguments": "{\"callerName\": \"ヤマダタロウ\"}"
+      }
+     ]
+    },
+    {
+     "i": 6,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。そのお名前は当院の記録に見つかりませんでした。恐れ入りますが、初めてご来院の方として承ります。\n\nどちらの施術をご希望でしょうか？一般施術、またはスポーツ外傷施術からお選びいただけます。",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "E12-returning-patient-not-found",
+   "runId": "27f86f44-1206-4b58-ae82-0fceb0502f13",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0029071999999999982,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "承知いたしました。今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "承知いたしました。以前のご来院ありがとうございます。\n\nお名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "lookup_patient",
+       "arguments": "{\"callerName\": \"ヤマダタロウ\"}"
+      }
+     ]
+    },
+    {
+     "i": 6,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。そのお名前は当院の記録に見つかりませんでした。恐れ入りますが、初めてご来院の方として承ります。\n\nどちらの施術をご希望でしょうか？一般施術、またはスポーツ外傷施術からお選びいただけます。",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "E12-returning-patient-not-found",
+   "runId": "3b3a179e-0c5d-4c0f-b450-6404e5abe0f9",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.002803999999999998,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "今回のご来院は初めてでしょうか、それとも以前にもご来院されたことがございますか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "pass",
+     "reason": "",
+     "text": "承知いたしました。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 3,
+     "judge": "pass",
+     "reason": "",
+     "text": "確認いたします。お名前はヤマダタロウ様でよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 4,
+     "judge": "pass",
+     "reason": "",
+     "text": "今お電話いただいているこちらの番号に、ご連絡させていただいてもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 5,
+     "judge": "pass",
+     "reason": "",
+     "text": "",
+     "tools": [
+      {
+       "name": "lookup_patient",
+       "arguments": "{\"callerName\": \"ヤマダタロウ\"}"
+      }
+     ]
+    },
+    {
+     "i": 6,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。そのお名前は当院の記録に見つかりませんでした。恐れ入りますが、初めてご来院の方として承ります。どちらの施術をご希望でしょうか？",
+     "tools": []
+    }
+   ]
+  }
+ ]
+}

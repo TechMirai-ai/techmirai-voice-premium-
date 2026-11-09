@@ -1,0 +1,128 @@
+{
+ "id": "E08-transfer-closing-buffer-1855",
+ "category": "edge",
+ "n": 5,
+ "finishedAt": "2026-11-09T13:40:34+00:00",
+ "runs": [
+  {
+   "evalId": "E08-transfer-closing-buffer-1855",
+   "runId": "ae2c64ec-c193-44ed-87c9-8f734f17046e",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0004999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。ただいま営業時間外のため、スタッフにお電話をおつなぎすることができません。\n\nかしこまりました。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "E08-transfer-closing-buffer-1855",
+   "runId": "23a6de76-f633-4825-b26b-04059ae68768",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0004999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。ただいま営業時間外のため、スタッフにお電話をおつなぎすることができません。\n\nかしこまりました。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "E08-transfer-closing-buffer-1855",
+   "runId": "040868de-3039-487e-8859-1fcb5139a6dc",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0004999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。ただいま営業時間外のため、スタッフにお電話をおつなぎすることができません。\n\nかしこまりました。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "E08-transfer-closing-buffer-1855",
+   "runId": "e2dbdd44-aef2-4f65-824d-de2751a4adb4",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0004999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。ただいま営業時間外のため、スタッフにお電話をおつなぎすることができません。\n\nかしこまりました。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "E08-transfer-closing-buffer-1855",
+   "runId": "2da2aad4-d912-4772-bc0b-b4637fd5b1ee",
+   "status": "pass",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0004999999999999996,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。ただいまの時間、スタッフは営業時間外のため、直接お電話をおつなぎすることができません。\n\nかしこまりました。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    }
+   ]
+  }
+ ]
+}

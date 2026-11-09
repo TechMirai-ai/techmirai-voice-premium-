@@ -14,6 +14,7 @@ import argparse
 import json
 import math
 import os
+import re
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -156,7 +157,9 @@ def run_sims(only):
             results = item.get("results") or {}
             compact.append({"status": item.get("status"), "passed": results.get("passed"), "failureReason": (item.get("failureReason") or "")[:200],
                             "criteria": [{"name": c.get("name"), "passed": c.get("passed"), "value": c.get("extractedValue")} for c in results.get("evaluations", [])],
-                            "transcript": [{"role": m.get("role"), "text": (m.get("message") or "")[:400]} for m in ((item.get("metadata") or {}).get("call") or {}).get("messages", [])]})
+                            "transcript": [{"role": m.get("role"), "text": (m.get("message") or "")[:400],
+                                            "tools": [c["function"]["name"] + ":" + c["function"]["arguments"][:160] for c in (m.get("toolCalls") or [])]}
+                                           for m in ((item.get("metadata") or {}).get("call") or {}).get("messages", [])]})
         passed = sum(1 for c in compact if c["passed"])
         write_json(os.path.join(OUT, "sims", sim_id + ".json"), {"id": sim_id, "category": category, "n": iterations, "runId": run_id,
                                                                   "endedReason": run.get("endedReason"), "finishedAt": now_iso(), "items": compact})
@@ -217,7 +220,9 @@ def build_report(results_dir):
 
     # Reconcile cost against Vapi's own list (catches orphan/duplicate runs from retried submissions).
     suite_ids = set(ids["evals"].values())
-    all_runs = [r for r in list_all("/eval/run") if r.get("evalId") in suite_ids and (not batch_start or r["createdAt"] >= batch_start.replace("+00:00", "Z"))]
+    # Compare at whole-second precision: "…:45.123Z" sorts BEFORE "…:45Z" as a string, which would drop runs created in the
+    # same second as the batch start.
+    all_runs = [r for r in list_all("/eval/run") if r.get("evalId") in suite_ids and (not batch_start or r["createdAt"][:19] >= batch_start[:19])]
     vapi_total = round(sum(r.get("cost") or 0 for r in all_runs), 4)
     recorded = sum(row["n"] for row in scenarios if row["layer"] == "eval")
     recorded_cost = round(sum(row["cost"] or 0 for row in scenarios if row["layer"] == "eval"), 4)
@@ -242,7 +247,8 @@ def build_report(results_dir):
         if row["failureReasons"]:
             lines.append("- **%s** (%d/%d failed)" % (row["id"], row["n"] - row["passed"], row["n"]))
             for reason, count in sorted(row["failureReasons"].items(), key=lambda kv: -kv[1]):
-                lines.append("  - %dx %s" % (count, reason))
+                # report.md is read by an owner who cannot read Japanese: show Japanese spans as [JP]; the raw text stays in results.json
+                lines.append("  - %dx %s" % (count, re.sub(r"[^\x00-\x7F]+", "[JP]", reason)))
     lines += ["", "## Cost", "", "- Eval runs recorded: %d, cost recorded $%.4f" % (recorded, recorded_cost),
               "- Vapi's own run list since batch start: %d runs, $%.4f (a difference means orphan or duplicate runs)" % (len(all_runs), vapi_total),
               "- Chat Simulations: " + summary["simulationCost"], ""]

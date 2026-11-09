@@ -1,0 +1,163 @@
+{
+ "id": "E05-callback-ambiguous-decline",
+ "category": "edge",
+ "n": 5,
+ "finishedAt": "2026-11-09T13:38:29+00:00",
+ "runs": [
+  {
+   "evalId": "E05-callback-ambiguous-decline",
+   "runId": "ab578b75-0b4b-46e0-931a-d62caa192f12",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0014999999999999992,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "fail",
+     "reason": "Assistant content did not match expected. Expected: \"お名前|折り返し|よろしい|ご希望|いかが\" but got: \"承知いたしました。それでは、また何かございましたらお気軽にお電話ください。\n\nほかに何かお手伝いできることはございますか？\"",
+     "text": "承知いたしました。それでは、また何かございましたらお気軽にお電話ください。\n\nほかに何かお手伝いできることはございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "E05-callback-ambiguous-decline",
+   "runId": "609e80dd-c63b-4544-acad-45aae3985aa6",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0014999999999999992,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "fail",
+     "reason": "Assistant content did not match expected. Expected: \"お名前|折り返し|よろしい|ご希望|いかが\" but got: \"承知いたしました。それでは、何か他にお手伝いできることはございますか？\"",
+     "text": "承知いたしました。それでは、何か他にお手伝いできることはございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "E05-callback-ambiguous-decline",
+   "runId": "8241fb8c-228e-4e9b-8fad-89465e0a495a",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0014999999999999992,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "fail",
+     "reason": "Assistant content did not match expected. Expected: \"お名前|折り返し|よろしい|ご希望|いかが\" but got: \"承知いたしました。それでは、また何かございましたらお気軽にお電話ください。\n\nほかに何かお手伝いできることはございますか？\"",
+     "text": "承知いたしました。それでは、また何かございましたらお気軽にお電話ください。\n\nほかに何かお手伝いできることはございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "E05-callback-ambiguous-decline",
+   "runId": "d9346874-eb96-473e-8615-bb42d8588174",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0014999999999999992,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "fail",
+     "reason": "Assistant content did not match expected. Expected: \"お名前|折り返し|よろしい|ご希望|いかが\" but got: \"承知いたしました。ほかに何かお手伝いできることはございますか？\"",
+     "text": "承知いたしました。ほかに何かお手伝いできることはございますか？",
+     "tools": []
+    }
+   ]
+  },
+  {
+   "evalId": "E05-callback-ambiguous-decline",
+   "runId": "4a1e0420-868b-4feb-909e-fe0e571963ed",
+   "status": "fail",
+   "endedReason": "mockConversation.done",
+   "endedMessage": "",
+   "cost": 0.0014999999999999992,
+   "checkpoints": [
+    {
+     "i": 0,
+     "judge": null,
+     "reason": "",
+     "text": "お電話ありがとうございます。さくら整骨院のAI受付、ハルカと申します。サービス向上のため、この通話は録音されます。本日はどのようなご用件でしょうか？ご予約をご希望でしょうか？",
+     "tools": []
+    },
+    {
+     "i": 1,
+     "judge": "pass",
+     "reason": "",
+     "text": "申し訳ございません。その件については、ただいまお答えできる情報がございません。スタッフから折り返しご連絡できるよう、お客様の情報をお伝えいたします。お名前を伺ってもよろしいでしょうか？",
+     "tools": []
+    },
+    {
+     "i": 2,
+     "judge": "fail",
+     "reason": "Assistant content did not match expected. Expected: \"お名前|折り返し|よろしい|ご希望|いかが\" but got: \"かしこまりました。それでは、ほかに何かお手伝いできることはございますか？\"",
+     "text": "かしこまりました。それでは、ほかに何かお手伝いできることはございますか？",
+     "tools": []
+    }
+   ]
+  }
+ ]
+}
