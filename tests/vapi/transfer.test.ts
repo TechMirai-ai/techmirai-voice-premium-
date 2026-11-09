@@ -172,7 +172,10 @@ describe('the "Staff transfer" prompt section', () => {
 
       expect(prompt).toContain('your turn must contain ONLY the tool call');
       expect(prompt).toContain('anything you add would be said twice');
-      expect(prompt).not.toContain(sakura.transfer?.scripts.transferring[language]);
+      // Guard against a vacuous pass: the script must exist for `not.toContain` to mean anything.
+      const announcement = sakura.transfer?.scripts.transferring[language];
+      expect(announcement).toBeTruthy();
+      expect(prompt).not.toContain(announcement);
     }
   });
 
@@ -189,10 +192,25 @@ describe('the "Staff transfer" prompt section', () => {
 
       expect(callback).toContain(`ask exactly once: "${sakura.transfer?.scripts.offer[language]}"`);
       expect(callback).toContain('Staff transfer');
-      // Only after a SAVED callback: a failed save never gets the offer (rule 2d).
+      // Only after a SAVED callback: a failed save never gets the offer (rule 2d), and a callback
+      // taken because a transfer failed never gets a second offer (rule 3).
       expect(callback).toContain('when the callback was saved');
+      expect(callback).toContain('was not taken because a transfer failed');
       // The ordinary closing question remains as the otherwise-branch.
       expect(callback).toContain(sakura.scripts.anythingElse[language]);
+    }
+  });
+
+  test('the offer text exists once, in the callback steps; the transfer rules point at it and a "no" ends with the usual question', () => {
+    for (const language of ['en', 'ja']) {
+      const prompt = promptFor(language);
+      const offer = sakura.transfer?.scripts.offer[language] as string;
+
+      expect(prompt.split(offer)).toHaveLength(2); // exactly one occurrence
+      expect(prompt).toContain('as step 8 of the Callback requests steps says');
+      expect(prompt).toContain(
+        `A clear no: accept it, say staff will call back, and ask: "${sakura.scripts.anythingElse[language]}"`,
+      );
     }
   });
 

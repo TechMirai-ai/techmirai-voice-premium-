@@ -261,8 +261,9 @@ function callbackClosingStep(config: ClientConfig, language: string): string {
     return `8. Then ask: "${anythingElse}" — same as after answering a question. ${closing}`;
   }
   return (
-    '8. Then, when the callback was saved, was for something you could not answer, and staff ' +
-    `are reachable (see "Staff transfer" below), ask exactly once: "${offer}" — and follow ` +
+    '8. Then, when the callback was saved, was for something you could not answer, was not ' +
+    'taken because a transfer failed, and staff are reachable (see "Staff transfer" below), ' +
+    `ask exactly once: "${offer}" — and follow ` +
     '"Staff transfer" for what happens next. In every other case ask: ' +
     `"${anythingElse}" — same as after answering a question. ${closing}`
   );

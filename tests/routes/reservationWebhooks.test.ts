@@ -204,6 +204,9 @@ describe('POST /api/voice/book-appointment', () => {
       .send(toolCallsBody('book_appointment', firstVisitArgs));
 
     expect(response.body.results[0].error).toMatch(/no longer available/i);
+    // Points the model at the same date and time, not at "a new time" it would have to invent.
+    expect(response.body.results[0].error).toMatch(/same date and time/);
+    expect(response.body.results[0].error).not.toMatch(/new time/);
     expect(appointments.booked).toEqual([]);
   });
 

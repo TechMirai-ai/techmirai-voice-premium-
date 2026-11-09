@@ -93,7 +93,10 @@ export function bookAppointmentRouter(deps: BookAppointmentRouteDeps): Router {
         if (!availability.requestedAvailable) {
           return errorResult(
             call,
-            'That time is no longer available. Call check_availability again for a new time.',
+            // Wording matters: "for a new time" invited the model to invent one (test batch 2026-11-09,
+            // X02). check_availability on the same date and time returns the times that really are open.
+            'That time is no longer available. Call check_availability again with the same date and ' +
+              'time to get the times that are open.',
           );
         }
 

@@ -508,8 +508,34 @@ describe('buildSystemPrompt — VP-8 reservation flow', () => {
     expect(prompt).toContain(
       'Never name or suggest a time that check_availability has not returned',
     );
+    // check_availability can also answer "closed that day", "nothing open" or "the original time is free".
+    expect(prompt).toContain('ask for a different date');
+    expect(prompt).toContain('If it says the original time is available, book it');
     // Every other failure still gets the client's own failure line.
+    expect(prompt).toContain('If it failed for any other reason');
     expect(prompt).toContain('reservationFailed text (fr)');
+  });
+
+  test('the taken-slot rule reaches every booking flow and every language leg (Sakura full flow, Kanto simple flow)', async () => {
+    const services = [
+      { id: 'general-consultation', name: { ja: '一般施術', en: 'General' }, durationMinutes: 30 },
+    ];
+
+    for (const clientId of [SAKURA_ID, 'kanto-city-gas-demo']) {
+      const config = loadClient(clientId);
+      const faq = await knowledge.listFaq(clientId);
+
+      for (const language of config.languages.supported) {
+        const prompt = buildSystemPrompt(config, language, faq, services);
+
+        expect(prompt, `${clientId}/${language}`).toContain(
+          'failed because the time is no longer available',
+        );
+        expect(prompt, `${clientId}/${language}`).toContain(
+          'call check_availability again right away',
+        );
+      }
+    }
   });
 });
 

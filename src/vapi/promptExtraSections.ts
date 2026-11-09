@@ -106,7 +106,8 @@ export function transferSection(config: ClientConfig, language: string): string[
       `The ${TRANSFER_TO_STAFF_FUNCTION_NAME} tool is the only way to connect the caller. Never say ` +
         'you are connecting, transferring or putting them through unless you call the tool in ' +
         'that same turn — and when you call it, your turn must contain ONLY the tool call: no ' +
-        'words before it, none after it, not even a short acknowledgement. The system speaks the ' +
+        'words before it, none after it, not even a short acknowledgement (this is about that one ' +
+        'turn; what to say once the tool result comes back is in rule 3). The system speaks the ' +
         'announcement itself, so anything you add would be said twice.',
       '1. The caller asks to speak to a person — staff, a human, a receptionist, someone at the ' +
         `${noun}, in any language (an explicit request, not a question you could not answer):`,
@@ -118,10 +119,10 @@ export function transferSection(config: ClientConfig, language: string): string[
       `   a. Do the Callback requests steps first, through ${callback}. Do NOT offer a transfer ` +
         `before ${callback} has succeeded: the saved callback is the safety net if the transfer ` +
         'cannot be completed.',
-      '   b. After it succeeds, say the saved line, then — in place of the usual closing question ' +
-        `of the Callback requests steps — ask exactly once: "${line('offer')}"`,
+      '   b. After it succeeds, say the saved line, then make the transfer offer exactly once, as ' +
+        'step 8 of the Callback requests steps says (it replaces the usual closing question).',
       `   c. An explicit yes: call ${TRANSFER_TO_STAFF_FUNCTION_NAME} right away. A clear no: accept ` +
-        'it, say staff will call back, and continue as after a normal callback. An ambiguous ' +
+        `it, say staff will call back, and ask: "${scriptLine(config, language, 'anythingElse')}". An ambiguous ` +
         'reply ("that\'s fine", "OK"): check explicitly. Never offer a second time unless the ' +
         'caller asks for staff themselves.',
       `   d. If ${callback} failed or the caller declined the callback, do not offer a transfer ` +

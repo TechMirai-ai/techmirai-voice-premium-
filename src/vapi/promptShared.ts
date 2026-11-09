@@ -150,10 +150,12 @@ export function reservationClosingInstructions(config: ClientConfig, language: s
     // alternative times instead of asking the system, in 10 of 10 runs.
     `If it failed because the time is no longer available (the result says so), do not say the ` +
       'booking failed and do not name or suggest any time yourself: ' +
-      `call ${check} again right away, in this same turn, with the same date and time — it returns ` +
-      'the times that are really open — then offer only the alternative time(s) it gives you, and ' +
-      `treat the caller's pick like any other: call ${check} again for that specific choice ` +
-      `before booking. Never name or suggest a time that ${check} has not returned in this call.`,
+      `call ${check} again right away, in this same turn, with the same date and time (it returns ` +
+      'the times that are really open). Then offer only what it returns. If it lists alternative ' +
+      `times, offer only those, and treat the caller's pick like any other: call ${check} again ` +
+      'for that specific choice before booking. If it says no time is open or that the ' +
+      'business is closed that day, ask for a different date. If it says the original time is ' +
+      `available, book it. Never name or suggest a time that ${check} has not returned in this call.`,
     `If it failed for any other reason, say something in the spirit of "${scriptLine(config, language, 'reservationFailed')}" instead.`,
   ].join(' ');
 }

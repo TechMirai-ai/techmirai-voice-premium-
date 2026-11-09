@@ -66,7 +66,8 @@ AVAIL_NO = "10:00 on 2026-11-18 is not available. Available instead: 13:00, 15:0
 # on the tool. (A Saturday would not do: the prompt already says Saturday is closed, so the model rightly skips the tool.)
 AVAIL_CLOSED = "The clinic is closed on 2026-11-17. Ask the caller for a different date."
 BOOK_OK = "Booked. Reservation number: R000123."
-BOOK_TAKEN = "That time is no longer available. Call check_availability again for a new time."
+BOOK_TAKEN = ("That time is no longer available. Call check_availability again with the same date and time "
+              "to get the times that are open.")  # mirrors src/routes/bookAppointment.ts
 LOOKUP_FOUND = "Found: ヤマダ タロウ."
 LOOKUP_NONE = "No patient record was found for that name."
 XFER_OK = "The transfer has started. Say nothing more."
