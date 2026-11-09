@@ -251,11 +251,12 @@ Four answers changed in VP-7 (decision 1 — never point the caller back at the 
 already on; softened "contact our staff" phrasing to "staff can explain"); the other six are
 unchanged since VP-2/VP-3 and have never had a native-speaker pass either.
 
-1. **hours** — carried over, not yet reviewed.
+1. **hours** — carried over, not yet reviewed. CHANGED 2026-11-09: updated to the real hours
+   (open Monday to Friday and Sunday, closed Saturday); the old wording said Monday to Saturday.
    Q: 受付時間を教えてください。 ("Please tell me the reception hours.")
-   A: 当院の受付時間は、月曜日から土曜日の午前9時から午後7時までです。日曜日と祝日はお休みです。
-   ("Our reception hours are Monday to Saturday, 9 a.m. to 7 p.m. We are closed Sundays and
-   national holidays.")
+   A: 当院の受付時間は、月曜日から金曜日と日曜日の午前9時から午後7時までです。土曜日と祝日はお休みです。
+   ("Our reception hours are Monday to Friday and Sunday, 9 a.m. to 7 p.m. We are closed
+   Saturdays and national holidays.")
 
 2. **appointment-needed** — carried over, not yet reviewed.
    Q: 予約は必要ですか？ ("Is a reservation necessary?")

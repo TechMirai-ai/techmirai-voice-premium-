@@ -110,7 +110,8 @@ describe('the "Staff transfer" prompt section', () => {
 
     expect(prompt).toContain('Staff transfer');
     expect(prompt).toContain('Mon 09:00-19:00');
-    expect(prompt).toContain('Sun closed');
+    expect(prompt).toContain('Sat closed');
+    expect(prompt).toContain('Sun 09:00-19:00');
     expect(prompt).toContain('Asia/Tokyo');
     expect(prompt).toContain('closed on national holidays');
     expect(prompt).toContain('at least 10 minutes before closing');

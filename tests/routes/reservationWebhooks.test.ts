@@ -15,9 +15,9 @@ const CHECK_AVAILABILITY = '/api/voice/check-availability';
 const LOOKUP_PATIENT = '/api/voice/lookup-patient';
 const BOOK_APPOINTMENT = '/api/voice/book-appointment';
 
-// sakura-seikotsuin (via the real assistant resolver fixture) is open Mon-Sat 09:00-19:00, closed Sunday.
+// sakura-seikotsuin (via the real assistant resolver fixture) is open Mon-Fri and Sun 09:00-19:00, closed Saturday.
 const MONDAY = '2026-10-05';
-const SUNDAY = '2026-10-04';
+const SATURDAY = '2026-10-03';
 
 describe('POST /api/voice/check-availability', () => {
   test('reports an open time as available', async () => {
@@ -52,7 +52,7 @@ describe('POST /api/voice/check-availability', () => {
     const response = await request(app)
       .post(CHECK_AVAILABILITY)
       .set(AUTH)
-      .send(toolCallsBody('check_availability', { date: SUNDAY, time: '10:00' }));
+      .send(toolCallsBody('check_availability', { date: SATURDAY, time: '10:00' }));
 
     expect(response.body.results[0].result).toMatch(/closed/i);
   });

@@ -17,7 +17,7 @@ import {
 } from '../helpers/voiceFixtures.js';
 
 const BOOK_APPOINTMENT = '/api/voice/book-appointment';
-// sakura-seikotsuin is open Mon-Sat 09:00-19:00.
+// sakura-seikotsuin is open Mon-Fri and Sun 09:00-19:00 (closed Saturday).
 const MONDAY = '2026-10-05';
 
 const bookArgs = {

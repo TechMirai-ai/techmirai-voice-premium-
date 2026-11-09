@@ -23,6 +23,7 @@ const jst = (day: string, time: string): Date => new Date(`${day}T${time}:00+09:
 
 const MONDAY = '2026-11-09';
 const SUNDAY = '2026-11-08';
+const SATURDAY = '2026-11-14';
 
 function gate(overrides: Partial<TransferGateInput> = {}) {
   return evaluateTransferGate({
@@ -40,7 +41,7 @@ describe('evaluateTransferGate', () => {
     expect(gate()).toEqual({ allowed: true, number: STAFF });
   });
 
-  describe('opening hours (Sakura: Mon–Sat 09:00–19:00, 10 minute closing buffer)', () => {
+  describe('opening hours (Sakura: Mon–Fri and Sun 09:00–19:00, Sat closed, 10 minute closing buffer)', () => {
     test.each([
       ['08:59', 'closed'],
       ['09:00', undefined],
@@ -57,8 +58,12 @@ describe('evaluateTransferGate', () => {
       else expect(decision).toEqual({ allowed: false, reason: refusal });
     });
 
-    test('a closed day (Sunday) is refused all day', () => {
-      expect(gate({ now: jst(SUNDAY, '12:00') })).toEqual({ allowed: false, reason: 'closed' });
+    test('a closed day (Saturday) is refused all day', () => {
+      expect(gate({ now: jst(SATURDAY, '12:00') })).toEqual({ allowed: false, reason: 'closed' });
+    });
+
+    test('Sunday is an open day (Sakura: open Sun 09:00-19:00, closed Saturday)', () => {
+      expect(gate({ now: jst(SUNDAY, '12:00') }).allowed).toBe(true);
     });
 
     test('the clinic timezone decides, not UTC: Monday 05:00 JST is Sunday 20:00 UTC', () => {

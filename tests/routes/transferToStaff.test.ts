@@ -33,7 +33,8 @@ const ENV_NAME = 'TRANSFER_STAFF_NUMBER_SAKURA';
 /** Monday 10:00 JST: the clinic is open. */
 const OPEN = () => new Date('2026-11-09T10:00:00+09:00');
 /** Sunday 12:00 JST: closed. */
-const CLOSED = () => new Date('2026-11-08T12:00:00+09:00');
+// Saturday noon: Sakura's closed day (open Mon-Fri and Sun).
+const CLOSED = () => new Date('2026-11-14T12:00:00+09:00');
 
 const logged = (): string => JSON.stringify(records.map((entry) => redactPersonalData(entry)));
 /** What the route actually passed to the logger, BEFORE the real logger's redaction. */
