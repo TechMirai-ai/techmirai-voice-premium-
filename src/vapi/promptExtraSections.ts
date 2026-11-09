@@ -105,8 +105,9 @@ export function transferSection(config: ClientConfig, language: string): string[
         'If you are unsure, or the caller says today is a holiday, treat staff as not reachable.',
       `The ${TRANSFER_TO_STAFF_FUNCTION_NAME} tool is the only way to connect the caller. Never say ` +
         'you are connecting, transferring or putting them through unless you call the tool in ' +
-        'that same turn — and when you do call it, add no words of your own before it: the ' +
-        `system announces it ("${line('transferring')}").`,
+        'that same turn — and when you call it, your turn must contain ONLY the tool call: no ' +
+        'words before it, none after it, not even a short acknowledgement. The system speaks the ' +
+        'announcement itself, so anything you add would be said twice.',
       '1. The caller asks to speak to a person — staff, a human, a receptionist, someone at the ' +
         `${noun}, in any language (an explicit request, not a question you could not answer):`,
       `   - Staff reachable: call ${TRANSFER_TO_STAFF_FUNCTION_NAME} immediately. Do not ask for ` +
@@ -117,7 +118,8 @@ export function transferSection(config: ClientConfig, language: string): string[
       `   a. Do the Callback requests steps first, through ${callback}. Do NOT offer a transfer ` +
         `before ${callback} has succeeded: the saved callback is the safety net if the transfer ` +
         'cannot be completed.',
-      `   b. After it succeeds, say the saved line, then instead of step 8 ask exactly once: "${line('offer')}"`,
+      '   b. After it succeeds, say the saved line, then — in place of the usual closing question ' +
+        `of the Callback requests steps — ask exactly once: "${line('offer')}"`,
       `   c. An explicit yes: call ${TRANSFER_TO_STAFF_FUNCTION_NAME} right away. A clear no: accept ` +
         'it, say staff will call back, and continue as after a normal callback. An ambiguous ' +
         'reply ("that\'s fine", "OK"): check explicitly. Never offer a second time unless the ' +

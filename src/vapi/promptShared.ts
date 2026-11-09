@@ -6,7 +6,7 @@
  */
 import { CLINIC_PLACEHOLDERS, OPENING_PLACEHOLDER } from '../config/rules.js';
 import type { ClientConfig, ScriptKey } from '../config/schema.js';
-import { BOOK_APPOINTMENT_FUNCTION_NAME } from './toolNames.js';
+import { BOOK_APPOINTMENT_FUNCTION_NAME, CHECK_AVAILABILITY_FUNCTION_NAME } from './toolNames.js';
 
 const PLACEHOLDER_PATTERN = /\[\[([^\][]*)\]\]/g;
 
@@ -139,13 +139,34 @@ export function contactNumberInstructions(config: ClientConfig, language: string
 
 /** What to do after `book_appointment` returns — shared by every booking flow, so they can't drift. */
 export function reservationClosingInstructions(config: ClientConfig, language: string): string {
+  const check = CHECK_AVAILABILITY_FUNCTION_NAME;
   return [
     `After the ${BOOK_APPOINTMENT_FUNCTION_NAME} call: if it succeeded, in the same turn first ` +
       'state the confirmed appointment date and time back to the caller, then say ' +
       `"${scriptLine(config, language, 'reservationSaved')}". Never say the reservation number ` +
       `the tool returns. Then ask:"${scriptLine(config, language, 'anythingElse')}" — same as after answering a ` +
-      `question. If it failed, say something in the spirit of "${scriptLine(config, language, 'reservationFailed')}" instead.`,
+      'question.',
+    // Test batch 2026-11-09 (X02): with only a generic "if it failed" line, the model invented
+    // alternative times instead of asking the system, in 10 of 10 runs.
+    `If it failed because the time is no longer available (the result says so), do not say the ` +
+      'booking failed and do not name or suggest any time yourself: ' +
+      `call ${check} again right away, in this same turn, with the same date and time — it returns ` +
+      'the times that are really open — then offer only the alternative time(s) it gives you, and ' +
+      `treat the caller's pick like any other: call ${check} again for that specific choice ` +
+      `before booking. Never name or suggest a time that ${check} has not returned in this call.`,
+    `If it failed for any other reason, say something in the spirit of "${scriptLine(config, language, 'reservationFailed')}" instead.`,
   ].join(' ');
+}
+
+/**
+ * The client's "shall I connect you to staff now?" line, or `undefined` when live transfer is not
+ * enabled. Shared so the callback steps can carry the offer themselves instead of leaving it to the
+ * "Staff transfer" section further down (see `callbackSection`).
+ */
+export function transferOfferLine(config: ClientConfig, language: string): string | undefined {
+  const transfer = config.transfer;
+  if (!transfer?.enabled) return undefined;
+  return fillClinicPlaceholders(config, language, pick(transfer.scripts.offer, language));
 }
 
 /**

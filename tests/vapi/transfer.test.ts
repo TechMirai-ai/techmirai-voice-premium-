@@ -164,11 +164,46 @@ describe('the "Staff transfer" prompt section', () => {
     expect(prompt).toContain('never retry the tool');
   });
 
-  test('the model is told to add no words of its own: the system announces the transfer', () => {
-    const prompt = promptFor('en');
+  test('the transfer turn is ONLY the tool call, and the model is not handed the announcement to copy', () => {
+    // Test batch 2026-11-09 (R14/X04): quoting the announcement in the prompt made the model say it
+    // itself in 15 of 15 runs, so a caller would hear it twice (the platform speaks it as well).
+    for (const language of ['en', 'ja']) {
+      const prompt = promptFor(language);
 
-    expect(prompt).toContain('add no words of your own before it');
-    expect(prompt).toContain(sakura.transfer?.scripts.transferring['en']);
+      expect(prompt).toContain('your turn must contain ONLY the tool call');
+      expect(prompt).toContain('anything you add would be said twice');
+      expect(prompt).not.toContain(sakura.transfer?.scripts.transferring[language]);
+    }
+  });
+
+  test('the callback steps themselves carry the transfer offer, so the generic "anything else" step cannot outrank it', () => {
+    // Test batch 2026-11-09 (R15/E09): the offer lived only in the Staff transfer section, below the
+    // callback steps, and the model followed the nearer unconditional "then ask: anything else" step
+    // in 15 of 15 runs, never making the offer.
+    for (const language of ['en', 'ja']) {
+      const prompt = promptFor(language);
+      const callback = prompt.slice(
+        prompt.indexOf('Callback requests:'),
+        prompt.indexOf('Staff transfer (connecting'),
+      );
+
+      expect(callback).toContain(`ask exactly once: "${sakura.transfer?.scripts.offer[language]}"`);
+      expect(callback).toContain('Staff transfer');
+      // Only after a SAVED callback: a failed save never gets the offer (rule 2d).
+      expect(callback).toContain('when the callback was saved');
+      // The ordinary closing question remains as the otherwise-branch.
+      expect(callback).toContain(sakura.scripts.anythingElse[language]);
+    }
+  });
+
+  test('with no transfer configured the callback steps carry no offer and end as they always did', () => {
+    const absent = sakuraWith((draft) => {
+      delete draft['transfer'];
+    });
+    const prompt = promptFor('en', absent);
+
+    expect(prompt).not.toContain('ask exactly once');
+    expect(prompt).toContain(`8. Then ask: "${sakura.scripts.anythingElse['en']}"`);
   });
 
   test('each language leg quotes its own wording', () => {

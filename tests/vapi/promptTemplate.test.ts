@@ -496,6 +496,21 @@ describe('buildSystemPrompt — VP-8 reservation flow', () => {
     expect(prompt).toContain('Never say the reservation number');
     expect(prompt).not.toContain('[[reservationNumber]]');
   });
+
+  test('a booking refused because the time was taken sends the model back to check_availability, never to times it made up', () => {
+    // Test batch 2026-11-09 (X02): the model invented alternative times in 10 of 10 runs.
+    const config = buildMinimalConfig({ language: 'fr' });
+
+    const prompt = buildSystemPrompt(config, 'fr', config.faq, SERVICES);
+
+    expect(prompt).toContain('failed because the time is no longer available');
+    expect(prompt).toContain('call check_availability again right away');
+    expect(prompt).toContain(
+      'Never name or suggest a time that check_availability has not returned',
+    );
+    // Every other failure still gets the client's own failure line.
+    expect(prompt).toContain('reservationFailed text (fr)');
+  });
 });
 
 describe('buildSystemPrompt — no repeated acknowledgement after a split utterance (VP-10)', () => {

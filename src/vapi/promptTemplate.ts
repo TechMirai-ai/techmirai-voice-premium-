@@ -32,6 +32,7 @@ import {
   reservationClosingInstructions,
   scriptLine,
   spokenClinicName,
+  transferOfferLine,
 } from './promptShared.js';
 import {
   BOOK_APPOINTMENT_FUNCTION_NAME,
@@ -245,6 +246,28 @@ function answeringSection(config: ClientConfig, language: string): string {
   ].join('\n');
 }
 
+/**
+ * Step 8 of the callback steps: what to say once the callback is saved. With live transfer enabled
+ * the transfer offer is stated HERE, not only in the "Staff transfer" section below. Test batch
+ * 2026-11-09 (R15/E09): when the offer lived only in that later section, the model followed this
+ * nearer, unconditional "then ask: anything else" step in 15 of 15 runs and never made the offer.
+ */
+function callbackClosingStep(config: ClientConfig, language: string): string {
+  const anythingElse = scriptLine(config, language, 'anythingElse');
+  const offer = transferOfferLine(config, language);
+  const closing = 'Do not go quiet and wait for the caller to speak first.';
+
+  if (offer === undefined) {
+    return `8. Then ask: "${anythingElse}" — same as after answering a question. ${closing}`;
+  }
+  return (
+    '8. Then, when the callback was saved, was for something you could not answer, and staff ' +
+    `are reachable (see "Staff transfer" below), ask exactly once: "${offer}" — and follow ` +
+    '"Staff transfer" for what happens next. In every other case ask: ' +
+    `"${anythingElse}" — same as after answering a question. ${closing}`
+  );
+}
+
 // 5. Callback requests
 function callbackSection(config: ClientConfig, language: string): string {
   return [
@@ -286,8 +309,7 @@ function callbackSection(config: ClientConfig, language: string): string {
       `"${scriptLine(config, language, 'callbackSaved')}"; if it failed, say something in the ` +
       `spirit of "${scriptLine(config, language, 'callbackFailed')}". Never speak ` +
       'any placeholder text.',
-    `8. Then ask: "${scriptLine(config, language, 'anythingElse')}" — same as after answering a ` +
-      'question. Do not go quiet and wait for the caller to speak first.',
+    callbackClosingStep(config, language),
     `If the call ends before a clear yes, never call ${REQUEST_CALLBACK_FUNCTION_NAME}.`,
   ].join('\n');
 }
