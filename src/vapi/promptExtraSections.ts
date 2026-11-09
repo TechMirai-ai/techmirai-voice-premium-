@@ -107,8 +107,9 @@ export function transferSection(config: ClientConfig, language: string): string[
         'you are connecting, transferring or putting them through unless you call the tool in ' +
         'that same turn — and when you call it, your turn must contain ONLY the tool call: no ' +
         'words before it, none after it, not even a short acknowledgement (this is about that one ' +
-        'turn; what to say once the tool result comes back is in rule 3). The system speaks the ' +
-        'announcement itself, so anything you add would be said twice.',
+        'turn: when the result says the transfer has started, say nothing more; if it returns an ' +
+        'error, rule 3 applies). The system speaks the announcement itself, so anything you add ' +
+        'would be said twice.',
       '1. The caller asks to speak to a person — staff, a human, a receptionist, someone at the ' +
         `${noun}, in any language (an explicit request, not a question you could not answer):`,
       `   - Staff reachable: call ${TRANSFER_TO_STAFF_FUNCTION_NAME} immediately. Do not ask for ` +

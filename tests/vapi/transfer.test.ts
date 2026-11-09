@@ -172,6 +172,8 @@ describe('the "Staff transfer" prompt section', () => {
 
       expect(prompt).toContain('your turn must contain ONLY the tool call');
       expect(prompt).toContain('anything you add would be said twice');
+      // The success result itself says "Say nothing more." (routes/transferToStaff.ts); the prompt agrees.
+      expect(prompt).toContain('when the result says the transfer has started, say nothing more');
       // Guard against a vacuous pass: the script must exist for `not.toContain` to mean anything.
       const announcement = sakura.transfer?.scripts.transferring[language];
       expect(announcement).toBeTruthy();

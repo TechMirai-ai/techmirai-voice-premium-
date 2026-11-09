@@ -155,7 +155,9 @@ export function reservationClosingInstructions(config: ClientConfig, language: s
       `times, offer only those, and treat the caller's pick like any other: call ${check} again ` +
       'for that specific choice before booking. If it says no time is open or that the ' +
       'business is closed that day, ask for a different date. If it says the original time is ' +
-      `available, book it. Never name or suggest a time that ${check} has not returned in this call.`,
+      'available, book it. When you book, use the name, the contact-number answer and (first-time ' +
+      'visitors) the service you already collected; do not ask for any of them again. ' +
+      `Never name or suggest a time that ${check} has not returned in this call.`,
     `If it failed for any other reason, say something in the spirit of "${scriptLine(config, language, 'reservationFailed')}" instead.`,
   ].join(' ');
 }

@@ -511,6 +511,8 @@ describe('buildSystemPrompt — VP-8 reservation flow', () => {
     // check_availability can also answer "closed that day", "nothing open" or "the original time is free".
     expect(prompt).toContain('ask for a different date');
     expect(prompt).toContain('If it says the original time is available, book it');
+    // A re-check must not send the caller back through the name / consent questions.
+    expect(prompt).toContain('do not ask for any of them again');
     // Every other failure still gets the client's own failure line.
     expect(prompt).toContain('If it failed for any other reason');
     expect(prompt).toContain('reservationFailed text (fr)');
