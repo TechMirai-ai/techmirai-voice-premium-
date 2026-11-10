@@ -1,6 +1,7 @@
 import request from 'supertest';
 import { describe, expect, test } from 'vitest';
 import { DEMO_PLACEHOLDER_PHONE } from '../../src/lib/demoCallerPhone.js';
+import { SlotTakenError } from '../../src/repositories/appointmentRepository.js';
 
 import {
   AUTH,
@@ -192,6 +193,18 @@ describe('POST /api/voice/book-appointment', () => {
 
     expect(response.status).toBe(200);
     expect(appointments.booked[0]).toMatchObject({ serviceId: null, isReturningPatient: true });
+  });
+
+  test('a slot taken between the re-check and the write is "no longer available", not a system error (VP-25 unique index)', async () => {
+    const { app, appointments } = buildVoiceApp();
+    appointments.create = () => Promise.reject(new SlotTakenError());
+
+    const response = await request(app)
+      .post(BOOK_APPOINTMENT)
+      .set(AUTH)
+      .send(toolCallsBody('book_appointment', firstVisitArgs));
+
+    expect(response.body.results[0].error).toMatch(/no longer available.*check_availability/s);
   });
 
   test('refuses to book a time that is already taken', async () => {

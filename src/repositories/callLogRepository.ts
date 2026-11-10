@@ -94,6 +94,10 @@ export interface StaffReservationSummary {
   bookedAt: Date;
   /** The AI summary of the call that made the booking; null if no call log exists for it. */
   summary: string | null;
+  /** `cancelled` = the caller cancelled it by phone (VP-25); the row is kept for staff and audit. */
+  status: 'active' | 'cancelled';
+  /** Where a rescheduled booking was before its latest move (the date/time above are where it is now). */
+  movedFrom: { date: string; time: string } | null;
 }
 
 export interface StaffCallListOptions {
@@ -160,6 +164,9 @@ interface StaffReservationRow {
   language: string;
   created_at: Date;
   summary: string | null;
+  status: 'active' | 'cancelled';
+  moved_from_date: string | null;
+  moved_from_time: string | null;
 }
 
 function toStaffCall(row: StaffCallRow): StaffCallSummary {
@@ -271,9 +278,15 @@ export class PgCallLogRepository
   ): Promise<StaffReservationSummary[]> {
     const { rows } = await this.db.query(
       `SELECT a.id, a.reservation_number, a.appointment_date, a.appointment_time, a.service_name,
-              a.patient_name, a.is_returning_patient, a.language, a.created_at, l.summary
+              a.patient_name, a.is_returning_patient, a.language, a.created_at, l.summary,
+              a.status, m.old_date AS moved_from_date, m.old_time AS moved_from_time
        FROM appointments a
        LEFT JOIN call_logs l ON l.client_id = a.client_id AND l.call_id = a.call_id
+       LEFT JOIN LATERAL (
+         SELECT c.old_date, c.old_time FROM appointment_changes c
+          WHERE c.appointment_id = a.id AND c.action = 'rescheduled'
+          ORDER BY c.created_at DESC LIMIT 1
+       ) m ON a.status = 'active'
        WHERE a.client_id = $1
        ORDER BY a.created_at DESC
        LIMIT $2`,
@@ -290,6 +303,11 @@ export class PgCallLogRepository
       language: row.language,
       bookedAt: row.created_at,
       summary: row.summary,
+      status: row.status,
+      movedFrom:
+        row.moved_from_date !== null && row.moved_from_time !== null
+          ? { date: row.moved_from_date, time: row.moved_from_time }
+          : null,
     }));
   }
 

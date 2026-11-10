@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { collectCrossFieldIssues, collectWarnings } from './rules.js';
 import type { ConfigIssue } from './issues.js';
 import { ClientConfigError } from './issues.js';
+import { changesSchema } from './changesSchema.js';
 import { notificationsSchema } from './notificationsSchema.js';
 import { transferSchema } from './transferSchema.js';
 
@@ -226,6 +227,12 @@ const reservationFlowSchema = z.strictObject({
       lookupFailed: localizedTextSchema,
     })
     .optional(),
+  /**
+   * VP-25. Present = callers may cancel or reschedule a booking they made, matched by the number
+   * they call from. Absent = the client renders exactly as before (no extra tools or prompt text).
+   * Needs `notifications.line.changeTemplates` when the client has LINE alerts configured.
+   */
+  changes: changesSchema.optional(),
 });
 
 /**

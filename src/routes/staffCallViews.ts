@@ -174,12 +174,20 @@ ${staffNavHtml('calls')}
   );
 }
 
+/** What staff read in the Status column: a cancelled or moved booking is never silently "Booked". */
+function reservationStatusLabel(reservation: StaffReservationSummary): string {
+  if (reservation.status === 'cancelled') return 'Cancelled';
+  const moved = reservation.movedFrom;
+  return moved ? `Rescheduled (was ${moved.date} ${moved.time})` : 'Booked';
+}
+
 function reservationRowHtml(reservation: StaffReservationSummary, timeZone: string): string {
   const appointment = `${reservation.appointmentDate} ${reservation.appointmentTime}`;
   const booked = formatClinicDateTime(reservation.bookedAt, timeZone);
   return `<tr class="reservation-row" id="reservation-${escapeHtml(reservation.id)}">
       <td class="col-nowrap">${escapeHtml(reservation.reservationNumber)}</td>
       <td class="col-nowrap">${escapeHtml(appointment)}</td>
+      <td class="col-nowrap">${escapeHtml(reservationStatusLabel(reservation))}</td>
       ${cellHtml(reservation.serviceName)}
       ${cellHtml(reservation.patientName)}
       ${cellHtml(reservation.isReturningPatient ? 'Returning' : 'New')}
@@ -200,6 +208,7 @@ export function renderReservationsPage(options: RenderReservationsPageOptions): 
   const headers = [
     'Reservation #',
     'Appointment',
+    'Status',
     'Service',
     'Patient',
     'Patient type',

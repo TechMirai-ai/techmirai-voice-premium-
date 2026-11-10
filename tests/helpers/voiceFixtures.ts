@@ -8,10 +8,17 @@ import type { Queryable } from '../../src/db/pool.js';
 import { FileKnowledgeSource } from '../../src/knowledge/KnowledgeSource.js';
 import type { CallbackNotifier, CallbackNotification } from '../../src/lib/callbackNotifier.js';
 import type { BookingNotifier } from '../../src/notifications/bookingNotifier.js';
-import type {
-  AppointmentRepository,
-  BookedAppointment,
-  NewAppointment,
+import type { ClinicNow } from '../../src/lib/clinicTime.js';
+import {
+  ChangeLimitError,
+  SlotTakenError,
+  type AppointmentRepository,
+  type BookedAppointment,
+  type ChangeRequest,
+  type ChangedAppointment,
+  type NewAppointment,
+  type RescheduleRequest,
+  type UpcomingAppointment,
 } from '../../src/repositories/appointmentRepository.js';
 import type {
   CallbackRequestRepository,
@@ -149,23 +156,236 @@ export class MemoryReservationPatients implements ReservationPatientRepository {
   }
 }
 
+/** A stored booking in the in-memory double — the fields the VP-25 change tools read and write. */
+export interface MemoryAppointmentRow {
+  id: string;
+  clientId: string;
+  phone: string;
+  date: string;
+  time: string;
+  serviceName: string | null;
+  patientName: string;
+  reservationNumber: string;
+  language: string;
+  status: 'active' | 'cancelled';
+}
+
+/** One audit row, like `appointment_changes` — no names or phone numbers. */
+export interface MemoryChange {
+  appointmentId: string;
+  callId: string;
+  action: 'cancelled' | 'rescheduled';
+  oldDate: string;
+  oldTime: string;
+  newDate?: string;
+  newTime?: string;
+}
+
+/**
+ * In-memory double that follows the real repository's rules (src/repositories/appointmentRepository.ts):
+ * only the caller's own active, upcoming booking can be changed; one change per call; one live
+ * booking per slot; a cancelled booking frees its slot.
+ */
 export class MemoryAppointments implements AppointmentRepository {
   readonly booked: NewAppointment[] = [];
+  readonly rows: MemoryAppointmentRow[] = [];
+  readonly changes: MemoryChange[] = [];
   taken: Record<string, string[]> = {};
   failWith: Error | undefined;
 
-  listTakenTimes(_clientId: string, date: string): Promise<Set<string>> {
-    return Promise.resolve(new Set(this.taken[date] ?? []));
+  /** Adds a stored booking; unspecified fields get sensible defaults. */
+  seed(row: Partial<MemoryAppointmentRow> = {}): MemoryAppointmentRow {
+    const index = this.rows.length + 1;
+    const seeded: MemoryAppointmentRow = {
+      id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+      clientId: CLIENT_ID,
+      phone: '09012345678',
+      date: '2026-11-12',
+      time: '10:00',
+      serviceName: 'General Consultation',
+      patientName: 'Hanako Yamada',
+      reservationNumber: `R9${String(index).padStart(5, '0')}`,
+      language: 'ja',
+      status: 'active',
+      ...row,
+    };
+    this.rows.push(seeded);
+    return seeded;
+  }
+
+  listTakenTimes(clientId: string, date: string): Promise<Set<string>> {
+    const live = this.rows
+      .filter((row) => row.clientId === clientId && row.date === date && row.status === 'active')
+      .map((row) => row.time);
+    return Promise.resolve(new Set([...(this.taken[date] ?? []), ...live]));
+  }
+
+  listUpcomingForPhone(
+    clientId: string,
+    phone: string,
+    now: ClinicNow,
+    limit: number,
+  ): Promise<UpcomingAppointment[]> {
+    if (this.failWith) return Promise.reject(this.failWith);
+    const upcoming = this.rows
+      .filter((row) => this.isChangeable(row, clientId, phone, now))
+      .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`))
+      .slice(0, limit)
+      .map((row) => ({
+        id: row.id,
+        reservationNumber: row.reservationNumber,
+        serviceName: row.serviceName,
+        appointmentDate: row.date,
+        appointmentTime: row.time,
+      }));
+    return Promise.resolve(upcoming);
+  }
+
+  cancel(request: ChangeRequest): Promise<ChangedAppointment | undefined> {
+    return this.settle(() => this.change(request, undefined));
+  }
+
+  reschedule(request: RescheduleRequest): Promise<ChangedAppointment | undefined> {
+    return this.settle(() =>
+      this.change(request, { date: request.newDate, time: request.newTime }),
+    );
+  }
+
+  private settle<T>(work: () => T): Promise<T> {
+    try {
+      if (this.failWith) throw this.failWith;
+      return Promise.resolve(work());
+    } catch (error) {
+      return Promise.reject(error instanceof Error ? error : new Error('failed'));
+    }
+  }
+
+  private isChangeable(
+    row: MemoryAppointmentRow,
+    clientId: string,
+    phone: string,
+    now: ClinicNow,
+  ): boolean {
+    return (
+      row.clientId === clientId &&
+      row.phone === phone &&
+      row.status === 'active' &&
+      `${row.date} ${row.time}` > `${now.date} ${now.time}`
+    );
+  }
+
+  private change(
+    request: ChangeRequest,
+    moveTo: { date: string; time: string } | undefined,
+  ): ChangedAppointment | undefined {
+    const row = this.rows.find(
+      (candidate) =>
+        candidate.id === request.appointmentId &&
+        this.isChangeable(candidate, request.clientId, request.phone, request.now),
+    );
+    if (!row) return undefined;
+    if (this.changes.some((change) => change.callId === request.callId)) {
+      throw new ChangeLimitError();
+    }
+    if (
+      moveTo &&
+      this.rows.some(
+        (other) =>
+          other !== row &&
+          other.clientId === row.clientId &&
+          other.status === 'active' &&
+          other.date === moveTo.date &&
+          other.time === moveTo.time,
+      )
+    ) {
+      throw new SlotTakenError();
+    }
+
+    const { date: oldDate, time: oldTime } = row;
+    if (moveTo) {
+      row.date = moveTo.date;
+      row.time = moveTo.time;
+    } else {
+      row.status = 'cancelled';
+    }
+    this.changes.push({
+      appointmentId: row.id,
+      callId: request.callId,
+      action: moveTo ? 'rescheduled' : 'cancelled',
+      oldDate,
+      oldTime,
+      ...(moveTo ? { newDate: moveTo.date, newTime: moveTo.time } : {}),
+    });
+    return {
+      id: row.id,
+      reservationNumber: row.reservationNumber,
+      serviceName: row.serviceName,
+      patientName: row.patientName,
+      language: row.language,
+      oldDate,
+      oldTime,
+      ...(moveTo ? { newDate: moveTo.date, newTime: moveTo.time } : {}),
+    };
   }
 
   create(appointment: NewAppointment): Promise<BookedAppointment> {
     if (this.failWith) return Promise.reject(this.failWith);
+    // Like the unique index: one live booking per slot.
+    const held = this.rows.some(
+      (row) =>
+        row.clientId === appointment.clientId &&
+        row.status === 'active' &&
+        row.date === appointment.appointmentDate &&
+        row.time === appointment.appointmentTime,
+    );
+    if (held) return Promise.reject(new SlotTakenError());
     this.booked.push(appointment);
+    // The fixed id and number are what the booking tests assert on (not a UUID: a booking made
+    // through `create` is not reachable by the change tools — seed() one for those).
+    this.rows.push({
+      id: 'appt-1',
+      clientId: appointment.clientId,
+      phone: appointment.patientPhone,
+      date: appointment.appointmentDate,
+      time: appointment.appointmentTime,
+      serviceName: appointment.serviceName,
+      patientName: appointment.patientName,
+      reservationNumber: 'R000001',
+      language: appointment.language,
+      status: 'active',
+    });
     return Promise.resolve({
       ...appointment,
       id: 'appt-1',
       reservationNumber: 'R000001',
       createdAt: new Date(0),
+    });
+  }
+
+  findChangeInCall(
+    clientId: string,
+    callId: string,
+    appointmentId: string,
+    phone: string,
+  ): Promise<ChangedAppointment | undefined> {
+    const change = this.changes.find(
+      (entry) => entry.callId === callId && entry.appointmentId === appointmentId,
+    );
+    const row = this.rows.find(
+      (entry) => entry.id === appointmentId && entry.clientId === clientId && entry.phone === phone,
+    );
+    if (!change || !row) return Promise.resolve(undefined);
+    return Promise.resolve({
+      id: row.id,
+      reservationNumber: row.reservationNumber,
+      serviceName: row.serviceName,
+      patientName: row.patientName,
+      language: row.language,
+      oldDate: change.oldDate,
+      oldTime: change.oldTime,
+      ...(change.newDate !== undefined && change.newTime !== undefined
+        ? { newDate: change.newDate, newTime: change.newTime }
+        : {}),
     });
   }
 }

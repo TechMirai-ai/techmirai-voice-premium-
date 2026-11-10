@@ -3,6 +3,7 @@ import express, { Router } from 'express';
 
 import { voiceRateLimit, type RateLimitOptions } from '../middleware/rateLimit.js';
 import { webhookAuth } from '../middleware/webhookAuth.js';
+import { appointmentChangesRouter, type AppointmentChangeRouteDeps } from './appointmentChanges.js';
 import { bookAppointmentRouter, type BookAppointmentRouteDeps } from './bookAppointment.js';
 import { callbackRequestRouter, type CallbackRequestRouteDeps } from './callbackRequest.js';
 import { callTopicRouter, type CallTopicRouteDeps } from './callTopic.js';
@@ -32,6 +33,7 @@ export interface VoiceRouterOptions
     // BookAppointmentRouteDeps repeats `resolver`/`appointments` from CheckAvailabilityRouteDeps —
     // TypeScript merges identical-type members across intersected interfaces without conflict.
     BookAppointmentRouteDeps,
+    AppointmentChangeRouteDeps,
     LookupPatientRouteDeps,
     LookupPostalCodeRouteDeps,
     SilenceEndRouteDeps,
@@ -54,6 +56,7 @@ export function voiceRouter(options: VoiceRouterOptions): Router {
   router.use(lookupPatientRouter(options));
   router.use(lookupPostalCodeRouter(options));
   router.use(bookAppointmentRouter(options));
+  router.use(appointmentChangesRouter(options));
   router.use(silenceEndRouter(options));
   router.use(transferToStaffRouter(options));
 

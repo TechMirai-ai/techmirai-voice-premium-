@@ -32,7 +32,16 @@ const SERVICES: ReservationService[] = [
 ];
 
 async function renderEverything(): Promise<unknown> {
-  const config = loadClient(SAKURA_ID);
+  // VP-25: sakura opts in to appointment changes with `reservationFlow.changes`, so only that
+  // opt-in is dropped here (`mode: patient-types`, the default flow, stays). What this guards is
+  // unchanged: a client WITHOUT the opt-in renders byte-identically. The opted-in render is
+  // covered by appointmentChangesRender.test.ts.
+  const loaded = loadClient(SAKURA_ID);
+  const { changes: _optedIn, ...flowWithoutChanges } = loaded.reservationFlow ?? {};
+  const config = {
+    ...loaded,
+    reservationFlow: flowWithoutChanges as typeof loaded.reservationFlow,
+  };
   const faq = await new FileKnowledgeSource().listFaq(SAKURA_ID);
   const options = {
     baseUrl: 'https://example.test',

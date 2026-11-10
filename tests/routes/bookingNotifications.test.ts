@@ -37,6 +37,10 @@ class RecordingNotifier implements BookingNotifier {
     this.received.push(booking);
     return Promise.resolve();
   }
+
+  notifyChanged(): Promise<void> {
+    return Promise.resolve();
+  }
 }
 
 function bookingBody(callFields: Record<string, unknown> = {}) {

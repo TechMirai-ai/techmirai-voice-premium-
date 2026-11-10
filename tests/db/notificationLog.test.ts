@@ -21,10 +21,12 @@ const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL;
  */
 const NOTIFICATION_LOG_COLUMNS = [
   'appointment_id',
+  'call_id',
   'channel',
   'client_id',
   'created_at',
   'detail',
+  'event',
   'id',
   'provider_message_id',
   'recipient_ref',
@@ -43,6 +45,8 @@ describe.skipIf(!TEST_DATABASE_URL)('notification_log (real Postgres)', () => {
   let log: PgNotificationLogRepository;
   let appointments: PgAppointmentRepository;
 
+  // Two live bookings cannot share a slot (VP-25), so every booking gets a time of its own.
+  let nextSlot = 0;
   const bookFor = async (
     patientPhone: string,
     clientId: string = CLIENT,
@@ -59,7 +63,7 @@ describe.skipIf(!TEST_DATABASE_URL)('notification_log (real Postgres)', () => {
         patientPhone,
         isReturningPatient: false,
         appointmentDate: '2026-11-03',
-        appointmentTime: '10:00',
+        appointmentTime: `slot-${(nextSlot += 1)}`,
       })
     ).id;
 
@@ -283,6 +287,46 @@ describe.skipIf(!TEST_DATABASE_URL)('notification_log (real Postgres)', () => {
       expect((await count('sms', undefined, CLIENT, 'call-none')).forCall).toBe(0);
       expect((await count('sms')).forCall).toBe(0);
       expect((await count('line', undefined, CLIENT, 'call-X')).forCall).toBe(0);
+    });
+
+    test('counts per call AND per event: a change in a call is not a second booking notification (VP-25)', async () => {
+      const appointmentId = await bookFor(PHONE_A, CLIENT, 'booking-call');
+      await sent(appointmentId); // a pre-VP-25 style row: event defaults to booked, no call_id
+      await log.record({
+        clientId: CLIENT,
+        appointmentId,
+        channel: 'sms',
+        status: 'sent',
+        event: 'cancelled',
+        callId: 'change-call',
+      });
+
+      const forBooking = await count('sms', undefined, CLIENT, 'booking-call');
+      const forChange = (
+        await log.countReserved({
+          clientId: CLIENT,
+          channel: 'sms',
+          since: since(),
+          pendingSince: new Date(Date.now() - 5 * 60 * 1000),
+          callId: 'change-call',
+          event: 'cancelled',
+        })
+      ).forCall;
+      const crossed = await log.countReserved({
+        clientId: CLIENT,
+        channel: 'sms',
+        since: since(),
+        pendingSince: new Date(Date.now() - 5 * 60 * 1000),
+        callId: 'change-call',
+        event: 'rescheduled',
+      });
+
+      // The booked row still counts for the booking call via the appointment's call id (COALESCE).
+      expect(forBooking.forCall).toBe(1);
+      expect(forChange).toBe(1);
+      expect(crossed.forCall).toBe(0);
+      // The client-wide and per-number caps count every event.
+      expect(forBooking.forClient).toBe(2);
     });
 
     test('a pending row stops counting after the stale cutoff, a sent row never does', async () => {

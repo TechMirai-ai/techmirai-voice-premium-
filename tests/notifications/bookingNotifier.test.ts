@@ -313,6 +313,8 @@ describe('ChannelBookingNotifier — caller SMS', () => {
       // A `pending` row older than 5 minutes belongs to a crashed send and stops counting.
       pendingSince: new Date(NOW.getTime() - 5 * 60 * 1000),
       callId: 'call-1',
+      // The per-call limit is per event (VP-25); a booking is the default one.
+      event: 'booked',
       patientPhone: '09012345678',
     });
   });
@@ -834,6 +836,7 @@ describe('ChannelBookingNotifier — generic across clients', () => {
     const bare = parseClientConfig(
       withChanges(sakuraDocument, (draft) => {
         delete draft.notifications;
+        delete draft.reservationFlow; // changes need a staff alert (VP-25)
       }),
       SAKURA_ID,
     ).config;

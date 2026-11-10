@@ -199,6 +199,10 @@ function localizedBlocks(config: ClientConfig): LocalizedBlock[] {
       path: `reservationFlow.postalCodeLookup.${key}`,
       text,
     })),
+    ...Object.entries(config.reservationFlow?.changes?.scripts ?? {}).map(([key, text]) => ({
+      path: `reservationFlow.changes.scripts.${key}`,
+      text,
+    })),
     ...config.faq.flatMap((entry, index) => [
       { path: `faq[${index}].question`, text: entry.question },
       { path: `faq[${index}].answer`, text: entry.answer },

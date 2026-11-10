@@ -37,6 +37,8 @@ describe('notifications config (VP-23)', () => {
   test('a client with no notifications block still parses (the section is optional)', () => {
     const document = withChanges(sakura, (draft) => {
       delete draft.notifications;
+      // A client that cannot alert staff cannot let callers change bookings (VP-25).
+      delete draft.reservationFlow;
     });
 
     expect(parse(document).config.notifications).toBeUndefined();
@@ -45,6 +47,7 @@ describe('notifications config (VP-23)', () => {
   test('the SMS section alone, or the LINE section alone, is valid', () => {
     const smsOnly = withChanges(sakura, (draft) => {
       delete draft.notifications.line;
+      delete draft.reservationFlow; // changes need the LINE staff alert (VP-25)
     });
     const lineOnly = withChanges(sakura, (draft) => {
       delete draft.notifications.sms;

@@ -73,6 +73,17 @@ const smsObjectSchema = z.strictObject({
     .default(DEFAULT_SMS_MAX_PER_RECIPIENT_PER_DAY),
   /** The message per language code (which codes are required is checked in notificationRules.ts). */
   templates: z.record(z.string(), z.string().min(1, 'must not be empty')),
+  /**
+   * VP-25: what the caller is texted after cancelling or rescheduling by phone — same placeholders
+   * and the same "factual, no links" rules as `templates`. Omitted = the caller gets no text for
+   * that event (staff are still alerted on LINE).
+   */
+  changeTemplates: z
+    .strictObject({
+      cancelled: z.record(z.string(), z.string().min(1, 'must not be empty')),
+      rescheduled: z.record(z.string(), z.string().min(1, 'must not be empty')),
+    })
+    .optional(),
 });
 
 const smsSchema = smsObjectSchema.superRefine((sms, ctx) => {
@@ -100,6 +111,17 @@ const lineSchema = z.strictObject({
   maxPerDay: z.number().int().min(1).max(1000).default(DEFAULT_LINE_MAX_PER_DAY),
   /** The staff alert, written in the language the client's staff read. */
   messageTemplate: z.string().min(1, 'must not be empty'),
+  /**
+   * VP-25: the staff alert for a cancellation and for a reschedule, in the same language. May also
+   * use `[[oldDate]]` and `[[oldTime]]` (where the booking was before). REQUIRED whenever the
+   * client lets callers change bookings (`reservationFlow.changes`) — staff must hear about it.
+   */
+  changeTemplates: z
+    .strictObject({
+      cancelled: z.string().min(1, 'must not be empty'),
+      rescheduled: z.string().min(1, 'must not be empty'),
+    })
+    .optional(),
 });
 
 export const notificationsSchema = z.strictObject({

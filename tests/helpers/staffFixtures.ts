@@ -191,6 +191,8 @@ export function sampleReservation(overrides: Partial<SeededReservation> = {}): S
     language: 'ja',
     bookedAt: new Date('2026-10-12T01:00:00.000Z'),
     summary: 'Caller booked a general consultation.',
+    status: 'active',
+    movedFrom: null,
     ...overrides,
   };
 }
@@ -256,6 +258,10 @@ function minimalVoiceOptions(): VoiceRouterOptions {
     appointments: {
       listTakenTimes: () => Promise.resolve(new Set<string>()),
       create: () => Promise.reject(new Error('not used by staff dashboard tests')),
+      listUpcomingForPhone: () => Promise.resolve([]),
+      cancel: () => Promise.resolve(undefined),
+      reschedule: () => Promise.resolve(undefined),
+      findChangeInCall: () => Promise.resolve(undefined),
     },
   };
 }

@@ -42,6 +42,12 @@ function addThirdLanguage(draft: Record<string, any>): void {
   for (const text of Object.values<Record<string, string>>(draft.transfer?.scripts ?? {})) {
     text[NEW_LANGUAGE] = text.en ?? '';
   }
+  // VP-25: so does every spoken line of the appointment-change flow.
+  for (const text of Object.values<Record<string, string>>(
+    draft.reservationFlow?.changes?.scripts ?? {},
+  )) {
+    text[NEW_LANGUAGE] = text.en ?? '';
+  }
   for (const entry of draft.faq) {
     entry.question[NEW_LANGUAGE] = entry.question.en;
     entry.answer[NEW_LANGUAGE] = entry.answer.en;

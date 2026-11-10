@@ -11,6 +11,8 @@
 BEGIN;
 
 DELETE FROM call_logs;
+-- VP-25: the cancel / reschedule audit rows reference appointments, so they go first.
+DELETE FROM appointment_changes;
 DELETE FROM appointments;
 DELETE FROM callback_requests;
 

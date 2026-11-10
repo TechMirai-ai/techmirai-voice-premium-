@@ -64,6 +64,7 @@ describe.skipIf(!TEST_DATABASE_URL)('call_logs (real Postgres)', () => {
 
   beforeEach(async () => {
     await pool.query('DELETE FROM call_logs');
+    await pool.query('DELETE FROM appointment_changes');
     await pool.query('DELETE FROM appointments');
     await pool.query('DELETE FROM callback_requests');
   });
@@ -316,14 +317,20 @@ describe.skipIf(!TEST_DATABASE_URL)('call_logs (real Postgres)', () => {
       expect(rows.every((row) => row.durationSeconds === null)).toBe(true);
     });
 
-    const appointment = (callId: string, number: string, createdAt = 'now()'): Promise<unknown> =>
+    // Two live bookings cannot share a slot (VP-25), so tests that need several give each its own time.
+    const appointment = (
+      callId: string,
+      number: string,
+      createdAt = 'now()',
+      time = '10:30',
+    ): Promise<unknown> =>
       pool.query(
         `INSERT INTO appointments
            (client_id, call_id, language, reservation_number, patient_name, patient_phone,
             appointment_date, appointment_time, service_name, created_at)
-         VALUES ('c', $1, 'ja', $2, 'ヤマダ タロウ', '000', '2026-10-20', '10:30', 'General',
-                 ${createdAt === 'now()' ? 'now()' : '$3::timestamptz'})`,
-        createdAt === 'now()' ? [callId, number] : [callId, number, createdAt],
+         VALUES ('c', $1, 'ja', $2, 'ヤマダ タロウ', '000', '2026-10-20', $3, 'General',
+                 ${createdAt === 'now()' ? 'now()' : '$4::timestamptz'})`,
+        createdAt === 'now()' ? [callId, number, time] : [callId, number, time, createdAt],
       );
 
     test('callback: a needs_callback call carries its callback request, so it can be marked handled', async () => {
@@ -483,7 +490,7 @@ describe.skipIf(!TEST_DATABASE_URL)('call_logs (real Postgres)', () => {
 
     test('reservations: newest booking first, scoped to the client, and capped', async () => {
       await appointment('a', 'R-OLD', '2026-10-01T00:00:00Z');
-      await appointment('b', 'R-NEW', '2026-10-05T00:00:00Z');
+      await appointment('b', 'R-NEW', '2026-10-05T00:00:00Z', '11:00');
       await pool.query(
         `INSERT INTO appointments
            (client_id, call_id, language, reservation_number, patient_name, patient_phone,
@@ -496,6 +503,32 @@ describe.skipIf(!TEST_DATABASE_URL)('call_logs (real Postgres)', () => {
 
       expect(rows.map((row) => row.reservationNumber)).toEqual(['R-NEW', 'R-OLD']);
       expect(await repo.listReservations('c', 1)).toHaveLength(1);
+    });
+
+    test('reservations: a cancelled booking stays listed as cancelled, a moved one says where it was (VP-25)', async () => {
+      await appointment('plain', 'R-PLAIN', '2026-10-01T00:00:00Z', '09:00');
+      await appointment('cancelled', 'R-GONE', '2026-10-02T00:00:00Z', '09:30');
+      await appointment('moved', 'R-MOVED', '2026-10-03T00:00:00Z', '10:00');
+      await pool.query(
+        `UPDATE appointments SET status = 'cancelled' WHERE reservation_number = 'R-GONE'`,
+      );
+      await pool.query(
+        `INSERT INTO appointment_changes
+           (client_id, appointment_id, call_id, action, old_date, old_time, new_date, new_time)
+         SELECT client_id, id, 'change-call', 'rescheduled', '2026-10-18', '15:30',
+                appointment_date, appointment_time
+           FROM appointments WHERE reservation_number = 'R-MOVED'`,
+      );
+
+      const rows = await new PgCallLogRepository(pool).listReservations('c');
+      const byNumber = Object.fromEntries(rows.map((row) => [row.reservationNumber, row]));
+
+      expect(byNumber['R-PLAIN']).toMatchObject({ status: 'active', movedFrom: null });
+      expect(byNumber['R-GONE']).toMatchObject({ status: 'cancelled', movedFrom: null });
+      expect(byNumber['R-MOVED']).toMatchObject({
+        status: 'active',
+        movedFrom: { date: '2026-10-18', time: '15:30' },
+      });
     });
   });
 

@@ -7,6 +7,10 @@ export const END_CALL_FUNCTION_NAME = 'endCall';
 export const CHECK_AVAILABILITY_FUNCTION_NAME = 'check_availability';
 export const LOOKUP_PATIENT_FUNCTION_NAME = 'lookup_patient';
 export const BOOK_APPOINTMENT_FUNCTION_NAME = 'book_appointment';
+/** VP-25: cancel or reschedule a booking the caller made, for clients with `reservationFlow.changes`. */
+export const FIND_MY_APPOINTMENTS_FUNCTION_NAME = 'find_my_appointments';
+export const CANCEL_APPOINTMENT_FUNCTION_NAME = 'cancel_appointment';
+export const RESCHEDULE_APPOINTMENT_FUNCTION_NAME = 'reschedule_appointment';
 /** VP-20: postal code → prefecture / city / town, for clients that collect a service address. */
 export const LOOKUP_POSTAL_CODE_FUNCTION_NAME = 'lookup_postal_code';
 /**

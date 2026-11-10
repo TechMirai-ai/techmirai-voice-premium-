@@ -14,7 +14,10 @@ import { loadClient } from '../config/loadClient.js';
 import { DEMO_PLACEHOLDER_PHONE } from '../lib/demoCallerPhone.js';
 import type { BookingNotification, BookingNotifier } from '../notifications/bookingNotifier.js';
 import { checkAvailability } from '../reservation/availability.js';
-import type { AppointmentRepository } from '../repositories/appointmentRepository.js';
+import {
+  SlotTakenError,
+  type AppointmentRepository,
+} from '../repositories/appointmentRepository.js';
 import type { ReservationServiceRepository } from '../repositories/reservationServiceRepository.js';
 import type { AssistantResolver } from '../vapi/assistantResolver.js';
 import { BOOK_APPOINTMENT_FUNCTION_NAME } from '../vapi/toolNames.js';
@@ -24,6 +27,12 @@ import { toolWebhook } from './voiceWebhook.js';
 export const BOOK_APPOINTMENT_PATH = '/book-appointment';
 
 const MAX_NAME_LENGTH = 100;
+
+// Wording matters: "for a new time" invited the model to invent one (test batch 2026-11-09, X02).
+// check_availability on the same date and time returns the times that really are open.
+const TIME_NO_LONGER_AVAILABLE =
+  'That time is no longer available. Call check_availability again with the same date and ' +
+  'time to get the times that are open.';
 
 const argumentsSchema = z.object({
   serviceId: z.string().min(1).optional(),
@@ -91,13 +100,7 @@ export function bookAppointmentRouter(deps: BookAppointmentRouteDeps): Router {
         const takenTimes = await deps.appointments.listTakenTimes(context.clientId, date);
         const availability = checkAvailability(config, date, time, takenTimes);
         if (!availability.requestedAvailable) {
-          return errorResult(
-            call,
-            // Wording matters: "for a new time" invited the model to invent one (test batch 2026-11-09,
-            // X02). check_availability on the same date and time returns the times that really are open.
-            'That time is no longer available. Call check_availability again with the same date and ' +
-              'time to get the times that are open.',
-          );
+          return errorResult(call, TIME_NO_LONGER_AVAILABLE);
         }
 
         let serviceName: string | null = null;
@@ -115,19 +118,27 @@ export function bookAppointmentRouter(deps: BookAppointmentRouteDeps): Router {
           serviceName = service.name.en ?? service.name.ja ?? null;
         }
 
-        const booked = await deps.appointments.create({
-          clientId: context.clientId,
-          callId: context.callId,
-          language: context.language,
-          serviceId: parsed.data.serviceId ?? null,
-          serviceName,
-          patientName: parsed.data.patientName,
-          // The number typed on the demo page (VP-15); the placeholder only when a call has none.
-          patientPhone: context.callerPhone ?? DEMO_PLACEHOLDER_PHONE,
-          isReturningPatient: parsed.data.isReturningPatient,
-          appointmentDate: date,
-          appointmentTime: time,
-        });
+        let booked;
+        try {
+          booked = await deps.appointments.create({
+            clientId: context.clientId,
+            callId: context.callId,
+            language: context.language,
+            serviceId: parsed.data.serviceId ?? null,
+            serviceName,
+            patientName: parsed.data.patientName,
+            // The number typed on the demo page (VP-15); the placeholder only when a call has none.
+            patientPhone: context.callerPhone ?? DEMO_PLACEHOLDER_PHONE,
+            isReturningPatient: parsed.data.isReturningPatient,
+            appointmentDate: date,
+            appointmentTime: time,
+          });
+        } catch (error) {
+          // Someone booked the slot between the re-check above and this write (VP-25: the database
+          // now refuses a second live booking for a slot) — say what an unavailable time says.
+          if (error instanceof SlotTakenError) return errorResult(call, TIME_NO_LONGER_AVAILABLE);
+          throw error;
+        }
 
         logger.info('appointment booked', {
           clientId: context.clientId,

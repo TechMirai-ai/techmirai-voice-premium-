@@ -1,15 +1,16 @@
 /**
- * Tells people about a successful booking (VP-23): a factual confirmation SMS to the caller and an
- * alert to the client's staff on LINE.
+ * Tells people about appointment events (VP-23 booking; VP-25 cancellation and reschedule): a
+ * factual SMS to the caller and an alert to the client's staff on LINE.
  *
  * Generic by construction. Nothing here names a clinic, a Telnyx profile, a LINE channel or a
  * recipient: all of it comes from the client's `notifications` block in client.yaml, with
  * secrets looked up by env-var NAME from the environment. A second client is a new yaml block and
- * new `.env` entries.
+ * new `.env` entries. What differs between events (which template, which values) lives in
+ * ./notificationJobs.ts; everything below is shared by all of them.
  *
- * Failure policy (FUTURE-FEATURES F-2): the booking is already saved before this runs, and
- * `notifyBooked` never rejects — a down provider, a missing key or a database hiccup in the log
- * is recorded and swallowed, never shown to the caller or allowed to undo the booking.
+ * Failure policy (FUTURE-FEATURES F-2): the booking / change is already saved before this runs, and
+ * `notifyBooked` / `notifyChanged` never reject — a down provider, a missing key or a database
+ * hiccup in the log is recorded and swallowed, never shown to the caller or allowed to undo it.
  *
  * Abuse guards (the public /talk page lets anyone type a number): an SMS only goes to an allowed
  * country, and both channels stop at daily caps. Each send first RESERVES its slot (a `pending`
@@ -34,8 +35,9 @@ import type {
 } from '../repositories/notificationLogRepository.js';
 import { deliveryErrorCode } from './deliveryError.js';
 import type { LinePusher } from './linePush.js';
+import { bookedJob, changedJob, type NotificationJob } from './notificationJobs.js';
 import type { SmsSender } from './telnyxSms.js';
-import { formatBookingDate, renderTemplate, sanitizeInline } from './template.js';
+import { renderTemplate } from './template.js';
 
 /** Looks up a secret/identifier by the env-var name a client's config gave. */
 export type CredentialLookup = (envName: string) => string | undefined;
@@ -56,9 +58,31 @@ export interface BookingNotification {
   callerPhone?: string;
 }
 
+/** A booking the caller cancelled or moved by phone (VP-25). */
+export interface AppointmentChangeNotification {
+  kind: 'cancelled' | 'rescheduled';
+  clientId: string;
+  appointmentId: string;
+  /** The call that MADE THE CHANGE (not the one that made the booking) — one alert per call and event. */
+  callId: string;
+  reservationNumber: string;
+  language: string;
+  patientName: string;
+  serviceName: string | null;
+  /** The appointment now; for a cancellation, the slot that was cancelled. */
+  date: string; // YYYY-MM-DD
+  time: string; // HH:MM, clinic-local
+  /** Where the booking was before the change (the same as date/time for a cancellation). */
+  oldDate: string;
+  oldTime: string;
+  callerPhone?: string;
+}
+
 export interface BookingNotifier {
   /** Never rejects. */
   notifyBooked(booking: BookingNotification): Promise<void>;
+  /** Never rejects. */
+  notifyChanged(change: AppointmentChangeNotification): Promise<void>;
 }
 
 export interface BookingNotifierDeps {
@@ -73,9 +97,9 @@ export interface BookingNotifierDeps {
 type LogExtras = Pick<NewNotificationLogEntry, 'recipientRef' | 'providerMessageId'>;
 
 /**
- * The ceilings a send must stay under. `perNumber` applies to SMS only. One send per call and
- * channel is a fixed rule, not a setting: a call books one appointment, and letting a single call
- * book repeatedly is how a public page could be made to burn a client's whole daily budget.
+ * The ceilings a send must stay under. `perNumber` applies to SMS only. One send per call, channel
+ * and event is a fixed rule, not a setting: a call books (or changes) one appointment, and letting
+ * a single call repeat is how a public page could be made to burn a client's whole daily budget.
  */
 interface Caps {
   perClientPerDay: number;
@@ -86,55 +110,59 @@ const RATE_WINDOW_MS = 24 * 60 * 60 * 1000;
 /** A send that has been `pending` longer than this was abandoned (a live one takes seconds). */
 const PENDING_STALE_MS = 5 * 60 * 1000;
 const MAX_SENDS_PER_CALL_AND_CHANNEL = 1;
-/** Shown in a staff alert where the booking has no value (no service, no caller number). */
-const NO_VALUE = '-';
 
 export class ChannelBookingNotifier implements BookingNotifier {
   constructor(private readonly deps: BookingNotifierDeps) {}
 
-  async notifyBooked(booking: BookingNotification): Promise<void> {
+  notifyBooked(booking: BookingNotification): Promise<void> {
+    return this.notify(bookedJob(booking));
+  }
+
+  notifyChanged(change: AppointmentChangeNotification): Promise<void> {
+    return this.notify(changedJob(change));
+  }
+
+  private async notify(job: NotificationJob): Promise<void> {
     try {
-      const config = this.deps.loadConfig(booking.clientId);
+      const config = this.deps.loadConfig(job.clientId);
       const sms = config.notifications?.sms;
       const line = config.notifications?.line;
       await Promise.all([
-        sms ? this.guarded(booking, 'sms', () => this.sendSms(booking, config, sms)) : undefined,
-        line
-          ? this.guarded(booking, 'line', () => this.sendLine(booking, config, line))
-          : undefined,
+        sms ? this.guarded(job, 'sms', () => this.sendSms(job, config, sms)) : undefined,
+        line ? this.guarded(job, 'line', () => this.sendLine(job, config, line)) : undefined,
       ]);
     } catch (error) {
       logger.error('booking notification failed', {
-        clientId: booking.clientId,
-        appointmentId: booking.appointmentId,
+        clientId: job.clientId,
+        appointmentId: job.appointmentId,
+        event: job.event,
         reason: deliveryErrorCode(error),
       });
     }
   }
 
   private async sendSms(
-    booking: BookingNotification,
+    job: NotificationJob,
     config: ClientConfig,
     sms: SmsNotificationConfig,
   ): Promise<void> {
-    const to = booking.callerPhone
-      ? toE164(booking.callerPhone, sms.defaultCountryCode)
-      : undefined;
-    if (!booking.callerPhone) return this.record(booking, 'sms', 'skipped', 'no_caller_number');
-    if (!to) return this.record(booking, 'sms', 'skipped', 'invalid_caller_number');
+    const to = job.callerPhone ? toE164(job.callerPhone, sms.defaultCountryCode) : undefined;
+    if (!job.callerPhone) return this.record(job, 'sms', 'skipped', 'no_caller_number');
+    if (!to) return this.record(job, 'sms', 'skipped', 'invalid_caller_number');
     if (!sms.allowedCountryCodes.some((countryCode) => to.startsWith(countryCode))) {
-      return this.record(booking, 'sms', 'skipped', 'country_not_allowed');
+      return this.record(job, 'sms', 'skipped', 'country_not_allowed');
     }
 
     const apiKey = this.deps.credential(sms.apiKeyEnv);
-    if (!apiKey) return this.skipMissingCredential(booking, 'sms', sms.apiKeyEnv);
+    if (!apiKey) return this.skipMissingCredential(job, 'sms', sms.apiKeyEnv);
 
-    const template = sms.templates[booking.language] ?? sms.templates[config.languages.default];
-    if (!template) return this.record(booking, 'sms', 'skipped', 'no_template');
+    const templates = job.smsTemplates(sms);
+    const template = templates?.[job.language] ?? templates?.[config.languages.default];
+    if (!template) return this.record(job, 'sms', 'skipped', 'no_template');
 
-    const reservationId = await this.reserveWithinCaps(booking, 'sms', {
+    const reservationId = await this.reserveWithinCaps(job, 'sms', {
       perClientPerDay: sms.maxPerDay,
-      perNumber: { phone: booking.callerPhone, max: sms.maxPerRecipientPerDay },
+      perNumber: { phone: job.callerPhone, max: sms.maxPerRecipientPerDay },
     });
     if (!reservationId) return;
 
@@ -144,19 +172,15 @@ export class ChannelBookingNotifier implements BookingNotifier {
         messagingProfileId: sms.messagingProfileId,
         from: sms.senderId,
         to,
-        text: renderTemplate(template, {
-          businessName: businessName(config, booking.language),
-          date: formatBookingDate(booking.date, booking.language),
-          time: booking.time,
-        }),
-        idempotencyKey: `booking-${booking.appointmentId}-sms`,
+        text: renderTemplate(template, job.smsValues(config)),
+        idempotencyKey: job.smsIdempotencyKey,
       });
-      await this.settle(booking, 'sms', reservationId, {
+      await this.settle(job, 'sms', reservationId, {
         status: 'sent',
         providerMessageId: messageId,
       });
     } catch (error) {
-      await this.settle(booking, 'sms', reservationId, {
+      await this.settle(job, 'sms', reservationId, {
         status: 'failed',
         detail: deliveryErrorCode(error),
       });
@@ -164,41 +188,31 @@ export class ChannelBookingNotifier implements BookingNotifier {
   }
 
   private async sendLine(
-    booking: BookingNotification,
+    job: NotificationJob,
     config: ClientConfig,
     line: LineNotificationConfig,
   ): Promise<void> {
     const accessToken = this.deps.credential(line.channelAccessTokenEnv);
-    if (!accessToken)
-      return this.skipMissingCredential(booking, 'line', line.channelAccessTokenEnv);
+    if (!accessToken) return this.skipMissingCredential(job, 'line', line.channelAccessTokenEnv);
 
-    const language = config.languages.default; // staff read the client's default language
-    // Caller-supplied text goes on ONE line each: no forged extra lines in the staff alert, and a
-    // name that is nothing but invisible characters shows a placeholder, not a blank.
-    const text = renderTemplate(line.messageTemplate, {
-      businessName: businessName(config, language),
-      date: formatBookingDate(booking.date, language),
-      time: booking.time,
-      patientName: sanitizeInline(booking.patientName) || NO_VALUE,
-      patientPhone: booking.callerPhone ?? NO_VALUE,
-      reservationNumber: booking.reservationNumber,
-      serviceName: sanitizeInline(booking.serviceName ?? '') || NO_VALUE,
-    });
+    const template = job.lineTemplate(line);
+    if (!template) return this.record(job, 'line', 'skipped', 'no_template');
+    const text = renderTemplate(template, job.lineValues(config));
 
     // A recipient whose variable is unset is skipped on its own and never counts toward a cap.
     const recipients: { envName: string; to: string }[] = [];
     for (const envName of line.recipientEnvs) {
       const to = this.deps.credential(envName);
       if (to) recipients.push({ envName, to });
-      else await this.skipMissingCredential(booking, 'line', envName);
+      else await this.skipMissingCredential(job, 'line', envName);
     }
     if (recipients.length === 0) return;
 
-    // ONE reservation per booking, however many staff it fans out to: `maxPerDay` is alerts
-    // (bookings), not individual pushes, so adding a recipient never shrinks the budget and a
-    // cap hit can never tell some staff and not others.
+    // ONE reservation per event, however many staff it fans out to: `maxPerDay` is alerts, not
+    // individual pushes, so adding a recipient never shrinks the budget and a cap hit can never
+    // tell some staff and not others.
     const reservationId = await this.reserveWithinCaps(
-      booking,
+      job,
       'line',
       { perClientPerDay: line.maxPerDay },
       recipients.map((recipient) => recipient.envName).join(','),
@@ -220,7 +234,7 @@ export class ChannelBookingNotifier implements BookingNotifier {
         }
       }),
     );
-    await this.settle(booking, 'line', reservationId, settleLine(outcomes));
+    await this.settle(job, 'line', reservationId, settleLine(outcomes));
   }
 
   /**
@@ -233,24 +247,27 @@ export class ChannelBookingNotifier implements BookingNotifier {
    * cannot hold a slot for a day. Throws if the log is unreachable.
    */
   private async reserveWithinCaps(
-    booking: BookingNotification,
+    job: NotificationJob,
     channel: NotificationChannel,
     caps: Caps,
     recipientRef?: string,
   ): Promise<string | undefined> {
     const reservationId = await this.deps.log.reserve({
-      clientId: booking.clientId,
-      appointmentId: booking.appointmentId,
+      clientId: job.clientId,
+      appointmentId: job.appointmentId,
       channel,
+      event: job.event,
+      callId: job.callId,
       ...(recipientRef ? { recipientRef } : {}),
     });
     const nowMs = this.now().getTime();
     const counts = await this.deps.log.countReserved({
-      clientId: booking.clientId,
+      clientId: job.clientId,
       channel,
       since: new Date(nowMs - RATE_WINDOW_MS),
       pendingSince: new Date(nowMs - PENDING_STALE_MS),
-      callId: booking.callId,
+      callId: job.callId,
+      event: job.event,
       ...(caps.perNumber ? { patientPhone: caps.perNumber.phone } : {}),
     });
 
@@ -261,18 +278,18 @@ export class ChannelBookingNotifier implements BookingNotifier {
       // Real patients and staff are now going without this channel until the window rolls — make
       // that visible to whoever watches the logs. Identifiers only, no personal data.
       logger.warn('notification daily cap reached', {
-        clientId: booking.clientId,
+        clientId: job.clientId,
         channel,
         maxPerDay: caps.perClientPerDay,
       });
     }
-    await this.settle(booking, channel, reservationId, { status: 'skipped', detail: refusal });
+    await this.settle(job, channel, reservationId, { status: 'skipped', detail: refusal });
     return undefined;
   }
 
   /** Runs one channel's work; a failure is logged and never reaches the other channel or the caller. */
   private async guarded(
-    booking: BookingNotification,
+    job: NotificationJob,
     channel: NotificationChannel,
     work: () => Promise<void>,
   ): Promise<void> {
@@ -280,8 +297,9 @@ export class ChannelBookingNotifier implements BookingNotifier {
       await work();
     } catch (error) {
       logger.error('booking notification failed', {
-        clientId: booking.clientId,
-        appointmentId: booking.appointmentId,
+        clientId: job.clientId,
+        appointmentId: job.appointmentId,
+        event: job.event,
         channel,
         reason: deliveryErrorCode(error),
       });
@@ -289,68 +307,71 @@ export class ChannelBookingNotifier implements BookingNotifier {
   }
 
   private async skipMissingCredential(
-    booking: BookingNotification,
+    job: NotificationJob,
     channel: NotificationChannel,
     envName: string,
   ): Promise<void> {
     // The env var NAME is configuration, not a secret, and tells the operator what to set.
     logger.warn('notification credential not set', {
-      clientId: booking.clientId,
+      clientId: job.clientId,
       channel,
       envVar: envName,
     });
-    await this.record(booking, channel, 'skipped', 'missing_credentials', {
+    await this.record(job, channel, 'skipped', 'missing_credentials', {
       recipientRef: envName,
     });
   }
 
   /** Moves a reserved row to its final status; a failure to log is logged, never thrown. */
   private async settle(
-    booking: BookingNotification,
+    job: NotificationJob,
     channel: NotificationChannel,
     reservationId: string,
     settlement: Settlement,
   ): Promise<void> {
-    this.logOutcome(booking, channel, settlement.status, settlement.detail);
+    this.logOutcome(job, channel, settlement.status, settlement.detail);
     try {
       await this.deps.log.settle(reservationId, settlement);
     } catch (error) {
-      this.logWriteFailure(booking, channel, error);
+      this.logWriteFailure(job, channel, error);
     }
   }
 
   /** Writes a final delivery row; a failure to log is logged, never thrown. */
   private async record(
-    booking: BookingNotification,
+    job: NotificationJob,
     channel: NotificationChannel,
     status: NewNotificationLogEntry['status'],
     detail?: string,
     extras: LogExtras = {},
   ): Promise<void> {
-    this.logOutcome(booking, channel, status, detail);
+    this.logOutcome(job, channel, status, detail);
     try {
       await this.deps.log.record({
-        clientId: booking.clientId,
-        appointmentId: booking.appointmentId,
+        clientId: job.clientId,
+        appointmentId: job.appointmentId,
         channel,
+        event: job.event,
+        callId: job.callId,
         status,
         ...(detail ? { detail } : {}),
         ...extras,
       });
     } catch (error) {
-      this.logWriteFailure(booking, channel, error);
+      this.logWriteFailure(job, channel, error);
     }
   }
 
   private logOutcome(
-    booking: BookingNotification,
+    job: NotificationJob,
     channel: NotificationChannel,
     status: string,
     detail?: string,
   ): void {
     logger.info('booking notification', {
-      clientId: booking.clientId,
-      appointmentId: booking.appointmentId,
+      clientId: job.clientId,
+      appointmentId: job.appointmentId,
+      event: job.event,
       channel,
       status,
       ...(detail ? { detail } : {}),
@@ -358,13 +379,14 @@ export class ChannelBookingNotifier implements BookingNotifier {
   }
 
   private logWriteFailure(
-    booking: BookingNotification,
+    job: NotificationJob,
     channel: NotificationChannel,
     error: unknown,
   ): void {
     logger.error('notification log write failed', {
-      clientId: booking.clientId,
-      appointmentId: booking.appointmentId,
+      clientId: job.clientId,
+      appointmentId: job.appointmentId,
+      event: job.event,
       channel,
       reason: deliveryErrorCode(error),
     });
@@ -393,7 +415,7 @@ function refusalReason(
 type LineOutcome = { ok: true; messageId?: string | undefined } | { ok: false; detail: string };
 
 /**
- * One LINE row per booking, however many staff it went to: `sent` if at least one recipient was
+ * One LINE row per event, however many staff it went to: `sent` if at least one recipient was
  * reached (detail `partial_failure` when others were not), `failed` only if none were.
  */
 function settleLine(outcomes: readonly LineOutcome[]): Settlement {
@@ -411,9 +433,4 @@ function settleLine(outcomes: readonly LineOutcome[]): Settlement {
     ...(delivered.length < outcomes.length ? { detail: 'partial_failure' } : {}),
     ...(messageId ? { providerMessageId: messageId } : {}),
   };
-}
-
-/** The business name in `language`, falling back to the client's default language. */
-function businessName(config: ClientConfig, language: string): string {
-  return config.business.name[language] ?? config.business.name[config.languages.default] ?? '';
 }

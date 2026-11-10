@@ -83,8 +83,11 @@ import { MODEL_ID, MODEL_REASONING_EFFORT, renderAssistant, type RenderResult } 
 import { contentLanguageOf } from './squad.js';
 import {
   BOOK_APPOINTMENT_FUNCTION_NAME,
+  CANCEL_APPOINTMENT_FUNCTION_NAME,
   CHECK_AVAILABILITY_FUNCTION_NAME,
   END_CALL_FUNCTION_NAME,
+  FIND_MY_APPOINTMENTS_FUNCTION_NAME,
+  RESCHEDULE_APPOINTMENT_FUNCTION_NAME,
   LOG_CALL_TOPIC_FUNCTION_NAME,
   LOOKUP_PATIENT_FUNCTION_NAME,
   LOOKUP_POSTAL_CODE_FUNCTION_NAME,
@@ -523,8 +526,28 @@ export async function handleToolCall(
     return handleBookAppointment(call, deps);
   }
 
+  // VP-25: these match bookings by the caller's real phone number, which a text session does not
+  // have — so they are not simulated. Answering them with the default "Success." would make a
+  // model believe a booking was cancelled or moved when nothing happened.
+  if (CHANGE_TOOL_NAMES.has(name)) {
+    return {
+      resultMessage: toolResult(
+        call,
+        'Error: appointment changes are not simulated in the text tester (there is no caller ' +
+          'phone number). Say the change could not be made and offer a staff callback.',
+      ),
+      ended: false,
+    };
+  }
+
   return { resultMessage: toolResult(call, 'Success.'), ended: false };
 }
+
+const CHANGE_TOOL_NAMES: ReadonlySet<string> = new Set([
+  FIND_MY_APPOINTMENTS_FUNCTION_NAME,
+  CANCEL_APPOINTMENT_FUNCTION_NAME,
+  RESCHEDULE_APPOINTMENT_FUNCTION_NAME,
+]);
 
 // --- One conversational turn: call the model, run any tool calls, repeat ---
 

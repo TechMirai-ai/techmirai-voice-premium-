@@ -115,6 +115,51 @@ callback:
 safety:
   noMedicalAdvice: true
 
+# VP-25: callers can cancel or reschedule a booking, matched by the number they call from (NOT real
+# authentication — see docs/VP25-APPOINTMENT-CHANGES.md). `[[date]]`, `[[time]]`, `[[service]]` and
+# `[[appointments]]` are filled in by the model from the tool result, never spoken literally.
+# NEEDS NATIVE-SPEAKER REVIEW. English glosses are in the comments above each Japanese line.
+reservationFlow:
+  mode: patient-types            # the existing booking flow, unchanged (this was the default)
+  changes:
+    scripts:
+      found:
+        en: I found your appointment on [[date]] at [[time]] for [[service]]. Is that the one you mean?
+        # Gloss: "I found your reservation: [[date]] at [[time]], [[service]]. Is that correct?"
+        ja: "[[date]]の[[time]]、[[service]]のご予約が見つかりました。こちらでお間違いないでしょうか？"
+      askWhich:
+        en: "I found more than one appointment: [[appointments]]. Which one do you mean?"
+        # Gloss: "I found several reservations: [[appointments]]. Which one is it?"
+        ja: "ご予約が複数見つかりました。[[appointments]]、どちらのご予約でしょうか？"
+      askNewDateTime:
+        en: What new date and time would you like?
+        # Gloss: "What new date and time would you like?"
+        ja: 変更後のご希望の日時を教えていただけますか？
+      confirmCancel:
+        en: "Shall I cancel your appointment on [[date]] at [[time]]?"
+        # Gloss: "Shall I cancel the reservation for [[date]] at [[time]]?"
+        ja: "[[date]]の[[time]]のご予約をキャンセルしてもよろしいでしょうか？"
+      cancelled:
+        en: Your appointment has been cancelled.
+        # Gloss: "Your reservation has been cancelled."
+        ja: ご予約をキャンセルいたしました。
+      rescheduled:
+        en: "Your appointment has been moved to [[date]] at [[time]]."
+        # Gloss: "Your reservation has been changed to [[date]] at [[time]]."
+        ja: "ご予約を[[date]]の[[time]]に変更いたしました。"
+      notFound:
+        en: >-
+          I'm sorry, I couldn't find an appointment under this phone number.
+          Shall I take a message so a staff member can follow up with you?
+        # Gloss: "I'm sorry, I couldn't find a reservation under this phone number. Shall I take a message so that staff can contact you?"
+        ja: 申し訳ございません、こちらのお電話番号でのご予約が見つかりませんでした。スタッフからご連絡できるよう、ご伝言をお預かりしましょうか？
+      failed:
+        en: >-
+          I'm sorry, I wasn't able to make that change.
+          Shall I take a message so a staff member can follow up with you?
+        # Gloss: "I'm sorry, I couldn't make that change. Shall I take a message so that staff can contact you?"
+        ja: 申し訳ございません、変更を完了できませんでした。スタッフからご連絡できるよう、ご伝言をお預かりしましょうか？
+
 scripts:
   # Japanese assistant's first message.
   greeting:
@@ -404,6 +449,16 @@ notifications:
       # "This is Sakura Seikotsuin. We have received your reservation for <date> <time>."
       ja: "[[businessName]]です。[[date]] [[time]]のご予約を承りました。"
       en: "[[businessName]]: your appointment on [[date]] at [[time]] is confirmed."
+    # VP-25: texts after the caller cancels / reschedules by phone. Same factual rules as above.
+    changeTemplates:
+      cancelled:
+        # "This is Sakura Seikotsuin. We have cancelled your reservation for <date> <time>."
+        ja: "[[businessName]]です。[[date]] [[time]]のご予約をキャンセルいたしました。"
+        en: "[[businessName]]: your appointment on [[date]] at [[time]] is cancelled."
+      rescheduled:
+        # "This is Sakura Seikotsuin. We have changed your reservation to <date> <time>."
+        ja: "[[businessName]]です。ご予約を[[date]] [[time]]に変更いたしました。"
+        en: "[[businessName]]: your appointment is now on [[date]] at [[time]]."
   # Alert to clinic staff on LINE. Today the single recipient is a placeholder "staff" user; moving to
   # a staff group later means pointing LINE_STAFF_USER_ID's replacement (or an extra entry in
   # recipientEnvs) at a group id in .env — no code change.
@@ -424,6 +479,25 @@ notifications:
       電話: [[patientPhone]]
       メニュー: [[serviceName]]
       予約番号: [[reservationNumber]]
+    # VP-25: staff alerts when a caller cancels or reschedules by phone (required once
+    # `reservationFlow.changes` is set). Glosses: 【予約キャンセル】 = "Reservation cancelled";
+    # 【予約変更】 = "Reservation changed"; 変更後 = "New"; 変更前 = "Previous".
+    changeTemplates:
+      cancelled: |-
+        【予約キャンセル】[[businessName]]
+        キャンセルした日時: [[date]] [[time]]
+        お名前: [[patientName]]
+        電話: [[patientPhone]]
+        メニュー: [[serviceName]]
+        予約番号: [[reservationNumber]]
+      rescheduled: |-
+        【予約変更】[[businessName]]
+        変更後: [[date]] [[time]]
+        変更前: [[oldDate]] [[oldTime]]
+        お名前: [[patientName]]
+        電話: [[patientPhone]]
+        メニュー: [[serviceName]]
+        予約番号: [[reservationNumber]]
 
 # VP-24: hand a live call to a staff phone. The model calls our `transfer_to_staff` tool; the server
 # checks hours, daily cap and the number, then moves the call (Live Call Control). The staff number

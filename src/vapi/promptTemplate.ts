@@ -20,6 +20,7 @@ import {
   simpleReservationSection,
   transferSection,
 } from './promptExtraSections.js';
+import { appointmentChangeSection } from './promptChangeSection.js';
 import {
   CONFIRMATION_ACK_INSTRUCTIONS,
   businessNoun,
@@ -648,6 +649,7 @@ export function buildSystemPrompt(
     callbackSection(config, language),
     ...transferSection(config, language),
     ...reservationSection(config, language, services),
+    ...appointmentChangeSection(config, language, services),
     ...medicalSection(config, language),
     ...languageSwitchSection(config, language),
     endingSection(config, language, faq),

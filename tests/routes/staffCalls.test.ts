@@ -458,6 +458,7 @@ describe('GET /staff/reservations', () => {
     expect(headerLabels(text)).toEqual([
       'Reservation #',
       'Appointment',
+      'Status',
       'Service',
       'Patient',
       'Patient type',
@@ -468,6 +469,7 @@ describe('GET /staff/reservations', () => {
     expect(firstRowCells(text)).toEqual([
       'R000042',
       '2026-10-20 10:30',
+      'Booked',
       'General Consultation',
       'Taro Sample',
       'Returning',
@@ -485,8 +487,31 @@ describe('GET /staff/reservations', () => {
     const cells = firstRowCells((await agent.get(RESERVATIONS)).text);
 
     expect(cells[0]).toBe('R123456');
-    expect(cells[2]).toBe('—');
-    expect(cells[7]).toBe('—');
+    expect(cells[3]).toBe('—');
+    expect(cells[8]).toBe('—');
+  });
+
+  test('keeps a cancelled booking in the list, marked as cancelled, with its slot', async () => {
+    const reader = new MemoryCallLogReader();
+    reader.seedReservation(sampleReservation({ status: 'cancelled' }));
+    const { agent } = await loggedIn(reader);
+
+    const cells = firstRowCells((await agent.get(RESERVATIONS)).text);
+
+    expect(cells[0]).toBe('R123456');
+    expect(cells[1]).toBe('2026-10-20 09:00');
+    expect(cells[2]).toBe('Cancelled');
+  });
+
+  test('shows a rescheduled booking at its new slot, with where it was before', async () => {
+    const reader = new MemoryCallLogReader();
+    reader.seedReservation(sampleReservation({ movedFrom: { date: '2026-10-18', time: '09:30' } }));
+    const { agent } = await loggedIn(reader);
+
+    const cells = firstRowCells((await agent.get(RESERVATIONS)).text);
+
+    expect(cells[1]).toBe('2026-10-20 09:00');
+    expect(cells[2]).toBe('Rescheduled (was 2026-10-18 09:30)');
   });
 
   test('shows the booking time in JST while the appointment slot stays as stored', async () => {
@@ -503,7 +528,7 @@ describe('GET /staff/reservations', () => {
     const cells = firstRowCells((await agent.get(RESERVATIONS)).text);
 
     expect(cells[1]).toBe('2026-10-13 09:00');
-    expect(cells[6]).toBe('2026-10-12 15:20');
+    expect(cells[7]).toBe('2026-10-12 15:20');
   });
 
   test('never shows another client’s reservations', async () => {

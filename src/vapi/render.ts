@@ -23,7 +23,10 @@ import type { ClientConfig } from '../config/schema.js';
 import type { ReservationService } from '../repositories/reservationServiceRepository.js';
 import {
   BOOK_APPOINTMENT_FUNCTION_NAME,
+  CANCEL_APPOINTMENT_FUNCTION_NAME,
   CHECK_AVAILABILITY_FUNCTION_NAME,
+  FIND_MY_APPOINTMENTS_FUNCTION_NAME,
+  RESCHEDULE_APPOINTMENT_FUNCTION_NAME,
   LOG_CALL_TOPIC_FUNCTION_NAME,
   LOOKUP_PATIENT_FUNCTION_NAME,
   LOOKUP_POSTAL_CODE_FUNCTION_NAME,
@@ -40,6 +43,7 @@ import {
 import { renderTransferTool } from './transferTool.js';
 import type {
   VapiAssistantPayload,
+  VapiFunctionParameterSchema,
   VapiFunctionToolPayload,
   VapiHandoffToolPayload,
   VapiStartSpeakingPlan,
@@ -111,7 +115,14 @@ export interface RenderedHandoffTool {
 
 /** One of the three VP-8 reservation tools. `key` is the state-file bookkeeping suffix (sync.ts). */
 export interface RenderedReservationTool {
-  key: 'check-availability' | 'lookup-patient' | 'lookup-postal-code' | 'book-appointment';
+  key:
+    | 'check-availability'
+    | 'lookup-patient'
+    | 'lookup-postal-code'
+    | 'book-appointment'
+    | 'find-appointments'
+    | 'cancel-appointment'
+    | 'reschedule-appointment';
   payload: VapiFunctionToolPayload;
 }
 
@@ -411,6 +422,78 @@ function renderReservationTools(
       ? [{ key: 'lookup-postal-code' as const, payload: lookupPostalCode }]
       : []),
     { key: 'book-appointment', payload: bookAppointment },
+    ...(config.reservationFlow?.changes
+      ? renderChangeTools(baseUrl, credentialId, requestStartMessages)
+      : []),
+  ];
+}
+
+/**
+ * VP-25: find / cancel / reschedule a booking the caller made. None takes a phone number or a
+ * name: the server matches by the number the call came from, so the model cannot widen the search.
+ * `appointmentId` comes only from `find_my_appointments`' result and is never spoken.
+ */
+function renderChangeTools(
+  baseUrl: string,
+  credentialId: string,
+  messages: NonNullable<VapiFunctionToolPayload['messages']>,
+): RenderedReservationTool[] {
+  const appointmentId: VapiFunctionParameterSchema = {
+    type: 'string',
+    description:
+      'The id of the appointment, exactly as find_my_appointments returned it (never spoken to the caller).',
+  };
+  const tool = (
+    name: string,
+    path: string,
+    description: string,
+    properties: Record<string, VapiFunctionParameterSchema>,
+    required: string[],
+  ): VapiFunctionToolPayload => ({
+    type: 'function',
+    function: { name, description, parameters: { type: 'object', properties, required } },
+    server: { url: `${baseUrl}/api/voice/${path}`, credentialId },
+    messages,
+  });
+
+  return [
+    {
+      key: 'find-appointments',
+      payload: tool(
+        FIND_MY_APPOINTMENTS_FUNCTION_NAME,
+        'find-my-appointments',
+        "Lists the caller's own upcoming appointments, found by the phone number they are calling " +
+          'from. Call it before saying anything about their appointments. Never read an id aloud.',
+        {},
+        [],
+      ),
+    },
+    {
+      key: 'cancel-appointment',
+      payload: tool(
+        CANCEL_APPOINTMENT_FUNCTION_NAME,
+        'cancel-appointment',
+        "Cancels one of the caller's upcoming appointments, only after find_my_appointments listed " +
+          'it and the caller clearly confirmed which one and agreed to cancel it.',
+        { appointmentId },
+        ['appointmentId'],
+      ),
+    },
+    {
+      key: 'reschedule-appointment',
+      payload: tool(
+        RESCHEDULE_APPOINTMENT_FUNCTION_NAME,
+        'reschedule-appointment',
+        "Moves one of the caller's upcoming appointments to a new date and time that " +
+          'check_availability has just confirmed is open, after the caller confirmed the change.',
+        {
+          appointmentId,
+          date: { type: 'string', description: 'The new date, as YYYY-MM-DD.' },
+          time: { type: 'string', description: 'The new time, as 24-hour HH:MM.' },
+        },
+        ['appointmentId', 'date', 'time'],
+      ),
+    },
   ];
 }
 

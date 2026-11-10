@@ -23,6 +23,22 @@ export function formatClinicDateTime(when: Date, timeZone: string): string {
   return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
 }
 
+/** A clinic-local calendar date and time, in the same text forms appointments are stored in. */
+export interface ClinicNow {
+  date: string; // YYYY-MM-DD
+  time: string; // HH:MM, 24-hour
+}
+
+/**
+ * "Now" as the clinic's own wall clock reads it, e.g. `{ date: '2026-11-10', time: '12:00' }`.
+ * Appointments are stored as clinic-local date/time text, so "is this in the past?" is a plain
+ * comparison against this — never against UTC.
+ */
+export function clinicNow(timeZone: string, at: Date = new Date()): ClinicNow {
+  const [date = '', time = ''] = formatClinicDateTime(at, timeZone).split(' ');
+  return { date, time };
+}
+
 /** Column-header label for a timezone: "JST" for Japan, otherwise its UTC offset (e.g. "UTC+1"). */
 export function timeZoneLabel(timeZone: string, at: Date = new Date()): string {
   if (timeZone === 'Asia/Tokyo') return 'JST';

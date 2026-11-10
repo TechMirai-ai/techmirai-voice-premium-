@@ -11,6 +11,9 @@
 import type { Queryable } from '../db/pool.js';
 
 export type NotificationChannel = 'sms' | 'line';
+/** What a notification is about. Rows written before VP-25 are all `booked`. */
+export type NotificationEvent = 'booked' | 'cancelled' | 'rescheduled';
+export const DEFAULT_NOTIFICATION_EVENT: NotificationEvent = 'booked';
 export type NotificationStatus = 'pending' | 'sent' | 'failed' | 'skipped';
 export type SettledStatus = Exclude<NotificationStatus, 'pending'>;
 
@@ -18,6 +21,10 @@ export interface NewNotificationLogEntry {
   clientId: string;
   appointmentId: string;
   channel: NotificationChannel;
+  /** What it was about; defaults to `booked`. */
+  event?: NotificationEvent;
+  /** The Vapi call that caused it (a change's own call, not the call that made the booking). */
+  callId?: string;
   /** A final state; use `reserve` + `settle` for a send that has to claim a cap slot first. */
   status: SettledStatus;
   /** The NAME of the env var that held the recipient (LINE); never the recipient itself. */
@@ -31,6 +38,8 @@ export interface Reservation {
   clientId: string;
   appointmentId: string;
   channel: NotificationChannel;
+  event?: NotificationEvent;
+  callId?: string;
   recipientRef?: string;
 }
 
@@ -52,8 +61,10 @@ export interface ReservedCountQuery {
   pendingSince: Date;
   /** The stored caller number; when given, `forNumber` counts bookings under it. */
   patientPhone?: string;
-  /** The Vapi call id; when given, `forCall` counts bookings made in that call. */
+  /** The Vapi call id; when given, `forCall` counts sends caused by that call (for `event`). */
   callId?: string;
+  /** Which event `forCall` counts — the per-call limit is per event. Defaults to `booked`. */
+  event?: NotificationEvent;
 }
 
 export interface ReservedCounts {
@@ -86,8 +97,9 @@ export class PgNotificationLogRepository implements NotificationLogRepository {
   async record(entry: NewNotificationLogEntry): Promise<void> {
     await this.db.query(
       `INSERT INTO notification_log
-         (client_id, appointment_id, channel, status, recipient_ref, detail, provider_message_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+         (client_id, appointment_id, channel, status, recipient_ref, detail, provider_message_id,
+          event, call_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [
         entry.clientId,
         entry.appointmentId,
@@ -96,20 +108,25 @@ export class PgNotificationLogRepository implements NotificationLogRepository {
         entry.recipientRef ?? null,
         entry.detail ?? null,
         entry.providerMessageId ?? null,
+        entry.event ?? DEFAULT_NOTIFICATION_EVENT,
+        entry.callId ?? null,
       ],
     );
   }
 
   async reserve(reservation: Reservation): Promise<string> {
     const { rows } = await this.db.query(
-      `INSERT INTO notification_log (client_id, appointment_id, channel, status, recipient_ref)
-       VALUES ($1,$2,$3,'pending',$4)
+      `INSERT INTO notification_log
+         (client_id, appointment_id, channel, status, recipient_ref, event, call_id)
+       VALUES ($1,$2,$3,'pending',$4,$5,$6)
        RETURNING id`,
       [
         reservation.clientId,
         reservation.appointmentId,
         reservation.channel,
         reservation.recipientRef ?? null,
+        reservation.event ?? DEFAULT_NOTIFICATION_EVENT,
+        reservation.callId ?? null,
       ],
     );
     const id = (rows[0] as { id: string } | undefined)?.id;
@@ -130,7 +147,9 @@ export class PgNotificationLogRepository implements NotificationLogRepository {
     const { rows } = await this.db.query(
       `SELECT count(*)::text AS for_client,
               (count(*) FILTER (WHERE a.patient_phone = $5))::text AS for_number,
-              (count(*) FILTER (WHERE a.call_id = $6))::text AS for_call
+              (count(*) FILTER (
+                WHERE n.event = $7 AND COALESCE(n.call_id, a.call_id) = $6
+              ))::text AS for_call
          FROM notification_log n
          LEFT JOIN appointments a ON a.id = n.appointment_id
         WHERE n.client_id = $1
@@ -144,6 +163,7 @@ export class PgNotificationLogRepository implements NotificationLogRepository {
         query.pendingSince,
         query.patientPhone ?? null,
         query.callId ?? null,
+        query.event ?? DEFAULT_NOTIFICATION_EVENT,
       ],
     );
     const row = rows[0] as CountRow | undefined;
