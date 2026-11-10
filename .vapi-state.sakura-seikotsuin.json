@@ -1,1 +1,18 @@
-{"tools":{},"assistants":{},"squads":{},"structuredOutputs":{}}
+{
+  "tools": {
+    "sakura-seikotsuin--ja--request-callback": "aae0504a-9aa2-4901-9617-6bbc9787283b",
+    "sakura-seikotsuin--ja--log-call-topic": "e1eca1b3-0ccf-4f6d-89e7-e10da73ba08c",
+    "sakura-seikotsuin--ja--handoff-to-en": "14f69200-6cd2-44bf-ba27-f4d8e05a9613",
+    "sakura-seikotsuin--ja--check-availability": "6bca3df3-0010-485a-857d-9031d99e9f8a",
+    "sakura-seikotsuin--ja--lookup-patient": "7c4667ed-b7b9-4030-8a20-71296c06bb48",
+    "sakura-seikotsuin--ja--book-appointment": "7c71978c-c9d3-4f68-a356-a69bdbc9ad1f",
+    "sakura-seikotsuin--ja--transfer-call": "cce48e18-60b3-40af-85f6-8ec0ebb5358b"
+  },
+  "assistants": {
+    "sakura-seikotsuin--ja": "241baeaa-2bc7-4bc2-b5f3-ef3cb4f6784f"
+  },
+  "squads": {},
+  "structuredOutputs": {
+    "sakura-seikotsuin--call-outcome": "a2a11a02-6c3a-4d4c-9cb2-52a5c4d7eaa6"
+  }
+}
