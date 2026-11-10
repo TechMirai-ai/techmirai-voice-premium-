@@ -1,1 +1,17 @@
-{"tools":{},"assistants":{},"squads":{},"structuredOutputs":{}}
+{
+  "tools": {
+    "kanto-city-gas-demo--ja--request-callback": "0a76c960-76ac-4d97-bf90-55229052afdd",
+    "kanto-city-gas-demo--ja--log-call-topic": "988382d2-792a-4af5-891a-837d9658fc04",
+    "kanto-city-gas-demo--ja--handoff-to-en": "09620ae1-02f6-4ac2-b90d-44cd80f72d1a",
+    "kanto-city-gas-demo--ja--check-availability": "5cfdebd5-0eee-471f-873d-0c0ea53da25b",
+    "kanto-city-gas-demo--ja--lookup-postal-code": "35b8729c-2609-402e-a94e-288a9f44cbf4",
+    "kanto-city-gas-demo--ja--book-appointment": "4e044f4a-de53-408a-b5a1-b4c35e05e9dd"
+  },
+  "assistants": {
+    "kanto-city-gas-demo--ja": "6dcb357e-1b6a-4b61-a391-d783ffc25d97"
+  },
+  "squads": {},
+  "structuredOutputs": {
+    "kanto-city-gas-demo--call-outcome": "cf0439b7-e262-4650-8a47-f367678c1e4e"
+  }
+}
