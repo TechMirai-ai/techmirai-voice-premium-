@@ -39,6 +39,18 @@ export interface UpcomingAppointment {
   appointmentTime: string; // HH:MM, 24-hour
 }
 
+/**
+ * A caller's most recent earlier visit, as recalled to them (VP-26). Deliberately only the date and
+ * the service: no time of day, name, reservation number or phone number ever leaves this type.
+ */
+export interface LastVisit {
+  appointmentDate: string; // YYYY-MM-DD
+  /** The stored service slug; null for a returning-patient booking, which skips service selection. */
+  serviceId: string | null;
+  /** The service text as it was when booked (may be in another language than this call's). */
+  serviceName: string | null;
+}
+
 /** Who is changing which booking, in which call. `phone` is the call's own number, never a model argument. */
 export interface ChangeRequest {
   clientId: string;
@@ -97,6 +109,18 @@ export interface AppointmentRepository {
     now: ClinicNow,
     limit: number,
   ): Promise<UpcomingAppointment[]>;
+  /**
+   * This caller's most recent earlier visit: an active booking that has already started and is no
+   * older than `oldestDate` (inclusive). A booking is not proof of attendance — there is no
+   * attendance record — so this is "the latest booking whose time has passed". `undefined` when
+   * there is none. Reads nothing but the caller's own rows (client + number).
+   */
+  findLastVisit(
+    clientId: string,
+    phone: string,
+    now: ClinicNow,
+    oldestDate: string,
+  ): Promise<LastVisit | undefined>;
   /**
    * Soft-cancels the booking (status `cancelled`, row kept) and records the change, in one
    * statement. `undefined` when no active, upcoming booking of this caller matches.
@@ -243,6 +267,33 @@ export class PgAppointmentRepository implements AppointmentRepository {
     }));
   }
 
+  async findLastVisit(
+    clientId: string,
+    phone: string,
+    now: ClinicNow,
+    oldestDate: string,
+  ): Promise<LastVisit | undefined> {
+    // The complement of `listUpcomingForPhone`'s "has not started yet": a booking that has started.
+    // Served by appointments_active_phone_idx (client, phone, date, time) WHERE status = 'active'.
+    const { rows } = await this.db.query(
+      `SELECT appointment_date, service_id, service_name
+         FROM appointments
+        WHERE client_id = $1 AND patient_phone = $2 AND status = 'active'
+          AND appointment_date >= $5
+          AND (appointment_date < $3 OR (appointment_date = $3 AND appointment_time <= $4))
+        ORDER BY appointment_date DESC, appointment_time DESC
+        LIMIT 1`,
+      [clientId, phone, now.date, now.time, oldestDate],
+    );
+    const row = rows[0] as LastVisitRow | undefined;
+    if (!row) return undefined;
+    return {
+      appointmentDate: row.appointment_date,
+      serviceId: row.service_id,
+      serviceName: row.service_name,
+    };
+  }
+
   async findChangeInCall(
     clientId: string,
     callId: string,
@@ -357,6 +408,12 @@ interface UpcomingRow {
   service_name: string | null;
   appointment_date: string;
   appointment_time: string;
+}
+
+interface LastVisitRow {
+  appointment_date: string;
+  service_id: string | null;
+  service_name: string | null;
 }
 
 interface ChangedRow extends UpcomingRow {

@@ -11,6 +11,7 @@ import { checkAvailabilityRouter, type CheckAvailabilityRouteDeps } from './chec
 import { endOfCallReportRouter, type EndOfCallReportRouteDeps } from './endOfCallReport.js';
 import { lookupPatientRouter, type LookupPatientRouteDeps } from './lookupPatient.js';
 import { lookupPostalCodeRouter, type LookupPostalCodeRouteDeps } from './lookupPostalCode.js';
+import { recallLastVisitRouter, type RecallLastVisitRouteDeps } from './recallLastVisit.js';
 import { silenceEndRouter, type SilenceEndRouteDeps } from './silenceEnd.js';
 import { transferToStaffRouter, type TransferToStaffRouteDeps } from './transferToStaff.js';
 
@@ -34,6 +35,7 @@ export interface VoiceRouterOptions
     // TypeScript merges identical-type members across intersected interfaces without conflict.
     BookAppointmentRouteDeps,
     AppointmentChangeRouteDeps,
+    RecallLastVisitRouteDeps,
     LookupPatientRouteDeps,
     LookupPostalCodeRouteDeps,
     SilenceEndRouteDeps,
@@ -57,6 +59,7 @@ export function voiceRouter(options: VoiceRouterOptions): Router {
   router.use(lookupPostalCodeRouter(options));
   router.use(bookAppointmentRouter(options));
   router.use(appointmentChangesRouter(options));
+  router.use(recallLastVisitRouter(options));
   router.use(silenceEndRouter(options));
   router.use(transferToStaffRouter(options));
 

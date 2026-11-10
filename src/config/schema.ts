@@ -11,6 +11,7 @@ import { collectCrossFieldIssues, collectWarnings } from './rules.js';
 import type { ConfigIssue } from './issues.js';
 import { ClientConfigError } from './issues.js';
 import { changesSchema } from './changesSchema.js';
+import { recallSchema } from './recallSchema.js';
 import { notificationsSchema } from './notificationsSchema.js';
 import { transferSchema } from './transferSchema.js';
 
@@ -233,6 +234,11 @@ const reservationFlowSchema = z.strictObject({
    * Needs `notifications.line.changeTemplates` when the client has LINE alerts configured.
    */
   changes: changesSchema.optional(),
+  /**
+   * VP-26. Present = the assistant may acknowledge a caller's last visit (date + service only),
+   * found by the number they call from. Absent = the client renders exactly as before.
+   */
+  recall: recallSchema.optional(),
 });
 
 /**

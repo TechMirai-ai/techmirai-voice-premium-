@@ -58,6 +58,7 @@ export function collectCrossFieldIssues(
     ...faqIdIssues(config),
     ...placeholderIssues(config),
     ...reservationFlowIssues(config),
+    ...recallIssues(config),
     ...notificationIssues(config),
     ...transferIssues(config),
   ];
@@ -83,6 +84,53 @@ function reservationFlowIssues(config: ClientConfig): ConfigIssue[] {
     });
   }
   return issues;
+}
+
+/**
+ * VP-26: what a recall line may say. The owner approved a visit's DATE and SERVICE only, so a line
+ * may use `[[date]]` and, when it has a service, `[[service]]` — nothing else the model could fill
+ * in (a time, a name). A no-service line using `[[service]]` would have the model speak the
+ * placeholder, or invent a service; a line missing `[[date]]` would say nothing useful.
+ */
+const RECALL_PLACEHOLDERS = ['date', 'service'] as const;
+
+function recallIssues(config: ClientConfig): ConfigIssue[] {
+  const scripts = config.reservationFlow?.recall?.scripts;
+  if (!scripts) return [];
+
+  const rules = [
+    { key: 'visitAcknowledgement', needs: ['date', 'service'], forbids: [] as string[] },
+    { key: 'visitAcknowledgementNoService', needs: ['date'], forbids: ['service'] },
+  ] as const;
+
+  return rules.flatMap(({ key, needs, forbids }) =>
+    Object.entries(scripts[key]).flatMap(([code, text]) => {
+      const path = `reservationFlow.recall.scripts.${key}.${code}`;
+      const used = new Set(
+        [...text.matchAll(PLACEHOLDER_PATTERN)].map((match) => (match[1] ?? '').trim()),
+      );
+      const known = [...RECALL_PLACEHOLDERS, ...CLINIC_PLACEHOLDERS] as readonly string[];
+      return [
+        ...[...used]
+          .filter((name) => !known.includes(name))
+          .map((name) => ({
+            path,
+            message:
+              `"[[${name}]]" is not allowed here — a recall line may only say the visit's ` +
+              '[[date]] and [[service]] (never its time, a name or any detail)',
+          })),
+        ...needs
+          .filter((name) => !used.has(name))
+          .map((name) => ({ path, message: `must contain "[[${name}]]"` })),
+        ...forbids
+          .filter((name) => used.has(name))
+          .map((name) => ({
+            path,
+            message: `must not use "[[${name}]]" — this line is said when there is no ${name} to give`,
+          })),
+      ];
+    }),
+  );
 }
 
 /** Unknown top-level keys are tolerated so new sections can be added (F-4). */
@@ -201,6 +249,10 @@ function localizedBlocks(config: ClientConfig): LocalizedBlock[] {
     })),
     ...Object.entries(config.reservationFlow?.changes?.scripts ?? {}).map(([key, text]) => ({
       path: `reservationFlow.changes.scripts.${key}`,
+      text,
+    })),
+    ...Object.entries(config.reservationFlow?.recall?.scripts ?? {}).map(([key, text]) => ({
+      path: `reservationFlow.recall.scripts.${key}`,
       text,
     })),
     ...config.faq.flatMap((entry, index) => [

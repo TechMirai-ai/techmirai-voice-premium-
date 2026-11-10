@@ -11,6 +11,8 @@ export const BOOK_APPOINTMENT_FUNCTION_NAME = 'book_appointment';
 export const FIND_MY_APPOINTMENTS_FUNCTION_NAME = 'find_my_appointments';
 export const CANCEL_APPOINTMENT_FUNCTION_NAME = 'cancel_appointment';
 export const RESCHEDULE_APPOINTMENT_FUNCTION_NAME = 'reschedule_appointment';
+/** VP-26: the caller's last visit (date + service only), for clients with `reservationFlow.recall`. */
+export const RECALL_LAST_VISIT_FUNCTION_NAME = 'recall_last_visit';
 /** VP-20: postal code → prefecture / city / town, for clients that collect a service address. */
 export const LOOKUP_POSTAL_CODE_FUNCTION_NAME = 'lookup_postal_code';
 /**

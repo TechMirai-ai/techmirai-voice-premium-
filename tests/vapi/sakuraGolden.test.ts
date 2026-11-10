@@ -37,7 +37,12 @@ async function renderEverything(): Promise<unknown> {
   // unchanged: a client WITHOUT the opt-in renders byte-identically. The opted-in render is
   // covered by appointmentChangesRender.test.ts.
   const loaded = loadClient(SAKURA_ID);
-  const { changes: _optedIn, ...flowWithoutChanges } = loaded.reservationFlow ?? {};
+  // VP-26: likewise for `reservationFlow.recall` (covered by recallRender.test.ts).
+  const {
+    changes: _optedIn,
+    recall: _recallOptedIn,
+    ...flowWithoutChanges
+  } = loaded.reservationFlow ?? {};
   const config = {
     ...loaded,
     reservationFlow: flowWithoutChanges as typeof loaded.reservationFlow,

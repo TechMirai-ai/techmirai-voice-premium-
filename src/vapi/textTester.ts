@@ -87,6 +87,7 @@ import {
   CHECK_AVAILABILITY_FUNCTION_NAME,
   END_CALL_FUNCTION_NAME,
   FIND_MY_APPOINTMENTS_FUNCTION_NAME,
+  RECALL_LAST_VISIT_FUNCTION_NAME,
   RESCHEDULE_APPOINTMENT_FUNCTION_NAME,
   LOG_CALL_TOPIC_FUNCTION_NAME,
   LOOKUP_PATIENT_FUNCTION_NAME,
@@ -535,6 +536,19 @@ export async function handleToolCall(
         call,
         'Error: appointment changes are not simulated in the text tester (there is no caller ' +
           'phone number). Say the change could not be made and offer a staff callback.',
+      ),
+      ended: false,
+    };
+  }
+
+  // VP-26: a text session has no caller phone number, so there is never a visit to recall — the
+  // same answer the real tool gives a call with no number.
+  if (name === RECALL_LAST_VISIT_FUNCTION_NAME) {
+    return {
+      resultMessage: toolResult(
+        call,
+        'No earlier visit is on record for this caller (a text session has no caller phone ' +
+          'number). Say nothing about earlier visits and carry on as for a new caller.',
       ),
       ended: false,
     };

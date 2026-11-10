@@ -1,6 +1,22 @@
 import { describe, expect, test } from 'vitest';
 
-import { formatClinicDateTime, timeZoneLabel } from '../../src/lib/clinicTime.js';
+import { daysBefore, formatClinicDateTime, timeZoneLabel } from '../../src/lib/clinicTime.js';
+
+describe('daysBefore', () => {
+  test('counts back whole days, across month and year ends', () => {
+    expect(daysBefore('2026-11-10', 365)).toBe('2025-11-10');
+    expect(daysBefore('2026-03-01', 1)).toBe('2026-02-28');
+    expect(daysBefore('2026-01-01', 1)).toBe('2025-12-31');
+  });
+
+  test('crosses a leap day: 365 days before 2028-03-01 is 2027-03-02', () => {
+    expect(daysBefore('2028-03-01', 365)).toBe('2027-03-02');
+  });
+
+  test('zero days is the same date', () => {
+    expect(daysBefore('2026-11-10', 0)).toBe('2026-11-10');
+  });
+});
 
 describe('formatClinicDateTime', () => {
   test('converts a UTC instant to Japan time (UTC+9)', () => {

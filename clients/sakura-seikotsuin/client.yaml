@@ -159,6 +159,25 @@ reservationFlow:
           Shall I take a message so a staff member can follow up with you?
         # Gloss: "I'm sorry, I couldn't make that change. Shall I take a message so that staff can contact you?"
         ja: 申し訳ございません、変更を完了できませんでした。スタッフからご連絡できるよう、ご伝言をお預かりしましょうか？
+  # VP-26: a caller whose number has an earlier visit on record is told when it was and what it was
+  # for — the DATE and SERVICE only, never a time, a name or any treatment detail (owner decision
+  # 2026-11-10). Matched by the number they call from (NOT real authentication — see
+  # docs/VP26-CRM-RECALL.md). `[[date]]` and `[[service]]` are filled in by the model from the tool
+  # result, never spoken literally. A visit older than `maxAgeDays` is not mentioned.
+  # NEEDS NATIVE-SPEAKER REVIEW. English glosses are in the comments above each Japanese line.
+  recall:
+    maxAgeDays: 365
+    scripts:
+      visitAcknowledgement:
+        # CHANGED (2026-11-10, owner): says "a booking", not "a visit" — there is no attendance
+        # record, so nothing here may imply the caller actually came.
+        en: "Our records show a booking on [[date]] for [[service]]."
+        # Gloss: "In our clinic's records, there is a reservation on [[date]] for [[service]]."
+        ja: "当院の記録では、[[date]]に[[service]]のご予約をいただいております。"
+      visitAcknowledgementNoService:
+        en: "Our records show a booking on [[date]]."
+        # Gloss: "In our clinic's records, there is a reservation on [[date]]."
+        ja: "当院の記録では、[[date]]にご予約をいただいております。"
 
 scripts:
   # Japanese assistant's first message.

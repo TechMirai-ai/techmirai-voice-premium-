@@ -47,7 +47,8 @@ const toolsOf = (config: ClientConfig, faq: FaqEntry[], language = 'ja') =>
 
 describe('rendered tools', () => {
   test('an opted-in client gets the three change tools beside the booking tools', () => {
-    const tools = toolsOf(sakura, sakuraFaq);
+    // VP-26's recall tool is covered by recallRender.test.ts; this test is about VP-25's three.
+    const tools = toolsOf(sakura, sakuraFaq).filter((tool) => tool.key !== 'recall-last-visit');
 
     expect(tools.map((tool) => tool.key)).toEqual([
       'check-availability',

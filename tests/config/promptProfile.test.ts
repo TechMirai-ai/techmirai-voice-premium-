@@ -26,9 +26,9 @@ const validEmergency = {
 describe('the new sections are optional', () => {
   test('sakura has none of them and still validates', () => {
     expect(sakura.promptOverrides).toBeUndefined();
-    // VP-25: sakura's `reservationFlow` exists only to opt in to appointment changes; it keeps the
-    // default booking flow and adds none of the VP-19/VP-20 options.
-    expect(Object.keys(sakura.reservationFlow ?? {}).sort()).toEqual(['changes', 'mode']);
+    // VP-25/VP-26: sakura's `reservationFlow` exists only to opt in to appointment changes and
+    // last-visit recall; it keeps the default booking flow and adds none of the VP-19/VP-20 options.
+    expect(Object.keys(sakura.reservationFlow ?? {}).sort()).toEqual(['changes', 'mode', 'recall']);
     expect(sakura.reservationFlow?.mode).toBe('patient-types');
     expect(sakura.emergency).toBeUndefined();
     expect(() => parse(sakura)).not.toThrow();

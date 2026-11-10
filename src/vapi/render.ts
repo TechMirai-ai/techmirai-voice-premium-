@@ -30,6 +30,7 @@ import {
   LOG_CALL_TOPIC_FUNCTION_NAME,
   LOOKUP_PATIENT_FUNCTION_NAME,
   LOOKUP_POSTAL_CODE_FUNCTION_NAME,
+  RECALL_LAST_VISIT_FUNCTION_NAME,
   REQUEST_CALLBACK_FUNCTION_NAME,
 } from './toolNames.js';
 import type { FaqEntry } from '../knowledge/KnowledgeSource.js';
@@ -122,7 +123,8 @@ export interface RenderedReservationTool {
     | 'book-appointment'
     | 'find-appointments'
     | 'cancel-appointment'
-    | 'reschedule-appointment';
+    | 'reschedule-appointment'
+    | 'recall-last-visit';
   payload: VapiFunctionToolPayload;
 }
 
@@ -425,7 +427,31 @@ function renderReservationTools(
     ...(config.reservationFlow?.changes
       ? renderChangeTools(baseUrl, credentialId, requestStartMessages)
       : []),
+    ...(config.reservationFlow?.recall ? [renderRecallTool(baseUrl, credentialId)] : []),
   ];
+}
+
+/**
+ * VP-26: the caller's last visit (date + service only). It takes no argument — the server reads the
+ * number from the call, so the model cannot ask about anyone else — and it has NO start message: it
+ * is a quick background lookup, and a spoken "please wait" before it would be noise, not a courtesy.
+ */
+function renderRecallTool(baseUrl: string, credentialId: string): RenderedReservationTool {
+  return {
+    key: 'recall-last-visit',
+    payload: {
+      type: 'function',
+      function: {
+        name: RECALL_LAST_VISIT_FUNCTION_NAME,
+        description:
+          "Looks up the date and service of the caller's most recent earlier booking, found by the " +
+          'phone number they are calling from. Call it once, on your first reply. It may find ' +
+          'nothing, which is normal for a new caller.',
+        parameters: { type: 'object', properties: {}, required: [] },
+      },
+      server: { url: `${baseUrl}/api/voice/recall-last-visit`, credentialId },
+    },
+  };
 }
 
 /**

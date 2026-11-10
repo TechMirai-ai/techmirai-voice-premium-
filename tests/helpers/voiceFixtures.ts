@@ -16,6 +16,7 @@ import {
   type BookedAppointment,
   type ChangeRequest,
   type ChangedAppointment,
+  type LastVisit,
   type NewAppointment,
   type RescheduleRequest,
   type UpcomingAppointment,
@@ -163,6 +164,8 @@ export interface MemoryAppointmentRow {
   phone: string;
   date: string;
   time: string;
+  /** The stored service slug; null for a returning-patient booking (VP-26). */
+  serviceId: string | null;
   serviceName: string | null;
   patientName: string;
   reservationNumber: string;
@@ -190,6 +193,8 @@ export class MemoryAppointments implements AppointmentRepository {
   readonly booked: NewAppointment[] = [];
   readonly rows: MemoryAppointmentRow[] = [];
   readonly changes: MemoryChange[] = [];
+  /** What `findLastVisit` was asked — the number must only ever come from the call. */
+  readonly lastVisitQueries: { clientId: string; phone: string; oldestDate: string }[] = [];
   taken: Record<string, string[]> = {};
   failWith: Error | undefined;
 
@@ -202,6 +207,7 @@ export class MemoryAppointments implements AppointmentRepository {
       phone: '09012345678',
       date: '2026-11-12',
       time: '10:00',
+      serviceId: null,
       serviceName: 'General Consultation',
       patientName: 'Hanako Yamada',
       reservationNumber: `R9${String(index).padStart(5, '0')}`,
@@ -239,6 +245,33 @@ export class MemoryAppointments implements AppointmentRepository {
         appointmentTime: row.time,
       }));
     return Promise.resolve(upcoming);
+  }
+
+  findLastVisit(
+    clientId: string,
+    phone: string,
+    now: ClinicNow,
+    oldestDate: string,
+  ): Promise<LastVisit | undefined> {
+    this.lastVisitQueries.push({ clientId, phone, oldestDate });
+    if (this.failWith) return Promise.reject(this.failWith);
+    const latest = this.rows
+      .filter(
+        (row) =>
+          row.clientId === clientId &&
+          row.phone === phone &&
+          row.status === 'active' &&
+          row.date >= oldestDate &&
+          `${row.date} ${row.time}` <= `${now.date} ${now.time}`,
+      )
+      .sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`))[0];
+    return Promise.resolve(
+      latest && {
+        appointmentDate: latest.date,
+        serviceId: latest.serviceId,
+        serviceName: latest.serviceName,
+      },
+    );
   }
 
   cancel(request: ChangeRequest): Promise<ChangedAppointment | undefined> {
@@ -348,6 +381,7 @@ export class MemoryAppointments implements AppointmentRepository {
       phone: appointment.patientPhone,
       date: appointment.appointmentDate,
       time: appointment.appointmentTime,
+      serviceId: appointment.serviceId,
       serviceName: appointment.serviceName,
       patientName: appointment.patientName,
       reservationNumber: 'R000001',

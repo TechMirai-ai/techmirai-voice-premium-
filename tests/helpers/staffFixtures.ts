@@ -259,6 +259,7 @@ function minimalVoiceOptions(): VoiceRouterOptions {
       listTakenTimes: () => Promise.resolve(new Set<string>()),
       create: () => Promise.reject(new Error('not used by staff dashboard tests')),
       listUpcomingForPhone: () => Promise.resolve([]),
+      findLastVisit: () => Promise.resolve(undefined),
       cancel: () => Promise.resolve(undefined),
       reschedule: () => Promise.resolve(undefined),
       findChangeInCall: () => Promise.resolve(undefined),

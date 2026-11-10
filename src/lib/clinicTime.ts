@@ -39,6 +39,17 @@ export function clinicNow(timeZone: string, at: Date = new Date()): ClinicNow {
   return { date, time };
 }
 
+/**
+ * The calendar date `days` before `isoDate` (both `YYYY-MM-DD`), e.g. the oldest visit date that
+ * still counts as recent. Pure calendar arithmetic in UTC, so no timezone or daylight-saving
+ * shift can move the answer by a day.
+ */
+export function daysBefore(isoDate: string, days: number): string {
+  const earlier = new Date(`${isoDate}T00:00:00Z`);
+  earlier.setUTCDate(earlier.getUTCDate() - days);
+  return earlier.toISOString().slice(0, 10);
+}
+
 /** Column-header label for a timezone: "JST" for Japan, otherwise its UTC offset (e.g. "UTC+1"). */
 export function timeZoneLabel(timeZone: string, at: Date = new Date()): string {
   if (timeZone === 'Asia/Tokyo') return 'JST';

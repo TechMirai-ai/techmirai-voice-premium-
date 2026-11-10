@@ -785,3 +785,24 @@ All NEEDS NATIVE-SPEAKER REVIEW. `ja` and `ja-return` use the same text. The phr
 - New emergency trigger: ガス漏れ警報器が鳴っています ("My gas-leak alarm is going off.")
 
 **Content to approve (demo assumption, not utility policy):** the `no-gas` answer lets the assistant share only two general checks, whether one appliance or all are affected and whether a stove's batteries may be flat. It gives no meter or appliance instructions. Remove them if the owner or the utility does not want even that.
+
+---
+
+## VP-26 — last-visit acknowledgement (`reservationFlow.recall.scripts`, Sakura, `ja` and `ja-return`)
+
+Spoken once, on the assistant's first reply, to a caller whose phone number has an earlier visit on
+record. `[[date]]` and `[[service]]` are filled in by the model (the date is said naturally, not as digits).
+Both NEED NATIVE-SPEAKER REVIEW. Scope is fixed by the owner: date and service only.
+
+- `visitAcknowledgement` (a service is on record): 「当院の記録では、[[date]]に[[service]]のご予約をいただいております。」 ("Our records show a booking on [[date]] for [[service]].")
+- `visitAcknowledgementNoService` (no service on record): 「当院の記録では、[[date]]にご予約をいただいております。」 ("Our records show a booking on [[date]].")
+
+**CHANGED (2026-11-10, owner decision):** these previously said 「前回は…ご来院いただきました」
+("last time you visited us"), which implied the caller attended. There is no attendance record, so
+the lines now say only that a **booking** is on record (ご予約, "reservation").
+
+Notes for the reviewer: is 当院の記録では ("in our clinic's records") the natural way to attribute
+this on a clinic phone line? Is ご予約をいただいております ("we have received a reservation") right
+for a booking whose date has already passed, or should it be past tense (ご予約がございました, "there
+was a reservation")? And does it read naturally when the date is spoken as, e.g., 「三月三日」
+("March 3rd")? **Status:** open, not yet reviewed — re-flagged with the rest of the Japanese.
