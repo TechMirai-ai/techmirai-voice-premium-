@@ -24,7 +24,9 @@
     "kanto-city-gas-demo--en": "47dea47c-355d-4560-ab7c-da5896af6bb8",
     "kanto-city-gas-demo--ja-return": "a0916bdd-a625-41a3-b7b0-42f66083ae74"
   },
-  "squads": {},
+  "squads": {
+    "kanto-city-gas-demo--squad": "edeab734-545e-46c9-abe2-b923b7d46d31"
+  },
   "structuredOutputs": {
     "kanto-city-gas-demo--call-outcome": "cf0439b7-e262-4650-8a47-f367678c1e4e"
   }
