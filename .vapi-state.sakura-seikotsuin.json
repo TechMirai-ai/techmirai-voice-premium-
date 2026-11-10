@@ -20,7 +20,10 @@
     "sakura-seikotsuin--ja-return--check-availability": "cc61ed25-3567-47fc-abdc-07611457e918",
     "sakura-seikotsuin--ja-return--lookup-patient": "54e68c14-9c1a-4d50-8629-afa14b33afa0",
     "sakura-seikotsuin--ja-return--book-appointment": "e9b68a29-8dd5-4117-b77f-ad72ceeccbb7",
-    "sakura-seikotsuin--ja-return--transfer-call": "c208fbde-c2b7-4e5c-a9f7-2ee9a2038409"
+    "sakura-seikotsuin--ja-return--transfer-call": "c208fbde-c2b7-4e5c-a9f7-2ee9a2038409",
+    "sakura-seikotsuin--ja--find-appointments": "c63d5276-b3bc-4df0-b0c6-b73163cbc516",
+    "sakura-seikotsuin--ja--cancel-appointment": "7a15b1ca-0a00-4c92-85c7-b91b69fecca4",
+    "sakura-seikotsuin--ja--reschedule-appointment": "581b928d-4a4c-4261-bdef-abcab91e0caf"
   },
   "assistants": {
     "sakura-seikotsuin--ja": "241baeaa-2bc7-4bc2-b5f3-ef3cb4f6784f",
