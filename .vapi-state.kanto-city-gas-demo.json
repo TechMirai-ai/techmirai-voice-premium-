@@ -11,11 +11,18 @@
     "kanto-city-gas-demo--en--handoff-to-ja": "51ec6ad3-37a6-40bb-b8ae-a094909d5a79",
     "kanto-city-gas-demo--en--check-availability": "84846c44-59fa-4c9a-9eea-daf0a0020679",
     "kanto-city-gas-demo--en--lookup-postal-code": "e02497b7-79ef-483e-8260-c23e0f5c55c5",
-    "kanto-city-gas-demo--en--book-appointment": "88f7ebff-d131-47c9-9c0a-6a74fcca81e9"
+    "kanto-city-gas-demo--en--book-appointment": "88f7ebff-d131-47c9-9c0a-6a74fcca81e9",
+    "kanto-city-gas-demo--ja-return--request-callback": "d4d88da8-e6be-4e10-99db-94d8ecdd5dd0",
+    "kanto-city-gas-demo--ja-return--log-call-topic": "8aa3792c-5715-4487-bbb8-a86f20f0c7bc",
+    "kanto-city-gas-demo--ja-return--handoff-to-en": "b915ee5b-db7f-47d8-b70d-a471269d168e",
+    "kanto-city-gas-demo--ja-return--check-availability": "cc3c4e02-a38a-4873-81df-f92a1f2cd5f0",
+    "kanto-city-gas-demo--ja-return--lookup-postal-code": "d1941abd-aded-4e9c-97ef-6893a6c81555",
+    "kanto-city-gas-demo--ja-return--book-appointment": "fe8310ff-3a0f-4d91-aec6-955aeed17ce5"
   },
   "assistants": {
     "kanto-city-gas-demo--ja": "6dcb357e-1b6a-4b61-a391-d783ffc25d97",
-    "kanto-city-gas-demo--en": "47dea47c-355d-4560-ab7c-da5896af6bb8"
+    "kanto-city-gas-demo--en": "47dea47c-355d-4560-ab7c-da5896af6bb8",
+    "kanto-city-gas-demo--ja-return": "a0916bdd-a625-41a3-b7b0-42f66083ae74"
   },
   "squads": {},
   "structuredOutputs": {
