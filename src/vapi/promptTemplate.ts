@@ -16,6 +16,7 @@ import type { FaqEntry } from '../knowledge/KnowledgeSource.js';
 import type { ReservationService } from '../repositories/reservationServiceRepository.js';
 import {
   callCenterWordingSection,
+  callerAdaptationSection,
   emergencySection,
   simpleReservationSection,
   transferSection,
@@ -142,13 +143,12 @@ function styleSection(config: ClientConfig): string {
     'How you speak:',
     '- Everything you say is spoken aloud on a phone call — no lists, symbols, or written-style formatting.',
     '- Sentence length adapts to the caller: by default one or two short sentences per turn, at ' +
-      'most one question. Go shorter for a caller who seems rushed or confused. Give more detail ' +
+      'most one question. How to adapt to a rushed, confused or upset caller is set out under ' +
+      '"Reading the caller" below. Give more detail ' +
       'only when the caller asks for it or clearly wants it.',
     "- Warm and unhurried, like a receptionist who's glad to help — not clinical or scripted.",
-    "- Match the caller's pace through your wording. If they speak slowly, or ask you to repeat " +
-      'something, use simpler words and shorter phrases and say the key point plainly. If they ' +
-      'speak quickly and the call is going smoothly, stay brisk — do not slow down for no reason. ' +
-      'When clarity and speed conflict, choose clarity.',
+    "- Match the caller's pace through your wording; how to adapt to a rushed, confused or upset " +
+      'caller is set out under "Reading the caller" below, and that section governs.',
     "- Acknowledge only when it adds something, and vary it — don't start every turn the same way. Often, just answer.",
     '- Natural acknowledgements: when one fits, keep it short and use it sparingly, varying it ' +
       'from one turn to the next — for example "Of course." or "Certainly." in English, or ' +
@@ -187,10 +187,8 @@ function leadingSection(config: ClientConfig, language: string): string {
         `${businessNoun(config)}-related left, ` +
         `end the call warmly. This never applies to a topic shift within ${businessNoun(config)} matters — hours to ` +
         'parking, prices to booking, and so on — which the New topic rule above covers.',
-    '- Caller in a hurry, outdoors, or struggling: if the caller says they are busy or driving, ' +
-      'sounds rushed (short clipped answers), is somewhere noisy, or is having difficulty ' +
-      'communicating, use shorter sentences, ask only the questions that are essential, and move ' +
-      'the call toward its close faster than usual.',
+    '- Caller in a hurry, outdoors, or struggling: handled by "Reading the caller" above — ' +
+      'apply no separate shortened-call rule.',
     '- Vary the follow-up question: when you ask whether there is anything else, keep the ' +
       'meaning but do not use identical wording twice in one call. Vary apologies the same way — ' +
       'when you apologise more than once in a call, change the wording (for example "I\'m sorry" ' +
@@ -654,6 +652,7 @@ export function buildSystemPrompt(
     ...emergencySection(config, language),
     styleSection(config),
     ...callCenterWordingSection(config, language),
+    ...callerAdaptationSection(config),
     leadingSection(config, language),
     answeringSection(config, language),
     callbackSection(config, language),

@@ -42,7 +42,26 @@ def live_assistant(member):
     return json.loads(json.dumps(_assistants[member]))  # deep copy
 
 
-def make_target(member, clock):
+def load_adaptation_splice():
+    """The caller-adaptation delta from render_adaptation.ts (only used with --with-adaptation)."""
+    path = os.path.join(OUT, "adaptation_splice.json")
+    if not os.path.exists(path):
+        raise SystemExit("run `npx tsx src/cli/renderAdaptationSplice.ts` first")
+    with open(path, encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def splice_adaptation(text, splice):
+    """Apply the delta to a live prompt; fail loudly if the live prompt does not have the anchors."""
+    anchors = [r["old"] for r in splice["replacements"]] + [splice["insertBefore"]]
+    if any(anchor not in text for anchor in anchors):
+        raise SystemExit("live prompt lacks the splice anchors (already synced, or the prompt changed?)")
+    for replacement in splice["replacements"]:
+        text = text.replace(replacement["old"], replacement["new"], 1)
+    return text.replace(splice["insertBefore"], "\n\n" + splice["section"] + splice["insertBefore"], 1)
+
+
+def make_target(member, clock, splice=None):
     assistant = live_assistant(member)
     for key in STRIP:
         assistant.pop(key, None)
@@ -51,6 +70,8 @@ def make_target(member, clock):
     for message in assistant["model"]["messages"]:
         if message.get("role") == "system":
             text = message["content"].replace("{{priorCall}}", "none")
+            if splice:
+                text = splice_adaptation(text, splice)
             if D.CLOCKS[clock] is not None:
                 text = NOW_RX.sub(D.CLOCKS[clock], text)
             message["content"] = text
@@ -60,10 +81,11 @@ def make_target(member, clock):
 
 def main():
     os.makedirs(os.path.join(OUT, "targets"), exist_ok=True)
+    splice = load_adaptation_splice() if "--with-adaptation" in sys.argv else None
     needed = sorted({(e["member"], e["clock"]) for e in D.EVALS} | {(s[2], s[3]) for s in D.SIMS})
     for member, clock in needed:
         with open(os.path.join(OUT, "targets", "%s-%s.json" % (member, clock)), "w", encoding="utf-8") as handle:
-            json.dump(make_target(member, clock), handle, ensure_ascii=False)
+            json.dump(make_target(member, clock, splice), handle, ensure_ascii=False)
 
     have_eval = {x["name"]: x["id"] for x in list_all("/eval")}
     have_scenario = {x["name"]: x["id"] for x in list_all("/eval/simulation/scenario")}

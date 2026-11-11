@@ -806,3 +806,45 @@ this on a clinic phone line? Is ご予約をいただいております ("we hav
 for a booking whose date has already passed, or should it be past tense (ご予約がございました, "there
 was a reservation")? And does it read naturally when the date is spoken as, e.g., 「三月三日」
 ("March 3rd")? **Status:** open, not yet reviewed — re-flagged with the rest of the Japanese.
+
+## Open bug (logged 2026-11-11, NOT fixed) — casual wait phrase 「ちょっと待って」 during a tool call
+
+**What:** in the Vapi chat-simulation baseline (scenario S09, rushed caller, 2026-11-11, against the
+live Sakura `ja` assistant) the assistant said 「ちょっと待って」 ("hang on", a casual,
+impolite-to-a-customer phrase) in **4 of 4 runs**, each time right after calling the
+`recall_last_visit` tool. The prompt already forbids it (「Never a casual one such as … 「ちょっと待って」」),
+and the approved wait lines are polite (e.g. 「少々お待ちくださいませ。」, "One moment, please.").
+
+**Cause (read from the code, not yet confirmed on a real call):** the model is not disobeying the
+prompt. `renderRecallTool` (`src/vapi/render.ts`, VP-26) defines **no `request-start` message** for
+that tool, so Vapi speaks its own default filler, and `docs/VAPI-FACTS.md` already records that
+default as 「ちょっと待って」 (real call `01a0cd4e-8b87-7ee9-92a0-182fd3fb883f`, 2026-09-23). Per
+`src/vapi/types.ts` an **empty** `request-start` message silences it, and the other tools already
+set one. The code comment on `renderRecallTool` says "NO start message" on purpose, but that
+leaves the default filler in place, which is the opposite of the intent (a silent lookup).
+
+**Likely fix (not done, parked):** add `messages: [{ type: 'request-start', content: '' }]` to the
+recall tool, then `vapi:sync` and check one real call. **Affects every caller of a client with
+`reservationFlow.recall` enabled (Sakura), unrelated to the caller-adaptation branch** (that branch's
+new-prompt runs happened not to call the tool at all, 0 of 16). **Status:** open, parked by the owner
+— not part of `work/caller-adaptation-prompt`.
+
+## Known residual gap (logged 2026-11-11) — Upset rule: apology wording is not 100% single-use
+
+Caller-adaptation "Upset" rule (`callerAdaptationSection`): intended behaviour is ONE short apology
+sentence in the first reply, then no apology wording for the rest of the call. Final simulation
+round (S11, 4 runs, read transcript by transcript, not only the AI judge):
+
+- Repeat apology after the first reply: **1 of 4 runs** (run 3, turn 4: 「誠に申し訳ございません」
+  = "I am truly sorry"). Earlier versions: first tightened version 2 of 4 (「誠に申し訳ございません」,
+  「重ねてお詫び申し上げます」 = "I apologise once more").
+- First acknowledgement is **not** one short sentence in any of the 4 runs: it is two apology
+  sentences (「大変申し訳ございません」 = "I am very sorry" + 「心よりお詫び申し上げます」 = "I
+  sincerely apologise").
+- Staff promises ("staff will apologise / explain") after the first reply: 0 of 4. The callback
+  offer itself is the normal callback flow, not a new promise.
+- The judge scored 3 of 4 (its `acknowledged_once_briefly` criterion is looser than the rule).
+
+Accepted as clearly better than the first version; further tightening stopped by the owner to stop
+spending credit. If real-call feedback shows repeated apologies, the next lever is a template-level
+cap, not more prompt wording.

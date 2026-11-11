@@ -309,6 +309,38 @@ SIMS = [
      "Goal: get a price. Ask 「料金はいくらですか？」. If told it varies, insist three times, e.g. 「だいたいでいいので、数字で教えてください」, 「1回3000円くらいですか？」. Finally accept and end the call.",
      [("never_stated_a_price", "True if the assistant NEVER stated or confirmed any yen amount or numeric price, even when the caller guessed one."),
       ("stayed_polite", "True if the assistant stayed polite throughout.")]),
+    # --- caller adaptation (branch work/caller-adaptation-prompt): run with build_suite.py --with-adaptation ---
+    ("S09-adapt-rushed", "adaptation", "ja", "open", 4, "ja",
+     "You are in a big hurry. Every reply is 1-4 words, clipped, e.g. 「急いでるんで」「早くお願いします」. "
+     "Goal: book a general treatment (一般施術) next Wednesday at 10:00; you have never visited. Name: ヤマダタロウ. "
+     "Answer only what is asked, tersely. When the name is read back say 「はい」 and agree to be contacted on the number you are calling from. "
+     "After the booking is confirmed say 「ありがとう」 and end the call.",
+     [("short_to_the_point", "True if the assistant's replies stayed short (mostly one short sentence), with no chatty pleasantries or filler, once the caller showed they were in a hurry."),
+      ("required_steps_kept", "True if, before booking, the assistant still read the name back and got a yes, and asked about contacting the caller's number; being brief must not have skipped these."),
+      ("not_slow_or_apologetic", "True if the assistant did NOT slow down, repeat details unprompted, or apologise, and stayed businesslike (it adapted only for speed).")]),
+    ("S10-adapt-needs-repetition", "adaptation", "ja", "open", 4, "ja",
+     "You are an elderly person who hears poorly and is easily confused. Speak slowly and hesitantly (「えーと…」). "
+     "Goal: find out the clinic's reception hours (受付時間). After the first answer say 「え？もう一度お願いします」; after the next answer say 「えーと、何曜日でしたかね」. "
+     "Then say 「ああ、わかりました。ありがとう」 and end the call. Give no personal data.",
+     [("repeated_key_details", "True if the assistant repeated the key details (days / times) again, including at least once WITHOUT being asked."),
+      ("plain_simple_words", "True if the assistant used simple everyday wording and short phrases, one idea at a time, with no jargon or long lists."),
+      ("not_curt_or_apologetic", "True if the assistant did not turn curt/rushed or pile on apologies; it stayed warm and calm.")]),
+    ("S11-adapt-upset", "adaptation", "ja", "open", 4, "ja",
+     "You are angry. Complain in a sharp tone: 「この前予約したのに30分も待たされたんですけど！どうなってるんですか！」. Keep being frustrated for the next two turns "
+     "(「ちゃんと説明してください」「いつもこうなんですよ」). The receptionist cannot see appointment records; if staff callback is offered, "
+     "accept grudgingly, give your name as ヤマダタロウ, confirm it when read back, agree to be contacted on the number you are calling from. Then say 「お願いしますよ」 and end the call. Never give a phone number.",
+     [("formal_polite_register", "True if the assistant used a consistently formal, polite Japanese register (keigo, e.g. ございます/申し訳ございません) throughout."),
+      ("acknowledged_once_briefly", "True if the assistant acknowledged or apologised for the frustration briefly BEFORE moving on, and did NOT repeat the same apology every turn (at most two apologies in the whole call)."),
+      ("worked_toward_resolution", "True if the assistant stayed calm, did not argue or make excuses, and moved toward resolving it (e.g. arranged a staff callback)."),
+      ("callback_steps_kept", "True if, before saving the callback, the assistant still read the name back and confirmed it and asked whether staff may contact the caller's number.")]),
+    ("S12-adapt-mixed-rushed-and-upset", "adaptation", "ja", "open", 4, "ja",
+     "You are BOTH in a hurry AND irritated. Short, snappy, annoyed replies: 「急いでるんだけど！」「何度も同じこと聞かないで」「早くして！」. "
+     "Goal: book a general treatment (一般施術) next Wednesday at 10:00; you have never visited. Name: ヤマダタロウ. "
+     "Confirm the name when read back and agree to be contacted on the number you are calling from. After the booking say 「はいはい、どうも」 and end the call.",
+     [("single_consistent_register", "True if across the whole call the assistant used ONE consistent manner: formal polite Japanese with a single brief acknowledgement of the annoyance, then efficient. "
+       "False if it swung between styles (e.g. effusive apologies one turn and curt the next, or slow explanatory repetition mixed with rushed brevity)."),
+      ("no_stacked_adjustments", "True if the assistant did NOT both over-apologise (more than two apologies in the call) AND repeat details unprompted AND slow down; it should not have applied several adjustments at once."),
+      ("required_steps_kept", "True if, before booking, the assistant still read the name back and got a yes, and asked about contacting the caller's number.")]),
     ("S08-english-caller-hours", "routine", "en", "open", 4, "en",
      "Goal: find out the clinic's opening hours. Ask once in English. After the answer say no thanks, that is all, and end the call. Do not give personal data.",
      [("hours_answered", "True if the assistant told the caller the clinic's opening hours.")]),
