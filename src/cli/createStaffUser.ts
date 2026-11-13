@@ -13,6 +13,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { isKnownClient, unknownClientMessage } from '../config/knownClient.js';
 import { createPool } from '../db/pool.js';
 import { loadDatabaseUrl } from '../env.js';
 import { generateTemporaryPassword, hashPassword } from '../lib/auth.js';
@@ -50,6 +51,13 @@ export async function runCreateStaffUser(
   const [email, clientId] = argv;
   if (!email || !clientId) {
     printError(USAGE);
+    return 1;
+  }
+
+  // A staff account scoped to an id that is not a client would be a login that sees nothing — or,
+  // after a typo, the wrong client's data later. Refuse before doing any work.
+  if (!isKnownClient(clientId)) {
+    printError(unknownClientMessage(clientId));
     return 1;
   }
 

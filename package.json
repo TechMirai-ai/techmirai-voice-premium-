@@ -31,7 +31,9 @@
     "google:create-folder": "tsx src/cli/googleCreateFolder.ts",
     "archive:retry": "tsx src/cli/archiveRetry.ts",
     "staff:create": "tsx src/cli/createStaffUser.ts",
-    "demo:seed": "tsx src/cli/seedReservationDemoData.ts"
+    "demo:seed": "tsx src/cli/seedReservationDemoData.ts",
+    "demo:clear-calls": "tsx src/cli/clearDemoCalls.ts",
+    "services:remove-follow-up": "tsx src/cli/removeFollowUpService.ts"
   },
   "dependencies": {
     "@vapi-ai/server-sdk": "2.0.1",

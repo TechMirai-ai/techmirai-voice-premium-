@@ -124,7 +124,7 @@ and offers a callback).
    cleanly) if any database it runs on has two live bookings for one slot; production had none on
    2026-11-10. To re-check right before running:
    `SELECT client_id, appointment_date, appointment_time, count(*) FROM appointments GROUP BY 1,2,3 HAVING count(*) > 1;`
-   Demo reset: `scripts/clear-demo-calls.sql` now also clears `appointment_changes` first.
+   Demo reset: `npm run demo:clear-calls -- <clientId>` (it replaced the old all-clients `scripts/clear-demo-calls.sql`) also clears `appointment_changes` first.
 2. Deploy.
 3. `npm run vapi:sync` (dry run first), then `--apply`: creates three new function tools per language
    and re-renders the Sakura assistants (new prompt section). This changes the Vapi account but is not

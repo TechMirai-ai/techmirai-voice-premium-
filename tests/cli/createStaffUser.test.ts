@@ -59,6 +59,27 @@ describe('runCreateStaffUser', () => {
     expect(staffUsers.users.size).toBe(1);
   });
 
+  test('refuses a clientId that has no clients/<clientId>/client.yaml and creates no account', async () => {
+    const staffUsers = new MemoryStaffUsers();
+
+    const code = await runCreateStaffUser(['owner@example.com', 'no-such-clinic'], { staffUsers });
+
+    expect(code).toBe(1);
+    expect(stderr.join('')).toContain('Unknown client "no-such-clinic"');
+    expect(stderr.join('')).toContain('clients/no-such-clinic/client.yaml');
+    expect(stdout.join('')).not.toContain('Temporary password');
+    expect(staffUsers.users.size).toBe(0);
+  });
+
+  test('refuses a path-traversal clientId and creates no account', async () => {
+    const staffUsers = new MemoryStaffUsers();
+
+    const code = await runCreateStaffUser(['owner@example.com', '../clients'], { staffUsers });
+
+    expect(code).toBe(1);
+    expect(staffUsers.users.size).toBe(0);
+  });
+
   test('prints usage and fails when arguments are missing', async () => {
     const staffUsers = new MemoryStaffUsers();
 
