@@ -557,7 +557,11 @@ transfer:
 
 archive:
   # Where this client's calls are archived. Env var NAMES only (the ids live in .env / Vercel).
-  # Sakura keeps the original shared names, so GOOGLE_ARCHIVE_SHEET_ID now means "Sakura's Sheet".
+  # These are the original variable names, so Sakura needs no new settings. They name the DEMO
+  # archive, shared on purpose with kanto-city-gas-demo (both set sharedDemoArchive). Rows carry
+  # client_id and files carry the client-id prefix. A real client or TechMirai's own agent must not
+  # set the flag and must have its own variables.
   sheetIdEnv: GOOGLE_ARCHIVE_SHEET_ID
   audioFolderIdEnv: GOOGLE_ARCHIVE_DRIVE_FOLDER_ID
   transcriptFolderIdEnv: GOOGLE_ARCHIVE_TRANSCRIPT_FOLDER_ID
+  sharedDemoArchive: true

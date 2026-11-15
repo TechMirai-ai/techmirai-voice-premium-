@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
+import { analyzeSharing } from '../../src/config/archiveSharing.js';
 import { listClientIds } from '../../src/config/knownClient.js';
 import { loadClient } from '../../src/config/loadClient.js';
 import { parseClientConfig } from '../../src/config/schema.js';
@@ -21,15 +22,34 @@ describe('archive config (per-client Google archive)', () => {
       sheetIdEnv: 'GOOGLE_ARCHIVE_SHEET_ID',
       audioFolderIdEnv: 'GOOGLE_ARCHIVE_DRIVE_FOLDER_ID',
       transcriptFolderIdEnv: 'GOOGLE_ARCHIVE_TRANSCRIPT_FOLDER_ID',
+      sharedDemoArchive: true,
     });
   });
 
-  test('Kanto has its own, new variable names', () => {
-    expect(loadClient('kanto-city-gas-demo').archive).toEqual({
-      sheetIdEnv: 'GOOGLE_ARCHIVE_KANTO_SHEET_ID',
-      audioFolderIdEnv: 'GOOGLE_ARCHIVE_KANTO_AUDIO_FOLDER_ID',
-      transcriptFolderIdEnv: 'GOOGLE_ARCHIVE_KANTO_TRANSCRIPT_FOLDER_ID',
+  test('both demo clients share the existing demo archive, and both say so explicitly', () => {
+    const sakuraArchive = loadClient(SAKURA_ID).archive;
+    const kantoArchive = loadClient('kanto-city-gas-demo').archive;
+
+    expect(kantoArchive).toEqual(sakuraArchive);
+    expect(sakuraArchive.sharedDemoArchive).toBe(true);
+    expect(kantoArchive.sharedDemoArchive).toBe(true);
+  });
+
+  test('sharedDemoArchive accepts only true (a "false" flag would be a confusing second way to say "not shared")', () => {
+    const accepted = withChanges(sakura, (draft) => {
+      draft.archive.sharedDemoArchive = true;
     });
+    expect(() => parseClientConfig(accepted, SAKURA_ID)).not.toThrow();
+
+    const unflagged = withChanges(sakura, (draft) => {
+      delete draft.archive.sharedDemoArchive;
+    });
+    expect(() => parseClientConfig(unflagged, SAKURA_ID)).not.toThrow();
+
+    const rejected = withChanges(sakura, (draft) => {
+      draft.archive.sharedDemoArchive = false;
+    });
+    expect(issueAt(issuesOf(rejected), 'archive.sharedDemoArchive')).toBeDefined();
   });
 
   test('the block is required: a client without it is a config error, not a silent default', () => {
@@ -84,17 +104,23 @@ describe('archive config (per-client Google archive)', () => {
     expect(issueAt(issuesOf(document), 'archive.sheetId')).toMatch(/unknown key/i);
   });
 
-  test('NO two clients share an archive variable name (nothing is written to a shared location)', () => {
-    const owners = new Map<string, string[]>();
-    for (const clientId of listClientIds()) {
-      const { sheetIdEnv, audioFolderIdEnv, transcriptFolderIdEnv } = loadClient(clientId).archive;
-      for (const name of [sheetIdEnv, audioFolderIdEnv, transcriptFolderIdEnv]) {
-        owners.set(name, [...(owners.get(name) ?? []), clientId]);
-      }
-    }
+  test('across ALL real clients, an archive variable name is shared only between clients that all carry sharedDemoArchive', () => {
+    const entries = listClientIds().map((clientId) => {
+      const { sheetIdEnv, audioFolderIdEnv, transcriptFolderIdEnv, sharedDemoArchive } =
+        loadClient(clientId).archive;
+      return {
+        clientId,
+        shared: sharedDemoArchive === true,
+        keys: [sheetIdEnv, audioFolderIdEnv, transcriptFolderIdEnv],
+      };
+    });
 
-    const shared = [...owners].filter(([, clients]) => clients.length > 1);
-    expect(shared).toEqual([]);
-    expect(owners.size).toBe(listClientIds().length * 3);
+    const { conflicts, sharedByDemo } = analyzeSharing(entries);
+
+    expect(conflicts).toEqual([]);
+    // The only sharing that exists is the two demo clients.
+    for (const group of sharedByDemo) {
+      expect(group.clients).toEqual(['kanto-city-gas-demo', 'sakura-seikotsuin']);
+    }
   });
 });

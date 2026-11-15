@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { runCheckCli } from '../../src/cli/googleCheck.js';
 import { loadClient } from '../../src/config/loadClient.js';
+import type { ClientConfig } from '../../src/config/schema.js';
 import type { ArchiveDestination } from '../../src/google/archiveDestination.js';
 import type { CheckResult } from '../../src/google/check.js';
 
@@ -22,18 +23,42 @@ const CREDENTIALS: NodeJS.ProcessEnv = {
   GOOGLE_OAUTH_REFRESH_TOKEN: 'rtoken',
   ARCHIVE_RETRY_SECRET: 'x'.repeat(32),
 };
-const SAKURA_ENV = {
-  GOOGLE_ARCHIVE_SHEET_ID: 'sakura-sheet',
-  GOOGLE_ARCHIVE_DRIVE_FOLDER_ID: 'sakura-audio',
-  GOOGLE_ARCHIVE_TRANSCRIPT_FOLDER_ID: 'sakura-transcripts',
+/** The demo archive: the original variable names, shared by both demo clients. */
+const DEMO_ENV = {
+  GOOGLE_ARCHIVE_SHEET_ID: 'demo-sheet',
+  GOOGLE_ARCHIVE_DRIVE_FOLDER_ID: 'demo-audio',
+  GOOGLE_ARCHIVE_TRANSCRIPT_FOLDER_ID: 'demo-transcripts',
 };
-const KANTO_ENV = {
-  GOOGLE_ARCHIVE_KANTO_SHEET_ID: 'kanto-sheet',
-  GOOGLE_ARCHIVE_KANTO_AUDIO_FOLDER_ID: 'kanto-audio',
-  GOOGLE_ARCHIVE_KANTO_TRANSCRIPT_FOLDER_ID: 'kanto-transcripts',
+const REAL_ENV = {
+  GOOGLE_ARCHIVE_REALCO_SHEET_ID: 'real-sheet',
+  GOOGLE_ARCHIVE_REALCO_AUDIO_FOLDER_ID: 'real-audio',
+  GOOGLE_ARCHIVE_REALCO_TRANSCRIPT_FOLDER_ID: 'real-transcripts',
 };
-const CLIENTS = ['kanto-city-gas-demo', 'sakura-seikotsuin'];
+const DEMO_CLIENTS = ['kanto-city-gas-demo', 'sakura-seikotsuin'];
 const PASS: CheckResult = { ok: true, steps: [{ name: 's', status: 'pass', detail: 'fine' }] };
+
+type Loader = (clientId: string) => ClientConfig;
+
+/** Real yaml, except `real-co` (synthetic, unflagged, its own variable names) and optional overrides. */
+function loaderWith(options: { unflag?: string[] } = {}): Loader {
+  return (clientId) => {
+    if (clientId === 'real-co') {
+      return {
+        ...loadClient('sakura-seikotsuin'),
+        clientId,
+        archive: {
+          sheetIdEnv: 'GOOGLE_ARCHIVE_REALCO_SHEET_ID',
+          audioFolderIdEnv: 'GOOGLE_ARCHIVE_REALCO_AUDIO_FOLDER_ID',
+          transcriptFolderIdEnv: 'GOOGLE_ARCHIVE_REALCO_TRANSCRIPT_FOLDER_ID',
+        },
+      };
+    }
+    const config = loadClient(clientId);
+    if (!options.unflag?.includes(clientId)) return config;
+    const { sharedDemoArchive: _flag, ...archive } = config.archive;
+    return { ...config, archive };
+  };
+}
 
 describe('google:check CLI (mocked: no Google call is ever made)', () => {
   let output = '';
@@ -46,67 +71,125 @@ describe('google:check CLI (mocked: no Google call is ever made)', () => {
   });
   afterEach(() => vi.restoreAllMocks());
 
-  const run = (argv: string[], env: NodeJS.ProcessEnv) => {
+  const run = (
+    argv: string[],
+    env: NodeJS.ProcessEnv,
+    options: { clients?: string[]; loader?: Loader } = {},
+  ) => {
     const runCheck = vi.fn((_config: unknown, _destination: ArchiveDestination) =>
       Promise.resolve(PASS),
     );
     const code = runCheckCli(argv, {
       env,
-      listClients: () => CLIENTS,
-      loadClientConfig: loadClient,
+      listClients: () => options.clients ?? DEMO_CLIENTS,
+      loadClientConfig: options.loader ?? loaderWith(),
       runCheck,
     });
     return { code, runCheck };
   };
 
-  test('<clientId> checks only that client, against its own Sheet and folders', async () => {
-    const { code, runCheck } = run(['kanto-city-gas-demo'], {
-      ...CREDENTIALS,
-      ...SAKURA_ENV,
-      ...KANTO_ENV,
-    });
+  test('<clientId> checks that client against the destination its archive block names', async () => {
+    const { code, runCheck } = run(['kanto-city-gas-demo'], { ...CREDENTIALS, ...DEMO_ENV });
 
     expect(await code).toBe(0);
     expect(runCheck).toHaveBeenCalledTimes(1);
     expect(runCheck.mock.calls[0]![1]).toEqual({
-      sheetId: 'kanto-sheet',
-      audioFolderId: 'kanto-audio',
-      transcriptFolderId: 'kanto-transcripts',
+      sheetId: 'demo-sheet',
+      audioFolderId: 'demo-audio',
+      transcriptFolderId: 'demo-transcripts',
     });
   });
 
-  test('--all checks every client with its own destination', async () => {
-    const { code, runCheck } = run(['--all'], { ...CREDENTIALS, ...SAKURA_ENV, ...KANTO_ENV });
+  test('--all: the two flagged demo clients sharing passes, as an INFO line, and the shared destination is checked ONCE', async () => {
+    const { code, runCheck } = run(['--all'], { ...CREDENTIALS, ...DEMO_ENV });
 
     expect(await code).toBe(0);
-    expect(runCheck.mock.calls.map(([, destination]) => destination.sheetId)).toEqual([
-      'kanto-sheet',
-      'sakura-sheet',
-    ]);
+    expect(runCheck).toHaveBeenCalledTimes(1);
+    expect(output).toContain(
+      '[INFO] shared by demo clients: kanto-city-gas-demo, sakura-seikotsuin',
+    );
+    expect(output).toContain(
+      'kanto-city-gas-demo, sakura-seikotsuin (shared destination, checked once)',
+    );
+    expect(output).not.toContain('[FAIL]');
+    expect(output).toContain('All checks passed');
   });
 
-  test('a client with unset archive variables FAILS with the distinct message and gets no Google call', async () => {
-    const { code, runCheck } = run(['--all'], { ...CREDENTIALS, ...SAKURA_ENV });
+  test('--all: a real client with its own destination is checked separately, and does not trigger sharing output', async () => {
+    const { code, runCheck } = run(
+      ['--all'],
+      { ...CREDENTIALS, ...DEMO_ENV, ...REAL_ENV },
+      { clients: [...DEMO_CLIENTS, 'real-co'] },
+    );
+
+    expect(await code).toBe(0);
+    expect(runCheck.mock.calls.map(([, destination]) => destination.sheetId).sort()).toEqual([
+      'demo-sheet',
+      'real-sheet',
+    ]);
+    expect(output).not.toContain('real-co (shared');
+    expect(output).not.toMatch(/\[INFO\].*real-co/);
+  });
+
+  test('--all: a flagged and an UNFLAGGED client sharing the same archive FAILS', async () => {
+    const { code } = run(
+      ['--all'],
+      { ...CREDENTIALS, ...DEMO_ENV },
+      {
+        loader: loaderWith({ unflag: ['kanto-city-gas-demo'] }),
+      },
+    );
 
     expect(await code).toBe(1);
-    expect(runCheck).toHaveBeenCalledTimes(1); // Sakura only
-    expect(output).toContain('archive destination not configured for kanto-city-gas-demo');
+    expect(output).toContain('[FAIL] kanto-city-gas-demo, sakura-seikotsuin share');
+    expect(output).toContain('sharedDemoArchive');
+    expect(output).not.toContain('[INFO] shared by demo clients');
     expect(output).toContain('The archive is NOT ready.');
   });
 
-  test('--all fails if two clients point at the same Sheet or folder', async () => {
-    const { code } = run(['--all'], {
-      ...CREDENTIALS,
-      ...SAKURA_ENV,
-      ...KANTO_ENV,
-      GOOGLE_ARCHIVE_KANTO_SHEET_ID: 'sakura-sheet',
-    });
+  test('--all: two UNFLAGGED clients sharing the same archive FAILS', async () => {
+    const { code } = run(
+      ['--all'],
+      { ...CREDENTIALS, ...DEMO_ENV },
+      {
+        loader: loaderWith({ unflag: DEMO_CLIENTS }),
+      },
+    );
 
     expect(await code).toBe(1);
-    expect(output).toContain('sheetId is shared by: kanto-city-gas-demo, sakura-seikotsuin');
+    expect(output).toContain('[FAIL] kanto-city-gas-demo, sakura-seikotsuin share');
   });
 
-  test('a failing step for one client makes the whole run fail', async () => {
+  test('--all: an unflagged client whose variables merely RESOLVE to the demo ids still FAILS (id-level check)', async () => {
+    const { code } = run(
+      ['--all'],
+      {
+        ...CREDENTIALS,
+        ...DEMO_ENV,
+        GOOGLE_ARCHIVE_REALCO_SHEET_ID: 'demo-sheet',
+        GOOGLE_ARCHIVE_REALCO_AUDIO_FOLDER_ID: 'demo-audio',
+        GOOGLE_ARCHIVE_REALCO_TRANSCRIPT_FOLDER_ID: 'demo-transcripts',
+      },
+      { clients: [...DEMO_CLIENTS, 'real-co'] },
+    );
+
+    expect(await code).toBe(1);
+    expect(output).toContain('real-co');
+    expect(output).toContain('[FAIL]');
+    expect(output).toContain('sheetId');
+  });
+
+  test('--all: clients with unset archive variables FAIL with the distinct message and get no Google call', async () => {
+    const { code, runCheck } = run(['--all'], { ...CREDENTIALS });
+
+    expect(await code).toBe(1);
+    expect(runCheck).not.toHaveBeenCalled();
+    expect(output).toContain('archive destination not configured for kanto-city-gas-demo');
+    expect(output).toContain('archive destination not configured for sakura-seikotsuin');
+    expect(output).toContain('The archive is NOT ready.');
+  });
+
+  test('a failing step makes the whole run fail', async () => {
     const runCheck = vi.fn(() =>
       Promise.resolve<CheckResult>({
         ok: false,
@@ -115,9 +198,9 @@ describe('google:check CLI (mocked: no Google call is ever made)', () => {
     );
 
     const code = await runCheckCli(['sakura-seikotsuin'], {
-      env: { ...CREDENTIALS, ...SAKURA_ENV },
-      listClients: () => CLIENTS,
-      loadClientConfig: loadClient,
+      env: { ...CREDENTIALS, ...DEMO_ENV },
+      listClients: () => DEMO_CLIENTS,
+      loadClientConfig: loaderWith(),
       runCheck,
     });
 
@@ -128,7 +211,7 @@ describe('google:check CLI (mocked: no Google call is ever made)', () => {
   test.each([[[]], [['a', 'b']], [['--all', 'sakura-seikotsuin']]])(
     'bad arguments %j print usage and make no call',
     async (argv) => {
-      const { code, runCheck } = run(argv, { ...CREDENTIALS, ...SAKURA_ENV });
+      const { code, runCheck } = run(argv, { ...CREDENTIALS, ...DEMO_ENV });
 
       expect(await code).toBe(1);
       expect(runCheck).not.toHaveBeenCalled();
@@ -137,7 +220,7 @@ describe('google:check CLI (mocked: no Google call is ever made)', () => {
   );
 
   test('an unknown client id fails closed with no Google call', async () => {
-    const { code, runCheck } = run(['no-such-client'], { ...CREDENTIALS, ...SAKURA_ENV });
+    const { code, runCheck } = run(['no-such-client'], { ...CREDENTIALS, ...DEMO_ENV });
 
     expect(await code).toBe(1);
     expect(runCheck).not.toHaveBeenCalled();

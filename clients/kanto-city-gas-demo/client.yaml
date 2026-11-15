@@ -600,7 +600,11 @@ faq:
         確認いたします。正確なご案内が難しい場合は、推測でお答えせず、担当スタッフへの折り返しのご依頼を承ります。
 
 archive:
-  # Kanto's own Sheet and Drive folders, never shared with another client. Env var NAMES only.
-  sheetIdEnv: GOOGLE_ARCHIVE_KANTO_SHEET_ID
-  audioFolderIdEnv: GOOGLE_ARCHIVE_KANTO_AUDIO_FOLDER_ID
-  transcriptFolderIdEnv: GOOGLE_ARCHIVE_KANTO_TRANSCRIPT_FOLDER_ID
+  # DEMO client: deliberately shares the demo archive with sakura-seikotsuin (same variable names,
+  # so the same Sheet and folders). Rows carry client_id and files carry the client-id prefix, so
+  # they stay attributable. Only clients that BOTH set sharedDemoArchive may share; a real client or
+  # TechMirai's own agent must not set it and must have its own variables.
+  sheetIdEnv: GOOGLE_ARCHIVE_SHEET_ID
+  audioFolderIdEnv: GOOGLE_ARCHIVE_DRIVE_FOLDER_ID
+  transcriptFolderIdEnv: GOOGLE_ARCHIVE_TRANSCRIPT_FOLDER_ID
+  sharedDemoArchive: true

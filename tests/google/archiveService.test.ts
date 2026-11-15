@@ -365,7 +365,10 @@ describe('per-client archive destinations', () => {
     expect(summary).toMatchObject({ claimed: 2, done: 2, failed: 0 });
     // Exactly two Sheets were ever touched, one row each, carrying the right client id (column B).
     expect([...sheetsById.keys()].sort()).toEqual(['sheet-a', 'sheet-b']);
-    for (const [sheetId, clientId] of [['sheet-a', 'a'], ['sheet-b', 'b']] as const) {
+    for (const [sheetId, clientId] of [
+      ['sheet-a', 'a'],
+      ['sheet-b', 'b'],
+    ] as const) {
       const sheet = sheetsById.get(sheetId)!;
       expect(sheet.appendRow).toHaveBeenCalledTimes(1);
       expect(sheet.appendRow.mock.calls[0]![1][1]).toBe(clientId);
@@ -377,14 +380,18 @@ describe('per-client archive destinations', () => {
       const own = upload.name.startsWith('a-') ? A : B;
       expect([own.audioFolderId, own.transcriptFolderId]).toContain(upload.folderId);
     }
-    expect(uploads.filter((u) => u.name.startsWith('a-')).map((u) => u.folderId).sort()).toEqual([
-      'audio-a',
-      'transcripts-a',
-    ]);
-    expect(uploads.filter((u) => u.name.startsWith('b-')).map((u) => u.folderId).sort()).toEqual([
-      'audio-b',
-      'transcripts-b',
-    ]);
+    expect(
+      uploads
+        .filter((u) => u.name.startsWith('a-'))
+        .map((u) => u.folderId)
+        .sort(),
+    ).toEqual(['audio-a', 'transcripts-a']);
+    expect(
+      uploads
+        .filter((u) => u.name.startsWith('b-'))
+        .map((u) => u.folderId)
+        .sort(),
+    ).toEqual(['audio-b', 'transcripts-b']);
   });
 
   test('new Drive file names (transcript and audio) carry the client id', async () => {
@@ -529,5 +536,47 @@ describe('per-client archive destinations', () => {
     ]);
     const folders = drive.uploadFile.mock.calls.map(([request]) => request.folderId).sort();
     expect(folders).toEqual(['sakura-audio', 'sakura-transcripts']);
+  });
+
+  test('the two demo clients share one destination, yet every row and file stays attributable to its own client', async () => {
+    const env = {
+      GOOGLE_ARCHIVE_SHEET_ID: 'demo-sheet',
+      GOOGLE_ARCHIVE_DRIVE_FOLDER_ID: 'demo-audio',
+      GOOGLE_ARCHIVE_TRANSCRIPT_FOLDER_ID: 'demo-transcripts',
+    };
+    const demoClients = ['sakura-seikotsuin', 'kanto-city-gas-demo'];
+    const destinations: Record<string, ArchiveDestination> = {};
+    for (const clientId of demoClients) {
+      const target = resolveArchiveDestination(clientId, loadClient, env);
+      expect(target.ok).toBe(true);
+      if (target.ok) destinations[clientId] = target.destination;
+    }
+    expect(destinations['sakura-seikotsuin']).toEqual(destinations['kanto-city-gas-demo']);
+
+    const { service, jobs, sheetsById, drive } = setup({
+      destinations,
+      vapiRoutes: routesFor('call-s', 'call-k'),
+    });
+    await jobs.enqueue('sakura-seikotsuin', 'call-s');
+    await jobs.enqueue('kanto-city-gas-demo', 'call-k');
+    for (const job of jobs.jobs.values()) job.startedAt = new Date('2026-10-12T01:00:00.000Z');
+
+    const summary = await service.retryPending();
+
+    expect(summary).toMatchObject({ done: 2, failed: 0 });
+    // One shared Sheet, with a row per client carrying its own client_id (column B).
+    expect([...sheetsById.keys()]).toEqual(['demo-sheet']);
+    const rows = sheetsById.get('demo-sheet')!.appendRow.mock.calls.map(([, row]) => row[1]);
+    expect(rows.sort()).toEqual(['kanto-city-gas-demo', 'sakura-seikotsuin']);
+    // One shared pair of folders, with each file name prefixed by its own client id.
+    const uploads = drive.uploadFile.mock.calls.map(([request]) => request);
+    expect(new Set(uploads.map((upload) => upload.folderId))).toEqual(
+      new Set(['demo-audio', 'demo-transcripts']),
+    );
+    for (const clientId of demoClients) {
+      const own = uploads.filter((upload) => upload.name.startsWith(`${clientId}-2026-10-12-`));
+      expect(own).toHaveLength(2); // transcript + audio
+    }
+    expect(uploads).toHaveLength(4);
   });
 });

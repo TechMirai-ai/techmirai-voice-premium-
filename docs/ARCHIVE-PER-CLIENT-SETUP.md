@@ -1,6 +1,6 @@
 # Per-client Google archive — setup for a new client
 
-Every client archives into **its own** Google Sheet and **its own two** Drive folders (audio, transcripts). Nothing is written to a location shared with another client. The Google *credentials* (service account, OAuth token, retry secret) stay global and are set up once — see `docs/VP12-GOOGLE-SETUP.md`. This page is only about the destination of one more client.
+Every client archives into **its own** Google Sheet and **its own two** Drive folders (audio, transcripts). Nothing is written to a location shared with another client — with one deliberate exception: the **demo clients** (`sakura-seikotsuin` and `kanto-city-gas-demo`) share the existing demo archive (see "Demo clients share one archive" below). **A real client, and TechMirai's own agent, must NOT share: follow the steps below and do NOT set the sharing flag.** The Google *credentials* (service account, OAuth token, retry secret) stay global and are set up once — see `docs/VP12-GOOGLE-SETUP.md`. This page is only about the destination of one more client.
 
 ## How it works (read once)
 
@@ -17,16 +17,25 @@ Every client archives into **its own** Google Sheet and **its own two** Drive fo
 - The archive worker keeps one global queue, but for each job it looks up the job's `client_id`, reads that client's `archive` block, and reads the three variables it names.
 - **Fail closed.** If the client is unknown, has no `archive` block, or any of its three variables is unset or blank, the worker makes **no Google call at all**. It records `archive destination not configured for <clientId> (unset: <VARIABLE NAMES>)` on the job. The job and the call record are kept, and the job stays `pending` (never terminally failed), so once you set the variables the next retry run archives it. It never falls back to another client's destination.
 
-### Naming — important
+### Demo clients share one archive (explicit opt-in)
 
-| Client | Sheet id | Audio folder id | Transcript folder id |
-| --- | --- | --- | --- |
-| `sakura-seikotsuin` | `GOOGLE_ARCHIVE_SHEET_ID` | `GOOGLE_ARCHIVE_DRIVE_FOLDER_ID` | `GOOGLE_ARCHIVE_TRANSCRIPT_FOLDER_ID` |
-| `kanto-city-gas-demo` | `GOOGLE_ARCHIVE_KANTO_SHEET_ID` | `GOOGLE_ARCHIVE_KANTO_AUDIO_FOLDER_ID` | `GOOGLE_ARCHIVE_KANTO_TRANSCRIPT_FOLDER_ID` |
+| Client | Sheet id | Audio folder id | Transcript folder id | `sharedDemoArchive` |
+| --- | --- | --- | --- | --- |
+| `sakura-seikotsuin` | `GOOGLE_ARCHIVE_SHEET_ID` | `GOOGLE_ARCHIVE_DRIVE_FOLDER_ID` | `GOOGLE_ARCHIVE_TRANSCRIPT_FOLDER_ID` | `true` |
+| `kanto-city-gas-demo` | `GOOGLE_ARCHIVE_SHEET_ID` | `GOOGLE_ARCHIVE_DRIVE_FOLDER_ID` | `GOOGLE_ARCHIVE_TRANSCRIPT_FOLDER_ID` | `true` |
 
-**`GOOGLE_ARCHIVE_SHEET_ID`, `GOOGLE_ARCHIVE_DRIVE_FOLDER_ID` and `GOOGLE_ARCHIVE_TRANSCRIPT_FOLDER_ID` now mean *Sakura's* Sheet and folders — they are not "the" archive.** They kept their old names only so Sakura needs no new settings. No code reads them directly any more; they are looked up through Sakura's `archive` block like any other client's. Do not reuse them for another client.
+`GOOGLE_ARCHIVE_SHEET_ID`, `GOOGLE_ARCHIVE_DRIVE_FOLDER_ID` and `GOOGLE_ARCHIVE_TRANSCRIPT_FOLDER_ID` are the **demo archive**. They keep their original names so nothing already deployed changes, and no code reads them directly: they are looked up through each client's `archive` block.
 
-For a new client, use `GOOGLE_ARCHIVE_<CLIENT>_SHEET_ID`, `GOOGLE_ARCHIVE_<CLIENT>_AUDIO_FOLDER_ID`, `GOOGLE_ARCHIVE_<CLIENT>_TRANSCRIPT_FOLDER_ID` (a short upper-case client name, e.g. `KANTO`).
+Sharing is allowed only by an explicit, visible flag in the archive block: `sharedDemoArchive: true`. The rule:
+- Two clients may use the same variable name or the same Sheet/folder id **only if both carry `sharedDemoArchive: true`**.
+- A flagged client sharing with an unflagged one, or two unflagged clients sharing, is an error (`npm run google:check -- --all` fails; a config test fails).
+- Shared rows and files stay attributable: the Sheet's `Client` column holds each row's client id, and every file name starts with the client id.
+
+**A real client, and TechMirai's own agent, must NOT set `sharedDemoArchive`** and must not reuse the three demo variables. They get their own Sheet, their own two folders and their own variables, as below.
+
+### Naming for a new (real) client
+
+Use `GOOGLE_ARCHIVE_<CLIENT>_SHEET_ID`, `GOOGLE_ARCHIVE_<CLIENT>_AUDIO_FOLDER_ID`, `GOOGLE_ARCHIVE_<CLIENT>_TRANSCRIPT_FOLDER_ID` (a short upper-case client name, e.g. `ACME`). Never `GOOGLE_ARCHIVE_SHEET_ID` & co., which are the demo archive.
 
 ## Steps
 
@@ -56,7 +65,7 @@ npm run google:create-folder -- "<clientId> — transcripts"
 Each prints a **folder id**. Nothing needs sharing: the folders belong to the same Google account (OAuth identity) as Sakura's, and that identity is what uploads. The service account does not touch Drive. You may rename or move the folders afterwards; their ids and the app's access do not change. Do not re-run `google:consent` for this — that re-issues the global refresh token.
 
 ### 5. Add the `archive` block to `clients/<clientId>/client.yaml`
-Use the three names from the naming section above. Then:
+Use the three names from the naming section above, and **do not add `sharedDemoArchive`** (that flag is only for the two demo clients). Then:
 
 ```
 npm run config:check
@@ -76,7 +85,7 @@ npm run config:check
 npm run google:check -- <clientId>      # one client
 npm run google:check -- --all           # every client in clients/
 ```
-For each client it verifies: the Sheet is reachable with the expected header row; a test upload (deleted again) works in **both** the audio folder and the transcript folder; the refresh token renews. A client whose variables are unset is reported as a failure with the "archive destination not configured" message, and no Google call is made for it. `--all` additionally fails if two clients resolve to the same Sheet or folder id.
+For each client it verifies: the Sheet is reachable with the expected header row; a test upload (deleted again) works in **both** the audio folder and the transcript folder; the refresh token renews. A client whose variables are unset is reported as a failure with the "archive destination not configured" message, and no Google call is made for it. `--all` additionally fails if two clients use the same variable name or resolve to the same Sheet or folder id, unless **all** of them carry `sharedDemoArchive: true`: then it only prints an info line (`[INFO] shared by demo clients: kanto-city-gas-demo, sakura-seikotsuin (variable names, sheetId, …)`) and checks the shared Sheet and folders once.
 
 ## File names
 New Drive files are named `<clientId>-<date>-<time>-<topic>` (clinic local time), e.g. `kanto-city-gas-demo-2026-11-14-1030-reservation.txt`. A same-minute, same-topic collision adds `-2`, `-3`… as before, and the per-client uniqueness index is unchanged. Files already in Drive are **not** renamed, and a job that already reserved a name keeps it.

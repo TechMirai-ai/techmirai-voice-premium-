@@ -25,6 +25,15 @@ export const archiveSchema = z
     audioFolderIdEnv: archiveEnvVar,
     /** Env var holding the Drive folder id for transcript .txt files. */
     transcriptFolderIdEnv: archiveEnvVar,
+    /**
+     * Explicit opt-in to share one archive (same variable names, same Sheet and folders) with the
+     * OTHER clients that also carry this flag. For DEMO clients only: a real client, and TechMirai's
+     * own agent, must NOT set it, so their archive stays unique. Sharing between a flagged and an
+     * unflagged client, or between two unflagged ones, is always an error (see ./archiveSharing.ts).
+     * Rows and files stay attributable: the Sheet keeps its client_id column and file names carry
+     * the client id.
+     */
+    sharedDemoArchive: z.literal(true).optional(),
   })
   .refine(
     (archive) =>

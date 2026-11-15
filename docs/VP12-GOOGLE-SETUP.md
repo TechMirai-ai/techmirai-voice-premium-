@@ -74,7 +74,7 @@ In your local `.env` **and** in Vercel (Project → Settings → Environment Var
 | Variable | Where it comes from |
 | --- | --- |
 | `GOOGLE_SERVICE_ACCOUNT_JSON_B64` | Step 3 |
-| `GOOGLE_ARCHIVE_SHEET_ID` | Step 5 — **Sakura's** Sheet. Since the per-client archive, the three `GOOGLE_ARCHIVE_*` ids below are Sakura's only; every other client has its own (see `docs/ARCHIVE-PER-CLIENT-SETUP.md`) |
+| `GOOGLE_ARCHIVE_SHEET_ID` | Step 5 — **Sakura's** Sheet. Since the per-client archive, the three `GOOGLE_ARCHIVE_*` ids below are the **demo archive**, shared by the two demo clients (sakura, kanto); every real client has its own (see `docs/ARCHIVE-PER-CLIENT-SETUP.md`) |
 | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | Step 4 |
 | `GOOGLE_OAUTH_REFRESH_TOKEN` | from `~/secrets/techmirai-google-oauth.env` |
 | `GOOGLE_ARCHIVE_DRIVE_FOLDER_ID` | from the same file — the **audio** folder (the name is kept so nothing already deployed breaks) |

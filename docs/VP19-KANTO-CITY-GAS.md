@@ -98,10 +98,12 @@ call-outcome extraction following its instruction and has not been seen on a liv
 - The address has no column; it reaches staff only through the AI call summary (decision made in VP-19).
 - Booking slots are generated from the business hours, not real capacity; two callers can book the same
   slot in a race (unchanged VP-8 behaviour). Booking is not tied to any real gas-company system.
-- The Google archive is per client: Kanto archives into its own Sheet and its own two Drive folders,
-  named by the `archive` block in its `client.yaml` (`GOOGLE_ARCHIVE_KANTO_SHEET_ID`,
-  `GOOGLE_ARCHIVE_KANTO_AUDIO_FOLDER_ID`, `GOOGLE_ARCHIVE_KANTO_TRANSCRIPT_FOLDER_ID`). Until those
-  three variables are set, Kanto's archive jobs wait (kept, never lost) with "archive destination not
-  configured for kanto-city-gas-demo". Setup steps: `docs/ARCHIVE-PER-CLIENT-SETUP.md`.
+- The Google archive is per client, with one deliberate exception: Kanto and sakura are both DEMO
+  clients and share the existing demo archive (the `GOOGLE_ARCHIVE_SHEET_ID`,
+  `GOOGLE_ARCHIVE_DRIVE_FOLDER_ID` and `GOOGLE_ARCHIVE_TRANSCRIPT_FOLDER_ID` Sheet and folders). Kanto's
+  `archive` block names those same variables and sets `sharedDemoArchive: true` (sakura sets it too);
+  no new variables are needed. Rows carry the client id and file names start with it, so Kanto's calls
+  stay distinguishable. A real client or TechMirai's own agent must NOT share: see
+  `docs/ARCHIVE-PER-CLIENT-SETUP.md`.
 - Not re-verified on a live call: Vapi's server-side resolution of the "today" placeholder, and every
   behaviour in the checklist above.
