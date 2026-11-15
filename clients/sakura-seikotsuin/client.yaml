@@ -453,7 +453,7 @@ notifications:
     provider: telnyx
     apiKeyEnv: TELNYX_API_KEY
     messagingProfileId: 4001a195-9a6f-4a6b-8c61-c4c1d09caf3d
-    senderId: Sakura
+    senderId: TechMirai
     # Abuse guards for the public demo page (anyone can type a number): an SMS goes only to a number
     # starting with one of these country codes (Japan only), and at most `maxPerDay` confirmations
     # are sent per rolling 24 hours in total, whatever the numbers (one number is also capped at

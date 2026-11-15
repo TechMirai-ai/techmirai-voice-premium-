@@ -166,7 +166,7 @@ describe('ChannelBookingNotifier — caller SMS', () => {
     expect(sms.sent[0]).toEqual({
       apiKey: 'test-telnyx-key',
       messagingProfileId: '4001a195-9a6f-4a6b-8c61-c4c1d09caf3d',
-      from: 'Sakura',
+      from: 'TechMirai',
       to: '+819012345678',
       text: 'さくら整骨院です。2026年11月3日 10:00のご予約を承りました。',
       idempotencyKey: 'booking-appt-1-sms',

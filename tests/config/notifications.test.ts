@@ -19,7 +19,7 @@ describe('notifications config (VP-23)', () => {
     expect(notifications?.sms).toMatchObject({
       provider: 'telnyx',
       apiKeyEnv: 'TELNYX_API_KEY',
-      senderId: 'Sakura',
+      senderId: 'TechMirai',
       defaultCountryCode: '+81',
       maxPerRecipientPerDay: 3,
     });
