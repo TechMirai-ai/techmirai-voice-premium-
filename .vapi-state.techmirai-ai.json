@@ -2,10 +2,14 @@
   "tools": {
     "techmirai-ai--ja--request-consultation": "92ce6802-eb4a-45d8-90fc-01ab3f48f2f2",
     "techmirai-ai--ja--log-call-topic": "9144df84-07d2-4ae9-a27a-38ed248a42cc",
-    "techmirai-ai--ja--handoff-to-en": "3ef25b11-471f-452b-965a-08e256c3d224"
+    "techmirai-ai--ja--handoff-to-en": "3ef25b11-471f-452b-965a-08e256c3d224",
+    "techmirai-ai--ja-return--request-consultation": "1030bc30-c07f-4273-a7c7-4418b989a069",
+    "techmirai-ai--ja-return--log-call-topic": "385e49e8-4886-45c5-b093-4380ecf8d375",
+    "techmirai-ai--ja-return--handoff-to-en": "0c0d42e2-2004-4554-94cf-cff247353682"
   },
   "assistants": {
-    "techmirai-ai--ja": "61ea7d26-3a38-4d0a-8c85-1a46a2b9fb0d"
+    "techmirai-ai--ja": "61ea7d26-3a38-4d0a-8c85-1a46a2b9fb0d",
+    "techmirai-ai--ja-return": "578c05ad-f9ec-49db-8f62-e98bfeab9b70"
   },
   "squads": {},
   "structuredOutputs": {
