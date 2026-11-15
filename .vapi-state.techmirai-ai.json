@@ -15,7 +15,9 @@
     "techmirai-ai--ja-return": "578c05ad-f9ec-49db-8f62-e98bfeab9b70",
     "techmirai-ai--en": "6f5c2e9e-7c5f-4282-8b25-efee88ff314c"
   },
-  "squads": {},
+  "squads": {
+    "techmirai-ai--squad": "6a967979-45ed-44ea-bb52-e534bd9749f9"
+  },
   "structuredOutputs": {
     "techmirai-ai--call-outcome": "b232f0be-7b2f-4b64-ab64-df67f8ebe8aa"
   }
