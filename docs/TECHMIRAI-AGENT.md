@@ -58,6 +58,10 @@ Order for a new request: **SMS first, then LINE**, so the staff message can say 
 
 Small relaxations of the shared schema, none of which changes an existing client: `business.hours.closedOnNationalHolidays` is optional; `notifications.sms.templates` and `notifications.line.messageTemplate` (the booking texts) are optional.
 
+## Known limits (accepted, see docs/TECHMIRAI-STOP1-APPROVAL.md §6b)
+
+A spoken number can be any Japanese mobile (one text per number per 24 h, 20 a day); throwaway numbers can use up the daily SMS/LINE caps; the cooldown counts requests, not delivered texts; a crash between save and notify leaves a saved request with no LINE alert. A repeated `request_consultation` in the same call keeps the first details and says so.
+
 ## How a call shows up for staff
 
 `call_logs.status`: a call where `request_consultation` succeeded is **`needs_callback`**. A failed or refused tool call, and a **name-only call** (no tool ran), stay **`unresolved`**. The name-only caller's name is in the call summary only.

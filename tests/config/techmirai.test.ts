@@ -126,6 +126,13 @@ describe('consultation rules', () => {
     );
   });
 
+  test('consultation SMS needs the per-number cooldown (the per-recipient cap cannot limit it)', () => {
+    expectConfigError(
+      mutated((d) => delete d.notifications.sms.consultationCooldownHours),
+      /consultationCooldownHours/,
+    );
+  });
+
   test('a link in the consultation SMS template is refused; the e-mail comes from a placeholder', () => {
     expectConfigError(
       mutated(

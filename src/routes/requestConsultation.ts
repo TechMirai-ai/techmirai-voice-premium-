@@ -53,6 +53,11 @@ const INVALID_NUMBER =
   'That number is not valid, so nothing was saved. Ask the caller to say it again, read it back ' +
   'digit by digit, and call this tool again only after they say yes.';
 const INVALID_NAME = 'The name is missing, so nothing was saved. Ask the caller for their name.';
+const ALREADY_SAVED =
+  `${CONSULTATION_SUCCESS_PREFIX} It had already been saved earlier in this call with the first ` +
+  'details, which are unchanged. Say staff will contact the caller during the contact hours in ' +
+  'your instructions and will confirm the number; say nothing about a text message. Do not call ' +
+  'this tool again.';
 const NOT_AVAILABLE = 'Consultation requests are not available here, so nothing was saved.';
 
 export interface RequestConsultationRouteDeps {
@@ -141,6 +146,10 @@ export function requestConsultationRouter(deps: RequestConsultationRouteDeps): R
             createdAt: request.createdAt,
           });
         }
+
+        // A repeat in the same call changes nothing: the FIRST details stay. Say so, so the model
+        // never claims the corrected number was saved or that a text is coming for it.
+        if (!created) return okResult(call, ALREADY_SAVED);
 
         // Whether a text is expected follows the number's type, from the client's own SMS rules.
         const sms = config.notifications?.sms;

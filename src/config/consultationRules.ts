@@ -81,6 +81,17 @@ export function consultationIssues(config: ClientConfig): ConfigIssue[] {
       message: 'required when the client has consultation and SMS notifications',
     });
   }
+  // The per-recipient daily cap counts bookings, so it cannot limit consultation texts: without a
+  // cooldown one number could be texted again and again.
+  if (
+    config.notifications?.sms?.consultationTemplates &&
+    !config.notifications.sms.consultationCooldownHours
+  ) {
+    issues.push({
+      path: 'notifications.sms.consultationCooldownHours',
+      message: 'required when consultation SMS templates are set — it is the per-number limit',
+    });
+  }
   if (config.notifications?.line && !config.notifications.line.consultationTemplate) {
     issues.push({
       path: 'notifications.line.consultationTemplate',

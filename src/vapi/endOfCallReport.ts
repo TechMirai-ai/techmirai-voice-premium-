@@ -10,6 +10,7 @@ import { z } from 'zod';
 
 import type { ToolOutcome } from '../lib/callStatus.js';
 import type { AssistantRef } from './assistantResolver.js';
+import { sanitizeInline } from '../notifications/template.js';
 import { callerPhoneFromCall } from './callVariables.js';
 
 const LOOKUP_TOOL = 'lookup_patient';
@@ -124,7 +125,7 @@ function callerNameOf(messages: readonly Message[]): string | undefined {
       if (tool !== CALLBACK_TOOL && tool !== CONSULTATION_TOOL) continue;
       const args = parseArguments(call.function?.arguments);
       const name = tool === CONSULTATION_TOOL ? args?.contact_name : args?.callerName;
-      if (typeof name === 'string' && name.trim()) return name.trim();
+      if (typeof name === 'string' && sanitizeInline(name)) return sanitizeInline(name);
     }
   }
   return undefined;

@@ -88,9 +88,28 @@ describe('request_consultation', () => {
     const first = await send();
     const second = await send();
 
-    expect(resultOf(second).result).toBe(resultOf(first).result);
+    expect(resultOf(first).result).toMatch(/^The consultation request was saved\./);
+    expect(resultOf(second).result).toMatch(/^The consultation request was saved\./);
     expect(consultations.rows).toHaveLength(1);
     expect(notifier.calls).toHaveLength(1);
+  });
+
+  test('a repeat with corrected details keeps the first row and does not promise a text', async () => {
+    const { app, consultations, notifier } = setup();
+    await request(app)
+      .post(PATH)
+      .set(AUTH)
+      .send(body({ contact_name: 'Taro', phone_source: 'spoken', spoken_phone: '09011112222' }));
+
+    const repeat = await request(app)
+      .post(PATH)
+      .set(AUTH)
+      .send(body({ contact_name: 'Taro', phone_source: 'spoken', spoken_phone: '08033334444' }));
+
+    expect(consultations.rows).toHaveLength(1);
+    expect(consultations.rows[0]?.contactPhone).toBe('09011112222');
+    expect(notifier.calls).toHaveLength(1);
+    expect(resultOf(repeat).result).toMatch(/already been saved.*unchanged.*nothing about a text/s);
   });
 
   test('a request with no call id is rejected and nothing is saved', async () => {
