@@ -88,5 +88,10 @@ export function buildMinimalConfig(options: MinimalConfigOptions = {}): ClientCo
     },
     scripts: buildScripts(language),
     faq: faqIds.map((id) => buildFaqEntry(language, id)),
+    archive: {
+      sheetIdEnv: 'GOOGLE_ARCHIVE_TEST_SHEET_ID',
+      audioFolderIdEnv: 'GOOGLE_ARCHIVE_TEST_AUDIO_FOLDER_ID',
+      transcriptFolderIdEnv: 'GOOGLE_ARCHIVE_TEST_TRANSCRIPT_FOLDER_ID',
+    },
   };
 }

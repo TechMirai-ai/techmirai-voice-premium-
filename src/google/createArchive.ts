@@ -14,6 +14,7 @@ import { PgArchiveJobRepository } from '../repositories/archiveJobRepository.js'
 import type { ArchiveRetryRouteDeps } from '../routes/archiveRetry.js';
 import type { ReportArchiver } from '../routes/endOfCallReport.js';
 import { refreshTokenProvider, serviceAccountProvider } from './auth.js';
+import { destinationResolver } from './archiveDestination.js';
 import { ArchiveService } from './archiveService.js';
 import { loadGoogleArchiveConfig } from './config.js';
 import { createDriveClient } from './drive.js';
@@ -42,22 +43,20 @@ export function createArchive(options: CreateArchiveOptions): Archive | undefine
   if (!config) return undefined;
 
   const drive = createDriveClient(refreshTokenProvider(config.oauth));
-  const sheets = createSheetsClient(
-    serviceAccountProvider({
-      clientEmail: config.serviceAccount.clientEmail,
-      privateKey: config.serviceAccount.privateKey,
-      scopes: [SHEETS_SCOPE],
-    }),
-    config.sheetId,
-  );
+  const sheetsAuth = serviceAccountProvider({
+    clientEmail: config.serviceAccount.clientEmail,
+    privateKey: config.serviceAccount.privateKey,
+    scopes: [SHEETS_SCOPE],
+  });
+  const loadClientConfig = options.loadClientConfig ?? loadClient;
 
   const service = new ArchiveService({
     jobs: new PgArchiveJobRepository(options.db),
-    sheets,
+    // The credentials are global; the spreadsheet id is per client (from its archive block).
+    sheetsFor: (sheetId) => createSheetsClient(sheetsAuth, sheetId),
     drive,
-    audioFolderId: config.audioFolderId,
-    transcriptFolderId: config.transcriptFolderId,
-    timeZoneFor: clinicTimeZoneLookup(options.loadClientConfig ?? loadClient),
+    destinationFor: destinationResolver(loadClientConfig, options.source ?? process.env),
+    timeZoneFor: clinicTimeZoneLookup(loadClientConfig),
     vapi: { apiKey: options.vapiApiKey },
   });
 

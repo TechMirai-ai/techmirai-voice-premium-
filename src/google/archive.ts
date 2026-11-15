@@ -17,7 +17,7 @@
  * never contain the transcript or a URL.
  */
 import { formatDuration } from '../lib/callDuration.js';
-import { archiveBaseName } from './archiveFileName.js';
+import { archiveBaseName, clientFileBaseName } from './archiveFileName.js';
 import type { DriveClient } from './drive.js';
 import { FIRST_SHEET_RANGE, type SheetsClient } from './sheets.js';
 
@@ -87,7 +87,8 @@ export interface ArchiveDeps {
   timeZoneFor(clientId: string): string;
 }
 
-export type ArchivePhase = 'sheet' | 'transcript' | 'audio';
+/** 'destination' = the client has no configured Sheet/folders; no Google call was made. */
+export type ArchivePhase = 'destination' | 'sheet' | 'transcript' | 'audio';
 export type ArchiveResult =
   { status: 'done' } | { status: 'failed'; phase: ArchivePhase; message: string };
 
@@ -104,6 +105,22 @@ function buildRow(job: ArchiveJob, source: ArchiveSource): string[] {
     job.durationSeconds === undefined ? '' : formatDuration(job.durationSeconds),
   ];
 }
+
+/**
+ * Row 1 of every client's Sheet (the code never writes it; `google:check` verifies it). Columns
+ * A–I, in the order `buildRow` writes them.
+ */
+export const ARCHIVE_SHEET_HEADER: readonly string[] = [
+  'Started at (UTC)',
+  'Client',
+  'Call ID',
+  'Language',
+  'Status',
+  'Ended reason',
+  'Audio (Drive link)',
+  'Transcript (Drive link)',
+  'Duration (m:ss)',
+];
 
 const EXTENSIONS: Readonly<Record<string, string>> = {
   'audio/wav': 'wav',
@@ -217,7 +234,10 @@ export async function archiveJob(
       job.fileBaseName ??
       (await deps.store.reserveFileBaseName(
         job,
-        archiveBaseName(job.startedAt, job.topic, deps.timeZoneFor(job.clientId)),
+        clientFileBaseName(
+          job.clientId,
+          archiveBaseName(job.startedAt, job.topic, deps.timeZoneFor(job.clientId)),
+        ),
       ));
   } catch (error) {
     return fail(deps, job, 'transcript', error);

@@ -28,6 +28,13 @@ export interface ArchiveJobRepository extends JobStore {
   claimCall(clientId: string, callId: string): Promise<ArchiveJob | undefined>;
   /** Claims up to `limit` runnable jobs, oldest first. */
   claimRunnable(limit: number): Promise<ArchiveJob[]>;
+  /**
+   * Records why a job cannot run YET (no archive destination configured) and leaves it `pending`.
+   * Unlike `recordFailure` this never moves the job to the terminal `failed` state, however many
+   * times the claim has bumped `attempts`: nothing requeues a `failed` job, so a config gap would
+   * otherwise lose the job for good. Once the config exists, the next retry run archives it.
+   */
+  recordBlocked(jobId: string, message: string): Promise<void>;
   countByState(): Promise<ArchiveQueueCounts>;
 }
 
@@ -185,6 +192,13 @@ export class PgArchiveJobRepository implements ArchiveJobRepository {
            updated_at = now()
        WHERE id = $1`,
       [jobId, message, MAX_ARCHIVE_ATTEMPTS],
+    );
+  }
+
+  async recordBlocked(jobId: string, message: string): Promise<void> {
+    await this.db.query(
+      `UPDATE call_archive_jobs SET last_error = $2, updated_at = now() WHERE id = $1`,
+      [jobId, message],
     );
   }
 

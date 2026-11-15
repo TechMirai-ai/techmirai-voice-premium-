@@ -11,8 +11,9 @@ import { GoogleApiError } from '../../src/google/http.js';
 
 const AUDIO_FOLDER = 'audio-folder';
 const TRANSCRIPT_FOLDER = 'transcript-folder';
-// The job starts 01:00:30 UTC, which is 10:00 in the clinic's timezone (Asia/Tokyo).
-const BASE_NAME = '2026-10-12-1000-reservation';
+// The job starts 01:00:30 UTC, which is 10:00 in the clinic's timezone (Asia/Tokyo). New file names
+// are prefixed with the client id (the job's clientId is 'sakura-seikotsuin').
+const BASE_NAME = 'sakura-seikotsuin-2026-10-12-1000-reservation';
 const RANGE = 'Sheet1!A5:I5';
 const LINK = 'https://drive.google.com/file/d/file-1/view';
 

@@ -554,3 +554,10 @@ transfer:
     failed:
       ja: 申し訳ございません。スタッフにおつなぎすることができませんでした。
       en: I'm sorry, I wasn't able to connect you to a staff member.
+
+archive:
+  # Where this client's calls are archived. Env var NAMES only (the ids live in .env / Vercel).
+  # Sakura keeps the original shared names, so GOOGLE_ARCHIVE_SHEET_ID now means "Sakura's Sheet".
+  sheetIdEnv: GOOGLE_ARCHIVE_SHEET_ID
+  audioFolderIdEnv: GOOGLE_ARCHIVE_DRIVE_FOLDER_ID
+  transcriptFolderIdEnv: GOOGLE_ARCHIVE_TRANSCRIPT_FOLDER_ID

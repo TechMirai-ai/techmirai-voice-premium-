@@ -246,6 +246,25 @@ describe.skipIf(!TEST_DATABASE_URL)('call_archive_jobs (real Postgres)', () => {
     expect(await repo.claimRunnable(10)).toEqual([]);
   });
 
+  test(`recordBlocked (no archive destination) keeps the job pending past ${MAX_ARCHIVE_ATTEMPTS} attempts, so config added later still archives it`, async () => {
+    await repo.enqueue('c', 'call-1');
+    for (let attempt = 1; attempt <= MAX_ARCHIVE_ATTEMPTS + 3; attempt += 1) {
+      await pool.query("UPDATE call_archive_jobs SET updated_at = now() - interval '10 minutes'");
+      const [job] = await repo.claimRunnable(1);
+      expect(job).toBeDefined();
+      await repo.recordBlocked(job!.id, 'archive destination not configured for c (unset: X)');
+    }
+
+    expect(await stateOf('call-1')).toMatchObject({
+      state: 'pending',
+      last_error: 'archive destination not configured for c (unset: X)',
+    });
+    // Still claimable once the lease lapses, and not before (no hot loop within one retry run).
+    expect(await repo.claimRunnable(10)).toEqual([]);
+    await pool.query("UPDATE call_archive_jobs SET updated_at = now() - interval '10 minutes'");
+    expect(await repo.claimRunnable(10)).toHaveLength(1);
+  });
+
   test('countByState reports the queue for the retry summary', async () => {
     await repo.enqueue('c', 'a');
     await repo.enqueue('c', 'b');

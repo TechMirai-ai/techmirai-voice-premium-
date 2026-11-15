@@ -16,9 +16,6 @@ const serviceAccount = Buffer.from(
 
 const complete: NodeJS.ProcessEnv = {
   GOOGLE_SERVICE_ACCOUNT_JSON_B64: serviceAccount,
-  GOOGLE_ARCHIVE_SHEET_ID: 'sheet-1',
-  GOOGLE_ARCHIVE_DRIVE_FOLDER_ID: 'folder-1',
-  GOOGLE_ARCHIVE_TRANSCRIPT_FOLDER_ID: 'transcript-folder-1',
   GOOGLE_OAUTH_CLIENT_ID: 'cid',
   GOOGLE_OAUTH_CLIENT_SECRET: 'csecret',
   GOOGLE_OAUTH_REFRESH_TOKEN: 'rtoken',
@@ -33,9 +30,6 @@ describe('loadGoogleArchiveConfig', () => {
 
   test('parses a complete configuration', () => {
     const config = loadGoogleArchiveConfig(complete)!;
-    expect(config.sheetId).toBe('sheet-1');
-    expect(config.audioFolderId).toBe('folder-1');
-    expect(config.transcriptFolderId).toBe('transcript-folder-1');
     expect(config.serviceAccount.clientEmail).toBe('w@p.iam.gserviceaccount.com');
     expect(config.oauth).toEqual({
       clientId: 'cid',
@@ -48,10 +42,20 @@ describe('loadGoogleArchiveConfig', () => {
   test('a half-configured setup fails loudly, naming every missing variable', () => {
     const partial = { ...complete };
     delete partial.GOOGLE_OAUTH_REFRESH_TOKEN;
-    delete partial.GOOGLE_ARCHIVE_DRIVE_FOLDER_ID;
+    delete partial.ARCHIVE_RETRY_SECRET;
 
     expect(() => loadGoogleArchiveConfig(partial)).toThrow(/GOOGLE_OAUTH_REFRESH_TOKEN/);
-    expect(() => loadGoogleArchiveConfig(partial)).toThrow(/GOOGLE_ARCHIVE_DRIVE_FOLDER_ID/);
+    expect(() => loadGoogleArchiveConfig(partial)).toThrow(/ARCHIVE_RETRY_SECRET/);
+  });
+
+  test('the per-client destination variables are not part of this config at all', () => {
+    // GOOGLE_ARCHIVE_* are resolved per client (src/google/archiveDestination.ts), never here:
+    // setting them neither enables archiving nor changes the credentials config.
+    expect(loadGoogleArchiveConfig({ GOOGLE_ARCHIVE_SHEET_ID: 'sheet-1' })).toBeUndefined();
+    const config = loadGoogleArchiveConfig({ ...complete, GOOGLE_ARCHIVE_SHEET_ID: 'sheet-1' })!;
+    expect(Object.keys(config)).not.toContain('sheetId');
+    expect(Object.keys(config)).not.toContain('audioFolderId');
+    expect(Object.keys(config)).not.toContain('transcriptFolderId');
   });
 
   test('the error never contains a secret value', () => {

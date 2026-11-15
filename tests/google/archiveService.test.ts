@@ -1,6 +1,13 @@
 import { describe, expect, test, vi } from 'vitest';
 
 import type { ArchiveJob } from '../../src/google/archive.js';
+import { loadClient } from '../../src/config/loadClient.js';
+import {
+  destinationNotConfigured,
+  resolveArchiveDestination,
+  type ArchiveDestination,
+  type DestinationResult,
+} from '../../src/google/archiveDestination.js';
 import { ArchiveService, type ArchiveReportInput } from '../../src/google/archiveService.js';
 import { requestUrl } from '../../src/google/http.js';
 import type {
@@ -88,6 +95,11 @@ class MemoryJobs implements ArchiveJobRepository {
     this.get(id).lastError = message;
     return Promise.resolve();
   }
+  /** Mirrors the Postgres one: records the reason, never changes the state. */
+  recordBlocked(id: string, message: string): Promise<void> {
+    this.get(id).lastError = message;
+    return Promise.resolve();
+  }
   countByState(): Promise<ArchiveQueueCounts> {
     const counts = { pending: 0, done: 0, failed: 0 };
     for (const job of this.jobs.values()) counts[job.state] += 1;
@@ -103,14 +115,39 @@ const REPORT: ArchiveReportInput = {
   endedReason: 'assistant-ended-call',
 };
 
-function setup(options: { vapiRoutes?: Record<string, () => Response>; budgetMs?: number } = {}) {
+const DEFAULT_DESTINATION: ArchiveDestination = {
+  sheetId: 'sheet-1',
+  audioFolderId: 'audio-folder',
+  transcriptFolderId: 'transcript-folder',
+};
+
+function setup(
+  options: {
+    vapiRoutes?: Record<string, () => Response>;
+    budgetMs?: number;
+    /** clientId → destination; a client missing from the map is "not configured". Default: every client → DEFAULT_DESTINATION. */
+    destinations?: Record<string, ArchiveDestination>;
+  } = {},
+) {
   const jobs = new MemoryJobs();
-  const sheets = {
-    appendRow: vi.fn((_range: string, _values: readonly string[]) =>
-      Promise.resolve('Sheet1!A5:J5'),
-    ),
-    updateCell: vi.fn((_range: string, _value: string) => Promise.resolve()),
-  };
+  const sheetsById = new Map<string, ReturnType<typeof makeSheets>>();
+  const defaultSheets = makeSheets();
+  const sheetsFor = vi.fn((sheetId: string) => {
+    const existing = sheetsById.get(sheetId);
+    if (existing) return existing;
+    const created = sheetId === DEFAULT_DESTINATION.sheetId ? defaultSheets : makeSheets();
+    sheetsById.set(sheetId, created);
+    return created;
+  });
+  const destinationFor = vi.fn((clientId: string): DestinationResult => {
+    const destination = options.destinations ? options.destinations[clientId] : DEFAULT_DESTINATION;
+    return destination
+      ? { ok: true, destination }
+      : { ok: false, message: destinationNotConfigured(clientId, 'unset: TEST_ENV') };
+  });
+  // The default Sheet's mock is created up front for the older tests, but is only RECORDED in
+  // `sheetsById` (what "touched" means) once the service actually asks for it.
+  const sheets = defaultSheets;
   const drive = {
     uploadFile: vi.fn((_request: { folderId: string; name: string; bytes: Uint8Array }) =>
       Promise.resolve({ id: 'f', link: 'https://drive.example/f' }),
@@ -123,15 +160,23 @@ function setup(options: { vapiRoutes?: Record<string, () => Response>; budgetMs?
   }) as unknown as typeof fetch;
   const service = new ArchiveService({
     jobs,
-    sheets,
+    sheetsFor,
     drive,
-    audioFolderId: 'audio-folder',
-    transcriptFolderId: 'transcript-folder',
+    destinationFor,
     timeZoneFor: () => 'Asia/Tokyo',
     vapi: { apiKey: 'vapi-key', fetch: vapiFetch },
     ...(options.budgetMs !== undefined ? { inlineBudgetMs: options.budgetMs } : {}),
   });
-  return { service, jobs, sheets, drive };
+  return { service, jobs, sheets, sheetsById, sheetsFor, drive, vapiFetch };
+}
+
+function makeSheets() {
+  return {
+    appendRow: vi.fn((_range: string, _values: readonly string[]) =>
+      Promise.resolve('Sheet1!A5:J5'),
+    ),
+    updateCell: vi.fn((_range: string, _value: string) => Promise.resolve()),
+  };
 }
 
 const WAV = () =>
@@ -280,5 +325,209 @@ describe('ArchiveService.retryPending', () => {
     jobs.expireLeases();
 
     expect((await service.retryPending()).done).toBe(1);
+  });
+});
+
+describe('per-client archive destinations', () => {
+  const callJson = () =>
+    Response.json({
+      startedAt: '2026-10-12T01:00:00.000Z',
+      endedReason: 'assistant-ended-call',
+      artifact: { transcript: 'AI: hello' },
+    });
+  const routesFor = (...callIds: string[]) => ({
+    ...Object.fromEntries(callIds.map((id) => [`https://api.vapi.ai/call/${id}`, callJson])),
+    ...Object.fromEntries(
+      callIds.map((id) => [`https://api.vapi.ai/call/${id}/mono-recording`, WAV]),
+    ),
+  });
+  const A: ArchiveDestination = {
+    sheetId: 'sheet-a',
+    audioFolderId: 'audio-a',
+    transcriptFolderId: 'transcripts-a',
+  };
+  const B: ArchiveDestination = {
+    sheetId: 'sheet-b',
+    audioFolderId: 'audio-b',
+    transcriptFolderId: 'transcripts-b',
+  };
+
+  test('a job for client A writes only to A’s Sheet and folders, and B’s only to B’s', async () => {
+    const { service, jobs, sheetsById, drive } = setup({
+      destinations: { a: A, b: B },
+      vapiRoutes: routesFor('call-a', 'call-b'),
+    });
+    await jobs.enqueue('a', 'call-a');
+    await jobs.enqueue('b', 'call-b');
+
+    const summary = await service.retryPending();
+
+    expect(summary).toMatchObject({ claimed: 2, done: 2, failed: 0 });
+    // Exactly two Sheets were ever touched, one row each, carrying the right client id (column B).
+    expect([...sheetsById.keys()].sort()).toEqual(['sheet-a', 'sheet-b']);
+    for (const [sheetId, clientId] of [['sheet-a', 'a'], ['sheet-b', 'b']] as const) {
+      const sheet = sheetsById.get(sheetId)!;
+      expect(sheet.appendRow).toHaveBeenCalledTimes(1);
+      expect(sheet.appendRow.mock.calls[0]![1][1]).toBe(clientId);
+    }
+    // Every upload for a client's files landed in that client's folders, and nowhere else.
+    const uploads = drive.uploadFile.mock.calls.map(([request]) => request);
+    expect(uploads).toHaveLength(4); // transcript + audio, twice
+    for (const upload of uploads) {
+      const own = upload.name.startsWith('a-') ? A : B;
+      expect([own.audioFolderId, own.transcriptFolderId]).toContain(upload.folderId);
+    }
+    expect(uploads.filter((u) => u.name.startsWith('a-')).map((u) => u.folderId).sort()).toEqual([
+      'audio-a',
+      'transcripts-a',
+    ]);
+    expect(uploads.filter((u) => u.name.startsWith('b-')).map((u) => u.folderId).sort()).toEqual([
+      'audio-b',
+      'transcripts-b',
+    ]);
+  });
+
+  test('new Drive file names (transcript and audio) carry the client id', async () => {
+    const { service, jobs, drive } = setup({
+      destinations: { a: A },
+      vapiRoutes: routesFor('call-a'),
+    });
+    await jobs.enqueue('a', 'call-a');
+    jobs.jobs.get('a/call-a')!.startedAt = new Date('2026-10-12T01:00:00.000Z'); // the repo joins this from call_logs
+
+    await service.retryPending();
+
+    const names = drive.uploadFile.mock.calls.map(([request]) => request.name).sort();
+    expect(names).toHaveLength(2);
+    for (const name of names) expect(name).toMatch(/^a-2026-10-12-1000-no-topic\.(txt|wav|bin)$/);
+  });
+
+  test('a job whose file name was already reserved keeps it (existing files are never renamed)', async () => {
+    const { service, jobs, drive } = setup({
+      destinations: { a: A },
+      vapiRoutes: routesFor('call-a'),
+    });
+    await jobs.enqueue('a', 'call-a');
+    const stored = jobs.jobs.get('a/call-a')!;
+    stored.fileBaseName = '2026-10-12-1000-reservation'; // reserved before this change: no prefix
+
+    await service.retryPending();
+
+    for (const [request] of drive.uploadFile.mock.calls) {
+      expect(request.name).toMatch(/^2026-10-12-1000-reservation\./);
+    }
+  });
+
+  describe('fails closed when the destination is not configured', () => {
+    test('inline: zero Google or Vapi calls, a distinct recorded failure, the job kept pending', async () => {
+      const { service, jobs, sheetsFor, drive, vapiFetch } = setup({ destinations: {} });
+
+      const outcome = await service.archiveReport({ ...REPORT, clientId: 'x' });
+
+      expect(outcome).toBe('failed');
+      expect(sheetsFor).not.toHaveBeenCalled();
+      expect(drive.uploadFile).not.toHaveBeenCalled();
+      expect(vapiFetch).not.toHaveBeenCalled();
+      const job = jobs.jobs.get('x/call-1')!;
+      expect(job.state).toBe('pending');
+      expect(job.lastError).toMatch(/^archive destination not configured for x\b/);
+    });
+
+    test('retry: the same, and it never falls back to another client’s destination', async () => {
+      const { service, jobs, sheetsById, drive } = setup({
+        destinations: { a: A },
+        vapiRoutes: routesFor('call-x'),
+      });
+      await jobs.enqueue('x', 'call-x');
+
+      const summary = await service.retryPending();
+
+      expect(summary).toMatchObject({ claimed: 1, done: 0, failed: 1 });
+      expect(sheetsById.size).toBe(0);
+      expect(drive.uploadFile).not.toHaveBeenCalled();
+      expect(jobs.jobs.get('x/call-x')!.lastError).toContain(
+        'archive destination not configured for x',
+      );
+    });
+
+    test('an unconfigured client does not block a configured one in the same queue', async () => {
+      const { service, jobs, sheetsById } = setup({
+        destinations: { a: A },
+        vapiRoutes: routesFor('call-a', 'call-x'),
+      });
+      await jobs.enqueue('x', 'call-x'); // oldest, unconfigured
+      await jobs.enqueue('a', 'call-a');
+
+      const summary = await service.retryPending();
+
+      expect(summary).toMatchObject({ claimed: 2, done: 1, failed: 1 });
+      expect(sheetsById.get('sheet-a')!.appendRow).toHaveBeenCalledTimes(1);
+      expect(jobs.jobs.get('a/call-a')!.state).toBe('done');
+      expect(jobs.jobs.get('x/call-x')!.state).toBe('pending');
+    });
+
+    test('stays retryable: many blocked passes never make the job terminally failed, and it archives once config exists', async () => {
+      const destinations: Record<string, ArchiveDestination> = {};
+      const { service, jobs, sheetsById } = setup({
+        destinations,
+        vapiRoutes: routesFor('call-x'),
+      });
+      await jobs.enqueue('x', 'call-x');
+
+      for (let pass = 0; pass < 8; pass += 1) {
+        await service.retryPending(); // more passes than MAX_ARCHIVE_ATTEMPTS
+        jobs.expireLeases();
+      }
+      expect(jobs.jobs.get('x/call-x')!.state).toBe('pending');
+      expect(sheetsById.size).toBe(0);
+
+      destinations['x'] = B; // Jamal sets the env vars
+      const summary = await service.retryPending();
+
+      expect(summary).toMatchObject({ done: 1, failed: 0 });
+      expect(jobs.jobs.get('x/call-x')!.state).toBe('done');
+      expect(sheetsById.get('sheet-b')!.appendRow).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  test('Sakura, with its existing variable names and ids unchanged, writes the same row to the same Sheet and folders as before', async () => {
+    const env = {
+      GOOGLE_ARCHIVE_SHEET_ID: 'sakura-sheet',
+      GOOGLE_ARCHIVE_DRIVE_FOLDER_ID: 'sakura-audio',
+      GOOGLE_ARCHIVE_TRANSCRIPT_FOLDER_ID: 'sakura-transcripts',
+    };
+    const target = resolveArchiveDestination('sakura-seikotsuin', loadClient, env);
+    expect(target.ok).toBe(true);
+    if (!target.ok) return;
+    expect(target.destination).toEqual({
+      sheetId: 'sakura-sheet',
+      audioFolderId: 'sakura-audio',
+      transcriptFolderId: 'sakura-transcripts',
+    });
+
+    const { service, jobs, sheetsById, drive } = setup({
+      destinations: { 'sakura-seikotsuin': target.destination },
+      vapiRoutes: routesFor('call-s'),
+    });
+    await jobs.enqueue('sakura-seikotsuin', 'call-s');
+
+    await service.retryPending();
+
+    expect([...sheetsById.keys()]).toEqual(['sakura-sheet']);
+    const [range, row] = sheetsById.get('sakura-sheet')!.appendRow.mock.calls[0]!;
+    expect(range).toBe('A1');
+    expect(row).toEqual([
+      '2026-10-12T01:00:00.000Z',
+      'sakura-seikotsuin',
+      'call-s',
+      'ja',
+      'unresolved',
+      'assistant-ended-call',
+      '',
+      '',
+      '',
+    ]);
+    const folders = drive.uploadFile.mock.calls.map(([request]) => request.folderId).sort();
+    expect(folders).toEqual(['sakura-audio', 'sakura-transcripts']);
   });
 });

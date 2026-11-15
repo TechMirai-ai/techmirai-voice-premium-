@@ -41,6 +41,15 @@ export function archiveBaseName(
   return `${parts.year}-${parts.month}-${parts.day}-${parts.hour}${parts.minute}-${topicSlug(topic)}`;
 }
 
+/**
+ * New files are named `<clientId>-<date>-<time>-<topic>` so a file is attributable to its client
+ * even if it is ever moved or copied out of that client's folder. `clientId` is a slug (validated
+ * by the config schema), so it is safe in a file name. The collision suffix is added AFTER this.
+ */
+export function clientFileBaseName(clientId: string, base: string): string {
+  return `${clientId}-${base}`;
+}
+
 /** The nth candidate for a base name: 1 → base, 2 → base-2, … */
 export function withCollisionSuffix(base: string, attempt: number): string {
   return attempt <= 1 ? base : `${base}-${attempt}`;

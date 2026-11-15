@@ -7,10 +7,15 @@
  * A non-slug id (path separators, uppercase, …) is simply "not known": `clientDir` rejects it
  * before it can touch the filesystem.
  */
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
-import { CLIENT_CONFIG_FILENAME, clientDir, type LoadClientOptions } from './loadClient.js';
+import {
+  CLIENT_CONFIG_FILENAME,
+  clientDir,
+  defaultClientsDir,
+  type LoadClientOptions,
+} from './loadClient.js';
 
 export function isKnownClient(clientId: string, options: LoadClientOptions = {}): boolean {
   try {
@@ -18,6 +23,15 @@ export function isKnownClient(clientId: string, options: LoadClientOptions = {})
   } catch {
     return false;
   }
+}
+
+/** Every client id that has a `clients/<id>/client.yaml`, sorted. */
+export function listClientIds(options: LoadClientOptions = {}): string[] {
+  const root = options.clientsDir ?? defaultClientsDir();
+  return readdirSync(root, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && isKnownClient(entry.name, options))
+    .map((entry) => entry.name)
+    .sort();
 }
 
 /** The message every guarded CLI prints for an id that is not a client. */

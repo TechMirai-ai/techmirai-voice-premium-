@@ -16,11 +16,15 @@ export interface SheetsClient {
   /** Appends one row below the last row of `sheetName`; returns the A1 range it was written to. */
   appendRow(sheetName: string, values: readonly string[]): Promise<string>;
   clearRange(range: string): Promise<void>;
+  /** Reads a range as rows of cell text (empty trailing cells and rows are omitted by Google). */
+  readRange(range: string): Promise<string[][]>;
   /** Overwrites a single cell, e.g. 'Sheet1!G5'. */
   updateCell(range: string, value: string): Promise<void>;
 }
 
 const appendSchema = z.object({ updates: z.object({ updatedRange: z.string().min(1) }) });
+
+const readSchema = z.object({ values: z.array(z.array(z.string())).optional() });
 
 export function createSheetsClient(
   auth: AccessTokenProvider,
@@ -55,6 +59,18 @@ export function createSheetsClient(
         `${base}/${encodeURIComponent(range)}?valueInputOption=RAW`,
         { method: 'PUT', headers: json, body: JSON.stringify({ values: [[value]] }) },
       );
+    },
+
+    async readRange(range) {
+      const response = await googleFetch(fetchFn, auth, `${base}/${encodeURIComponent(range)}`);
+      const parsed = readSchema.safeParse(await response.json().catch(() => undefined));
+      if (!parsed.success) {
+        throw new GoogleApiError(
+          'Google Sheets response was not in the expected shape.',
+          response.status,
+        );
+      }
+      return parsed.data.values ?? [];
     },
 
     async clearRange(range) {

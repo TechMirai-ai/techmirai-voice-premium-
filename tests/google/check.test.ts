@@ -2,6 +2,8 @@ import { generateKeyPairSync } from 'node:crypto';
 
 import { describe, expect, test } from 'vitest';
 
+import { ARCHIVE_SHEET_HEADER } from '../../src/google/archive.js';
+import type { ArchiveDestination } from '../../src/google/archiveDestination.js';
 import { runGoogleCheck, type CheckStep } from '../../src/google/check.js';
 import type { GoogleArchiveConfig } from '../../src/google/config.js';
 import { requestBodyText, requestUrl } from '../../src/google/http.js';
@@ -14,11 +16,14 @@ const { privateKey } = generateKeyPairSync('rsa', {
 
 const baseConfig: GoogleArchiveConfig = {
   serviceAccount: { clientEmail: 'w@p.iam.gserviceaccount.com', privateKey },
+  oauth: { clientId: 'cid', clientSecret: 'csecret', refreshToken: 'rtoken' },
+  retrySecret: 'x'.repeat(32),
+};
+
+const destination: ArchiveDestination = {
   sheetId: 'sheet-1',
   audioFolderId: 'folder-1',
   transcriptFolderId: 'transcript-folder-1',
-  oauth: { clientId: 'cid', clientSecret: 'csecret', refreshToken: 'rtoken' },
-  retrySecret: 'x'.repeat(32),
 };
 
 interface FakeOptions {
@@ -26,6 +31,10 @@ interface FakeOptions {
   failRefreshNumber?: number;
   /** HTTP status to answer the upload-session request with. */
   uploadInitStatus?: number;
+  /** Row 1 of the fake Sheet; defaults to the correct header. */
+  sheetHeader?: string[];
+  /** HTTP status for reading the Sheet's header row (e.g. 403 = not shared with the service account). */
+  sheetReadStatus?: number;
 }
 
 /** One fake Google: token endpoint, Sheets, and Drive, with an in-memory file store. */
@@ -35,6 +44,7 @@ function fakeGoogle(options: FakeOptions = {}) {
   let nextFile = 0;
   let pendingName = '';
   const uploadedToFolders: string[] = [];
+  const sheetIdsUsed: string[] = [];
 
   const json = (value: unknown, status = 200, headers: Record<string, string> = {}) =>
     new Response(JSON.stringify(value), { status, headers });
@@ -55,7 +65,15 @@ function fakeGoogle(options: FakeOptions = {}) {
       stats.serviceAccountGrants += 1;
       return json({ access_token: `sheets-at-${stats.serviceAccountGrants}`, expires_in: 3600 });
     }
+    if (url.includes('/spreadsheets/') && url.includes('/values/A1%3AI1') && method === 'GET') {
+      sheetIdsUsed.push(/spreadsheets\/([^/]+)\//.exec(url)![1]!);
+      if (options.sheetReadStatus && options.sheetReadStatus !== 200) {
+        return json({}, options.sheetReadStatus);
+      }
+      return json({ values: [options.sheetHeader ?? [...ARCHIVE_SHEET_HEADER]] });
+    }
     if (url.includes(':append')) {
+      sheetIdsUsed.push(/spreadsheets\/([^/]+)\//.exec(url)![1]!);
       stats.sheetRows += 1;
       return json({ updates: { updatedRange: 'Calls!A9:C9' } });
     }
@@ -98,7 +116,7 @@ function fakeGoogle(options: FakeOptions = {}) {
   const fetchFn = ((input: string | URL | Request, init?: RequestInit) =>
     Promise.resolve(handle(input, init))) as typeof fetch;
 
-  return { fetchFn, files, stats, uploadedToFolders };
+  return { fetchFn, files, stats, uploadedToFolders, sheetIdsUsed };
 }
 
 const byName = (steps: CheckStep[], name: RegExp) => steps.find((step) => name.test(step.name));
@@ -107,7 +125,7 @@ describe('runGoogleCheck', () => {
   test('passes end to end, using the stored refresh token three separate times', async () => {
     const google = fakeGoogle();
 
-    const result = await runGoogleCheck(baseConfig, { fetch: google.fetchFn });
+    const result = await runGoogleCheck(baseConfig, destination, { fetch: google.fetchFn });
 
     expect(result.ok).toBe(true);
     expect(result.steps.every((step) => step.status !== 'fail')).toBe(true);
@@ -120,7 +138,7 @@ describe('runGoogleCheck', () => {
   test('proves the transcript folder separately from the audio folder', async () => {
     const google = fakeGoogle();
 
-    const result = await runGoogleCheck(baseConfig, { fetch: google.fetchFn });
+    const result = await runGoogleCheck(baseConfig, destination, { fetch: google.fetchFn });
 
     expect(byName(result.steps, /transcript folder/i)?.status).toBe('pass');
     expect(google.uploadedToFolders).toContain('folder-1');
@@ -130,7 +148,7 @@ describe('runGoogleCheck', () => {
   test('forces the access token to expire and proves it is renewed from the refresh token', async () => {
     const google = fakeGoogle();
 
-    const result = await runGoogleCheck(baseConfig, { fetch: google.fetchFn });
+    const result = await runGoogleCheck(baseConfig, destination, { fetch: google.fetchFn });
 
     const renewal = byName(result.steps, /renew/i)!;
     expect(renewal.status).toBe('pass');
@@ -140,7 +158,7 @@ describe('runGoogleCheck', () => {
   test('proves a cold start works: a brand-new provider that only has the stored secret', async () => {
     const google = fakeGoogle();
 
-    const result = await runGoogleCheck(baseConfig, { fetch: google.fetchFn });
+    const result = await runGoogleCheck(baseConfig, destination, { fetch: google.fetchFn });
 
     expect(byName(result.steps, /cold start/i)?.status).toBe('pass');
   });
@@ -148,7 +166,7 @@ describe('runGoogleCheck', () => {
   test('leaves nothing behind: both test files are deleted and the test row cleared', async () => {
     const google = fakeGoogle();
 
-    await runGoogleCheck(baseConfig, { fetch: google.fetchFn });
+    await runGoogleCheck(baseConfig, destination, { fetch: google.fetchFn });
 
     expect(google.files.size).toBe(0);
   });
@@ -156,7 +174,7 @@ describe('runGoogleCheck', () => {
   test('FAILS if the renewal grant is rejected, even though the first upload worked', async () => {
     const google = fakeGoogle({ failRefreshNumber: 2 });
 
-    const result = await runGoogleCheck(baseConfig, { fetch: google.fetchFn });
+    const result = await runGoogleCheck(baseConfig, destination, { fetch: google.fetchFn });
 
     expect(result.ok).toBe(false);
     expect(byName(result.steps, /first upload/i)?.status).toBe('pass');
@@ -167,7 +185,7 @@ describe('runGoogleCheck', () => {
   test('a revoked refresh token fails the upload with an actionable message', async () => {
     const google = fakeGoogle({ failRefreshNumber: 1 });
 
-    const result = await runGoogleCheck(baseConfig, { fetch: google.fetchFn });
+    const result = await runGoogleCheck(baseConfig, destination, { fetch: google.fetchFn });
 
     expect(result.ok).toBe(false);
     const upload = byName(result.steps, /first upload/i)!;
@@ -178,7 +196,7 @@ describe('runGoogleCheck', () => {
   test('a folder the app cannot see (404) points at the consent step that creates it', async () => {
     const google = fakeGoogle({ uploadInitStatus: 404 });
 
-    const result = await runGoogleCheck(baseConfig, { fetch: google.fetchFn });
+    const result = await runGoogleCheck(baseConfig, destination, { fetch: google.fetchFn });
 
     expect(byName(result.steps, /first upload/i)?.detail).toMatch(/google:consent/);
   });
@@ -186,7 +204,7 @@ describe('runGoogleCheck', () => {
   test('never prints a secret in any step', async () => {
     const google = fakeGoogle({ failRefreshNumber: 1 });
 
-    const result = await runGoogleCheck(baseConfig, { fetch: google.fetchFn });
+    const result = await runGoogleCheck(baseConfig, destination, { fetch: google.fetchFn });
 
     const text = JSON.stringify(result.steps);
     for (const secret of ['rtoken', 'csecret', privateKey.slice(40, 80)]) {
@@ -202,7 +220,7 @@ describe('runGoogleCheck', () => {
     });
 
     test('younger than 7 days: warns that a Testing-mode token cannot be ruled out yet, with the re-check date', async () => {
-      const result = await runGoogleCheck(withIssued('2026-10-18T00:00:00.000Z'), {
+      const result = await runGoogleCheck(withIssued('2026-10-18T00:00:00.000Z'), destination, {
         fetch: fakeGoogle().fetchFn,
         now: () => now,
       });
@@ -214,7 +232,7 @@ describe('runGoogleCheck', () => {
     });
 
     test('older than 7 days and still working: passes — it is not a Testing-mode token', async () => {
-      const result = await runGoogleCheck(withIssued('2026-10-01T00:00:00.000Z'), {
+      const result = await runGoogleCheck(withIssued('2026-10-01T00:00:00.000Z'), destination, {
         fetch: fakeGoogle().fetchFn,
         now: () => now,
       });
@@ -223,8 +241,66 @@ describe('runGoogleCheck', () => {
     });
 
     test('no issue date recorded: warns', async () => {
-      const result = await runGoogleCheck(baseConfig, { fetch: fakeGoogle().fetchFn });
+      const result = await runGoogleCheck(baseConfig, destination, { fetch: fakeGoogle().fetchFn });
       expect(byName(result.steps, /token age/i)?.status).toBe('warn');
+    });
+  });
+
+  describe('per-client Sheet', () => {
+    test('uses the destination’s Sheet id and verifies the header row', async () => {
+      const google = fakeGoogle();
+
+      const result = await runGoogleCheck(baseConfig, destination, { fetch: google.fetchFn });
+
+      expect(byName(result.steps, /header row/i)?.status).toBe('pass');
+      expect(new Set(google.sheetIdsUsed)).toEqual(new Set(['sheet-1']));
+    });
+
+    test('a wrong header row fails the check and names the column to fix', async () => {
+      const wrong = [...ARCHIVE_SHEET_HEADER];
+      wrong[2] = 'Call';
+      const google = fakeGoogle({ sheetHeader: wrong });
+
+      const result = await runGoogleCheck(baseConfig, destination, { fetch: google.fetchFn });
+
+      const header = byName(result.steps, /header row/i)!;
+      expect(header.status).toBe('fail');
+      expect(header.detail).toContain('column 3');
+      expect(header.detail).toContain('Call ID');
+      expect(result.ok).toBe(false);
+    });
+
+    test('an empty Sheet (no header) fails', async () => {
+      const result = await runGoogleCheck(baseConfig, destination, {
+        fetch: fakeGoogle({ sheetHeader: [] }).fetchFn,
+      });
+      expect(byName(result.steps, /header row/i)?.status).toBe('fail');
+    });
+
+    test('a Sheet that cannot be read (not shared) fails with a fixable message', async () => {
+      const result = await runGoogleCheck(baseConfig, destination, {
+        fetch: fakeGoogle({ sheetReadStatus: 403 }).fetchFn,
+      });
+
+      const header = byName(result.steps, /header row/i)!;
+      expect(header.status).toBe('fail');
+      expect(header.detail).toMatch(/shared with the service account/);
+    });
+
+    test('a different destination is checked against its own Sheet and folders only', async () => {
+      const google = fakeGoogle();
+      const kanto: ArchiveDestination = {
+        sheetId: 'kanto-sheet',
+        audioFolderId: 'kanto-audio',
+        transcriptFolderId: 'kanto-transcripts',
+      };
+
+      await runGoogleCheck(baseConfig, kanto, { fetch: google.fetchFn });
+
+      expect(new Set(google.sheetIdsUsed)).toEqual(new Set(['kanto-sheet']));
+      expect(new Set(google.uploadedToFolders)).toEqual(
+        new Set(['kanto-audio', 'kanto-transcripts']),
+      );
     });
   });
 });

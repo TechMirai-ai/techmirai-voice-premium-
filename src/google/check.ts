@@ -14,6 +14,8 @@
  * Test files are always deleted (even on failure). Output carries names and statuses only — never
  * a token, secret or key.
  */
+import { ARCHIVE_SHEET_HEADER } from './archive.js';
+import type { ArchiveDestination } from './archiveDestination.js';
 import { GoogleAuthError, refreshTokenProvider, serviceAccountProvider } from './auth.js';
 import type { GoogleArchiveConfig } from './config.js';
 import { createDriveClient, type DriveClient } from './drive.js';
@@ -75,8 +77,26 @@ function countingFetch(inner: typeof fetch, counter: { refreshGrants: number }):
 
 const utcDate = (ms: number): string => new Date(ms).toISOString().slice(0, 10);
 
+/** Compares row 1 of the Sheet with the layout the archive writes; throws a fixable message. */
+function assertHeader(row: readonly string[] | undefined): string {
+  const actual = (row ?? []).map((cell) => cell.trim());
+  const mismatch = ARCHIVE_SHEET_HEADER.findIndex((expected, index) => actual[index] !== expected);
+  if (mismatch >= 0) {
+    throw new Error(
+      `Row 1 of the Sheet is not the expected header: column ${mismatch + 1} should be "${ARCHIVE_SHEET_HEADER[mismatch]}" but is "${actual[mismatch] ?? ''}". Paste the header row from docs/ARCHIVE-PER-CLIENT-SETUP.md into row 1 of the first tab.`,
+    );
+  }
+  return `reachable, and row 1 has the expected ${ARCHIVE_SHEET_HEADER.length} column headers.`;
+}
+
+/**
+ * Checks ONE client's destination (its Sheet and its two Drive folders) plus the global Google
+ * credentials. `destination` comes from the client's `archive` block (./archiveDestination.ts);
+ * the credentials are shared, so with several clients the credential steps simply repeat.
+ */
 export async function runGoogleCheck(
   config: GoogleArchiveConfig,
+  destination: ArchiveDestination,
   options: CheckOptions = {},
 ): Promise<CheckResult> {
   const realNow = options.now ?? Date.now;
@@ -114,7 +134,7 @@ export async function runGoogleCheck(
   const uploadAndVerify = async (
     client: DriveClient,
     label: string,
-    folderId: string = config.audioFolderId,
+    folderId: string = destination.audioFolderId,
   ): Promise<string> => {
     const bytes = new TextEncoder().encode(`google:check ${label} ${stamp}`);
     const uploaded = await client.uploadFile({
@@ -141,9 +161,22 @@ export async function runGoogleCheck(
         fetch: fetchFn,
         now: realNow,
       }),
-      config.sheetId,
+      destination.sheetId,
       fetchFn,
     );
+    await run('Sheets: reachable, with the expected header row', async () => {
+      try {
+        return assertHeader((await sheets.readRange('A1:I1'))[0]);
+      } catch (error) {
+        if (error instanceof GoogleApiError) {
+          throw new Error(
+            `Could not read the Sheet (HTTP ${error.status}). Check the Sheet id in .env and that the Sheet is shared with the service account as Editor.`,
+            { cause: error },
+          );
+        }
+        throw error;
+      }
+    });
     await run('Sheets: append and clear a test row', async () => {
       const range = await sheets.appendRow(FIRST_SHEET_RANGE, ['google:check', stamp]);
       await sheets.clearRange(range);
@@ -158,7 +191,7 @@ export async function runGoogleCheck(
     // 2b. The transcript folder is a separate folder, so it needs its own proof (VP-13). It reuses
     // the cached access token, so it does not disturb the refresh-grant count below.
     await run('Drive: upload to the transcript folder', () =>
-      uploadAndVerify(drive, 'transcript', config.transcriptFolderId),
+      uploadAndVerify(drive, 'transcript', destination.transcriptFolderId),
     );
 
     // 3. Drive, forced renewal from the stored refresh token.

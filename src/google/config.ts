@@ -1,5 +1,10 @@
 /**
- * Environment configuration for the developer archive (VP-12). All-or-nothing: with none of the
+ * Environment configuration for the developer archive (VP-12): the GLOBAL credentials only (service
+ * account, OAuth, retry secret). Where each client's calls go (Sheet + two Drive folders) is NOT
+ * here: it is per client, named in `clients/<id>/client.yaml` under `archive` and resolved in
+ * ./archiveDestination.ts. Nothing reads the GOOGLE_ARCHIVE_* variables directly.
+ *
+ * All-or-nothing: with none of the
  * variables set, archiving is off and the app runs as before (so deploying before the Google setup
  * is done cannot break anything); with only some set, startup fails naming exactly what is missing —
  * a half-configured archive that silently drops calls is the failure we are guarding against.
@@ -13,9 +18,6 @@ import { parseServiceAccountJson } from './auth.js';
 
 const REQUIRED = [
   'GOOGLE_SERVICE_ACCOUNT_JSON_B64',
-  'GOOGLE_ARCHIVE_SHEET_ID',
-  'GOOGLE_ARCHIVE_DRIVE_FOLDER_ID',
-  'GOOGLE_ARCHIVE_TRANSCRIPT_FOLDER_ID',
   'GOOGLE_OAUTH_CLIENT_ID',
   'GOOGLE_OAUTH_CLIENT_SECRET',
   'GOOGLE_OAUTH_REFRESH_TOKEN',
@@ -26,11 +28,6 @@ const OPTIONAL = ['GOOGLE_OAUTH_TOKEN_ISSUED_AT'] as const;
 
 export interface GoogleArchiveConfig {
   serviceAccount: { clientEmail: string; privateKey: string };
-  sheetId: string;
-  /** Drive folder for call audio (GOOGLE_ARCHIVE_DRIVE_FOLDER_ID — name kept so nothing already deployed breaks). */
-  audioFolderId: string;
-  /** Drive folder for transcript .txt files. */
-  transcriptFolderId: string;
   oauth: {
     clientId: string;
     clientSecret: string;
@@ -73,9 +70,6 @@ export function loadGoogleArchiveConfig(
 
   return {
     serviceAccount: parseServiceAccountJson(get('GOOGLE_SERVICE_ACCOUNT_JSON_B64')),
-    sheetId: get('GOOGLE_ARCHIVE_SHEET_ID'),
-    audioFolderId: get('GOOGLE_ARCHIVE_DRIVE_FOLDER_ID'),
-    transcriptFolderId: get('GOOGLE_ARCHIVE_TRANSCRIPT_FOLDER_ID'),
     oauth: {
       clientId: get('GOOGLE_OAUTH_CLIENT_ID'),
       clientSecret: get('GOOGLE_OAUTH_CLIENT_SECRET'),

@@ -15,6 +15,8 @@ import {
   type ArchiveResult,
   type ArchiveSheets,
 } from './archive.js';
+import { logger } from '../lib/logger.js';
+import type { ArchiveDestination, DestinationResolver } from './archiveDestination.js';
 import { buildArchiveSource, fetchCallData, type VapiAccess } from './vapiSource.js';
 import type {
   ArchiveJobRepository,
@@ -28,10 +30,11 @@ const RETRY_BATCH_SIZE = 3;
 
 export interface ArchiveServiceDeps {
   jobs: ArchiveJobRepository;
-  sheets: ArchiveSheets;
+  /** A Sheets client for one spreadsheet id (each client has its own Sheet). */
+  sheetsFor(sheetId: string): ArchiveSheets;
   drive: ArchiveDrive;
-  audioFolderId: string;
-  transcriptFolderId: string;
+  /** Where THIS client's calls go; fails closed (see ./archiveDestination.ts). */
+  destinationFor: DestinationResolver;
   timeZoneFor(clientId: string): string;
   vapi: VapiAccess;
   inlineBudgetMs?: number;
@@ -63,15 +66,30 @@ export interface RetryOptions {
 export class ArchiveService {
   constructor(private readonly deps: ArchiveServiceDeps) {}
 
-  private get archiveDeps(): ArchiveDeps {
+  private archiveDepsFor(destination: ArchiveDestination): ArchiveDeps {
     return {
       store: this.deps.jobs,
-      sheets: this.deps.sheets,
+      sheets: this.deps.sheetsFor(destination.sheetId),
       drive: this.deps.drive,
-      audioFolderId: this.deps.audioFolderId,
-      transcriptFolderId: this.deps.transcriptFolderId,
+      audioFolderId: destination.audioFolderId,
+      transcriptFolderId: destination.transcriptFolderId,
       timeZoneFor: (clientId) => this.deps.timeZoneFor(clientId),
     };
+  }
+
+  /**
+   * Fail closed: no destination, so no Google (or Vapi) call at all. The reason is stored on the job,
+   * which stays `pending` — never terminally failed — so it is archived by a later retry run once
+   * the client's archive variables exist. The staff call log was saved before this ran.
+   */
+  private async blocked(job: ArchiveJob, message: string): Promise<ArchiveResult> {
+    logger.warn('archive destination not configured', { clientId: job.clientId });
+    try {
+      await this.deps.jobs.recordBlocked(job.id, message);
+    } catch {
+      // The reason is only informational; the job itself is untouched and still pending.
+    }
+    return { status: 'failed', phase: 'destination', message };
   }
 
   /** Enqueue, then try once now. Throws only if the job cannot even be queued (a database fault). */
@@ -79,6 +97,12 @@ export class ArchiveService {
     await this.deps.jobs.enqueue(input.clientId, input.callId);
     const job = await this.deps.jobs.claimCall(input.clientId, input.callId);
     if (!job) return 'skipped'; // already done, or another worker holds it
+
+    const target = this.deps.destinationFor(job.clientId);
+    if (!target.ok) {
+      await this.blocked(job, target.message);
+      return 'failed';
+    }
 
     const source = buildArchiveSource(
       input.callId,
@@ -90,7 +114,7 @@ export class ArchiveService {
       },
       this.deps.vapi,
     );
-    const run = archiveJob(job, source, this.archiveDeps);
+    const run = archiveJob(job, source, this.archiveDepsFor(target.destination));
 
     let timer: NodeJS.Timeout | undefined;
     const budget = new Promise<'deferred'>((resolve) => {
@@ -133,12 +157,15 @@ export class ArchiveService {
   }
 
   private async retryOne(job: ArchiveJob): Promise<ArchiveResult> {
+    const target = this.deps.destinationFor(job.clientId);
+    if (!target.ok) return this.blocked(job, target.message);
+
     try {
       const data = await fetchCallData(job.callId, this.deps.vapi);
       return await archiveJob(
         job,
         buildArchiveSource(job.callId, data, this.deps.vapi),
-        this.archiveDeps,
+        this.archiveDepsFor(target.destination),
       );
     } catch (error) {
       const message = (error instanceof Error ? error.message : 'unknown error').slice(0, 300);

@@ -598,3 +598,9 @@ faq:
         callback request for our staff.
       ja: >-
         確認いたします。正確なご案内が難しい場合は、推測でお答えせず、担当スタッフへの折り返しのご依頼を承ります。
+
+archive:
+  # Kanto's own Sheet and Drive folders, never shared with another client. Env var NAMES only.
+  sheetIdEnv: GOOGLE_ARCHIVE_KANTO_SHEET_ID
+  audioFolderIdEnv: GOOGLE_ARCHIVE_KANTO_AUDIO_FOLDER_ID
+  transcriptFolderIdEnv: GOOGLE_ARCHIVE_KANTO_TRANSCRIPT_FOLDER_ID
