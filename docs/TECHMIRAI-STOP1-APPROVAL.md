@@ -455,7 +455,7 @@ When the caller asks whether you remember them, or says they called before, conf
 
 `[[clinicName]]` becomes "さくら整骨院"/"Sakura Say-koh-tsoo-in" for Sakura and "TechMirai AI" for TechMirai. `[[openingQuestion]]` is the first of three equivalent "How can I help you today?" wordings.
 
-**Exactly what changed:** (1) clinic receptionist → "AI voice agent" of "TechMirai AI受付 (TechMirai AI reception)" with the name ハルカ (Haruka) → ヒナタ (Hinata) and Haruka → Jenny in English; (2) the closing question "Would you like to make an appointment?" (ご予約をご希望でしょうか？ / "Are you calling to make an appointment?") is **removed**: TechMirai has no booking; the call ends on the open question; (3) the **recording disclosure is kept** in every greeting; (4) the "{AI}" disclosure stays ("AI voice agent"). Nothing else.
+**Exactly what changed:** (1) clinic receptionist → "AI voice agent" of "TechMirai AI受付 (TechMirai AI reception)" with the name ハルカ (Haruka) → ヒナタ (Hinata) and Haruka → Jenny in English; (2) the closing question "Would you like to make an appointment?" (ご予約をご希望でしょうか？ / "Are you calling to make an appointment?") is **removed**: TechMirai has no booking; the call ends on the open question; (3) the **recording disclosure is kept** in every greeting; (4) the AI disclosure stays ("AI voice agent"). Nothing else.
 
 ## 3. Closing lines for each path
 
