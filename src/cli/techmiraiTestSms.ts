@@ -64,6 +64,9 @@ class RunLog implements NotificationLogRepository {
     };
     return Promise.resolve();
   }
+  countRecorded(): Promise<number> {
+    return Promise.resolve(0);
+  }
   countReserved(): Promise<ReservedCounts> {
     return Promise.resolve({ forClient: 1, forNumber: 0, forCall: 1 });
   }

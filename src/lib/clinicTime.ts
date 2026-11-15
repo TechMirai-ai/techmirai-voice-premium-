@@ -59,3 +59,24 @@ export function timeZoneLabel(timeZone: string, at: Date = new Date()): string {
       .find((part) => part.type === 'timeZoneName')?.value ?? timeZone;
   return offset.replace('GMT', 'UTC').replace(/^UTC[+-]0$/, 'UTC') || 'UTC';
 }
+
+/**
+ * Midnight at the start of `at`'s calendar day in `timeZone`, as an instant. Computed from the
+ * local time of day, so it needs no date arithmetic in the zone (a daylight-saving change within
+ * the day can move it by an hour; irrelevant for Japan, which has none).
+ */
+export function startOfClinicDay(at: Date, timeZone: string): Date {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23',
+    })
+      .formatToParts(at)
+      .map((part) => [part.type, part.value]),
+  ) as Record<string, string>;
+  const seconds = Number(parts.hour) * 3600 + Number(parts.minute) * 60 + Number(parts.second);
+  return new Date(at.getTime() - seconds * 1000 - at.getMilliseconds());
+}

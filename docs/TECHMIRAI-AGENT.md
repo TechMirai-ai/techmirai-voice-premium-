@@ -7,7 +7,7 @@ Runbook for putting the line live: `docs/TECHMIRAI-NUMBER-SETUP.md` (Jamal only)
 ## What a call does
 
 1. **Greeting** (same structure as Sakura's, including the recording notice), then the caller asks.
-2. **Info channel.** Answers come only from the FAQ (`faq:` in client.yaml = `techmirai-ai-FAQ-v2.md`, converted mechanically, nothing reworded). Short natural answers, not a read-out of a long entry. No invented prices, results, customer names, certifications or retention periods; if it is not in the FAQ the agent says it is not sure and offers the consultation request. It is an AI and says so (FAQ L1).
+2. **Info channel.** Answers come only from the FAQ (`faq:` in client.yaml = `techmirai-ai-FAQ-v2.1.md`, converted mechanically, nothing reworded). Short natural answers, not a read-out of a long entry. No invented prices, results, customer names, certifications or retention periods; if it is not in the FAQ the agent says it is not sure and offers the consultation request. It is an AI and says so (FAQ L1).
 3. **Consultation flow** (the lead channel):
    1. ask the name;
    2. ask whether staff may contact the caller on the number they are calling from;
@@ -57,6 +57,11 @@ Order for a new request: **SMS first, then LINE**, so the staff message can say 
 | `archive.*` | `GOOGLE_ARCHIVE_TECHMIRAI_SHEET_ID`, `_DRIVE_FOLDER_ID`, `_TRANSCRIPT_FOLDER_ID`. No `sharedDemoArchive`: until these are set, archive jobs stay `pending` and nothing is written anywhere (fail closed). |
 
 Small relaxations of the shared schema, none of which changes an existing client: `business.hours.closedOnNationalHolidays` is optional; `notifications.sms.templates` and `notifications.line.messageTemplate` (the booking texts) are optional.
+
+## Spoken company name and LINE cap notice
+
+- `business.namePronunciation` (`ja: テックミライ`, `en: Tech Mirai`, to be confirmed) is what the agent SPEAKS for the company name (`[[clinicName]]` in greetings and prompt); the written name "TechMirai AI" stays in the SMS. They drop the word "AI"; use `テックミライ AI` / `Tech Mirai AI` to keep it.
+- `notifications.line.capReachedMessage`: the first time the daily LINE cap is hit each Japan day, staff get ONE extra LINE message ("Daily LINE cap reached… check the dashboard"). It is exempt from the cap (logged as a `skipped` row with detail `cap_alert`, which never counts), sent at most once a day, and a failed push is logged, not retried that day. Opt-in per client; Sakura and Kanto do not have it.
 
 ## Known limits (accepted, see docs/TECHMIRAI-STOP1-APPROVAL.md §6b)
 

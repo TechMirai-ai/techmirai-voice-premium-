@@ -104,6 +104,10 @@ class MemoryLog implements NotificationLogRepository {
     if (row) this.entries[Number(id)] = { ...row, ...settlement };
     return Promise.resolve();
   }
+  countRecorded(): Promise<number> {
+    return Promise.resolve(0);
+  }
+
   countReserved(query: ReservedCountQuery): Promise<ReservedCounts> {
     this.queries.push(query);
     const live = this.entries.filter(

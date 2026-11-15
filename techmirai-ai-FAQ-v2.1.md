@@ -11,6 +11,10 @@ Changes applied:
 - V6 (JA): corrected a mistranslation; the product CAN forward calls, but without a hand-over summary.
 - V9, V12: describe what the agent actually collects (name, plus the number to call back on).
 - V10: states that call forwarding is switched off on this line.
+- V2 (JA): fixed a wording error: the caller's greeting became greeting to the caller (the English says the agent greets the caller).
+- W2 (JA): fixed a stray ASCII full stop (a typo).
+- V6 (EN): reworded to say calls can be forwarded but there is not yet a hand-over summary, matching the Japanese.
+- L3: now says staff will contact the caller IF they leave a request, so the agent never promises contact before a request is saved.
 - NEW L1-L3: "Am I speaking to an AI?", "Can you transfer me to a person?", "When will your staff contact me?". Contact hours in L2/L3: weekdays, 9 a.m. to 6 p.m. Japan time (decided by Jamal, 15 Nov 2026).
 
 ## A. The voice agent / 音声エージェントについて
@@ -21,11 +25,11 @@ Changes applied:
 - JA question: TechMirai AI受付とは何ですか？
 - JA answer: TechMirai AI受付は、自然な日本語または英語で電話対応を行うAI電話エージェントです。よくある質問への回答、折り返し連絡の受付、スタッフへの転送を行います。コールセンターや、人員体制を超える多数の電話を受ける企業向けに構築されています。
 
-### V2 [UNCHANGED]
+### V2 [CHANGED]
 - EN question: What can it do on a call?
 - EN answer: It greets the caller, answers from your approved information, and takes a message or callback request when it cannot help. It can forward the call to a person during your staff hours. Every call is logged with a status and a short summary.
 - JA question: 電話でどのような対応ができますか？
-- JA answer: 発信者の挨拶、承認された情報に基づく回答、対応できない場合のメッセージや折り返し希望の受付を行います。スタッフの勤務時間内であれば、担当者への転送も可能です。すべての通話はステータスと簡単な要約とともに記録されます。
+- JA answer: 発信者への挨拶、承認された情報に基づく回答、対応できない場合のメッセージや折り返し希望の受付を行います。スタッフの勤務時間内であれば、担当者への転送も可能です。すべての通話はステータスと簡単な要約とともに記録されます。
 
 ### V3 [CHANGED]
 - EN question: Who is it for?
@@ -47,7 +51,7 @@ Changes applied:
 
 ### V6 [CHANGED]
 - EN question: What can't it do today?
-- EN answer: Today it speaks Japanese and English, forwards calls without a summary for the agent, and is not an emergency service. Deeper links to CRM and booking systems are scoped per project. We would rather tell you the limits now than surprise you in a pilot.
+- EN answer: Today it speaks Japanese and English, forwards calls but does not yet include a hand-over summary for staff, and is not an emergency service. Deeper links to CRM and booking systems are scoped per project. We would rather tell you the limits now than surprise you in a pilot.
 - JA question: 現時点でできないことは何ですか？
 - JA answer: 現時点では、対応言語は日本語と英語です。通話の転送は可能ですが、担当者向けの引き継ぎ要約はまだ付きません。また、緊急サービスではありません。CRMや予約システムとの高度な連携は、プロジェクトごとに範囲を決めます。パイロット中に驚かせるよりも、事前に制限事項をお伝えしたいと考えています。
 
@@ -173,11 +177,11 @@ Changes applied:
 - JA question: 音声エージェント以外には何を提供していますか？
 - JA answer: 主に3つ提供しています。AI音声エージェントが主力製品ですが、1週間で納品する静的ウェブサイトの構築、およびビジネスに合わせて構築された、専用CMS（編集画面）付きカスタムウェブサイト、チャットボット、音声エージェント、LINE、SNS、予約機能を含んだ完全なエコシステムの構築を行っています。
 
-### W2 [UNCHANGED]
+### W2 [CHANGED]
 - EN question: What is the one-week website?
 - EN answer: A professional static website with clear pages for your services and contact details, delivered in about one week once we have your content and menu. It is the quickest way to get online, and you can upgrade to the full ecosystem later.
 - JA question: 「1週間ウェブサイト」とは何ですか？
-- JA answer: サービス内容や連絡先を明確に掲載したプロ仕様の静的ウェブサイトで、コンテンツやメニューをご提供いただいてから約1週間で納品されます. オンライン化を最もスピーディーに実現する方法であり、後から完全なエコシステムへアップグレードすることも可能です。
+- JA answer: サービス内容や連絡先を明確に掲載したプロ仕様の静的ウェブサイトで、コンテンツやメニューをご提供いただいてから約1週間で納品されます。オンライン化を最もスピーディーに実現する方法であり、後から完全なエコシステムへアップグレードすることも可能です。
 
 ### W3 [UNCHANGED]
 - EN question: What is the full ecosystem website?
@@ -243,6 +247,6 @@ Changes applied:
 
 ### L3 [NEW]
 - EN question: When will your staff contact me?
-- EN answer: Our staff will contact you on weekdays between 9 a.m. and 6 p.m. Japan time to arrange a meeting.
+- EN answer: If you leave a request, our staff will contact you on weekdays between 9 a.m. and 6 p.m. Japan time to arrange a meeting.
 - JA question: 担当者からはいつ連絡が来ますか？
-- JA answer: 平日の午前9時から午後6時（日本時間）の間に、担当者からご連絡して、面談の日程を調整いたします。
+- JA answer: ご依頼をお預かりした場合は、担当者から平日の午前9時から午後6時（日本時間）の間にご連絡して、面談の日程を調整いたします。

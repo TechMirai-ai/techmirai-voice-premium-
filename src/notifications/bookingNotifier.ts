@@ -24,6 +24,7 @@ import type {
   SmsNotificationConfig,
 } from '../config/notificationsSchema.js';
 import type { ClientConfig } from '../config/schema.js';
+import { startOfClinicDay } from '../lib/clinicTime.js';
 import { logger } from '../lib/logger.js';
 import type {
   NewNotificationLogEntry,
@@ -140,6 +141,8 @@ const RATE_WINDOW_MS = 24 * 60 * 60 * 1000;
 /** A send that has been `pending` longer than this was abandoned (a live one takes seconds). */
 const PENDING_STALE_MS = 5 * 60 * 1000;
 const MAX_SENDS_PER_CALL_AND_CHANNEL = 1;
+/** The `detail` of the once-a-day "LINE cap reached" notice's log row. */
+const CAP_ALERT_DETAIL = 'cap_alert';
 
 export class ChannelBookingNotifier implements BookingNotifier, ConsultationNotifier {
   constructor(private readonly deps: BookingNotifierDeps) {}
@@ -296,7 +299,12 @@ export class ChannelBookingNotifier implements BookingNotifier, ConsultationNoti
       { perClientPerDay: line.maxPerDay },
       recipients.map((recipient) => recipient.envName).join(','),
     );
-    if (!('reservationId' in reserved)) return;
+    if (!('reservationId' in reserved)) {
+      if (reserved.refusal === 'daily_limit' && line.capReachedMessage) {
+        await this.alertCapReached(job, config, line, accessToken, recipients);
+      }
+      return;
+    }
     const { reservationId } = reserved;
 
     const outcomes = await Promise.all(
@@ -315,6 +323,53 @@ export class ChannelBookingNotifier implements BookingNotifier, ConsultationNoti
       }),
     );
     await this.settle(job, 'line', reservationId, settleLine(outcomes));
+  }
+
+  /**
+   * The first time the daily LINE cap is hit on a (client-local) day, tells staff once. Exempt from
+   * the cap: it is recorded as a `skipped` row (which never counts toward a cap) and pushed
+   * directly. The row is written FIRST, so a second refusal right behind this one stays quiet; a
+   * failed push is logged and not retried the same day. Never throws.
+   */
+  private async alertCapReached(
+    job: NotificationJob,
+    config: ClientConfig,
+    line: LineNotificationConfig,
+    accessToken: string,
+    recipients: readonly { envName: string; to: string }[],
+  ): Promise<void> {
+    const message = line.capReachedMessage;
+    if (!message) return;
+    try {
+      const since = startOfClinicDay(this.now(), config.business.hours.timezone);
+      const already = await this.deps.log.countRecorded({
+        clientId: job.clientId,
+        channel: 'line',
+        detail: CAP_ALERT_DETAIL,
+        since,
+      });
+      if (already > 0) return;
+      await this.record(job, 'line', 'skipped', CAP_ALERT_DETAIL, {
+        recipientRef: recipients.map((recipient) => recipient.envName).join(','),
+      });
+      await Promise.all(
+        recipients.map(async ({ to }) => {
+          try {
+            await this.deps.line.push({ accessToken, to, text: message, retryKey: randomUUID() });
+          } catch (error) {
+            logger.error('LINE cap alert failed', {
+              clientId: job.clientId,
+              reason: deliveryErrorCode(error),
+            });
+          }
+        }),
+      );
+    } catch (error) {
+      logger.error('LINE cap alert failed', {
+        clientId: job.clientId,
+        reason: deliveryErrorCode(error),
+      });
+    }
   }
 
   /**

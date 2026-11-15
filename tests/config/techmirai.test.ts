@@ -67,7 +67,7 @@ describe('clients/techmirai-ai/client.yaml', () => {
 
   test('its FAQ is the FAQ v2 file, entry for entry', () => {
     const markdown = readFileSync(
-      path.join(REAL_CLIENTS_DIR, '..', 'techmirai-ai-FAQ-v2.md'),
+      path.join(REAL_CLIENTS_DIR, '..', 'techmirai-ai-FAQ-v2.1.md'),
       'utf8',
     );
     const entries = [...markdown.matchAll(/^### (\w+) /gm)].map((m) => m[1]!.toLowerCase());
@@ -82,6 +82,24 @@ describe('clients/techmirai-ai/client.yaml', () => {
         );
       }
     }
+  });
+
+  test('the written company name is TechMirai AI; the SPOKEN name is a config value per language', () => {
+    expect(config.business.name.en).toBe('TechMirai AI');
+    expect(config.business.namePronunciation).toEqual({ ja: 'テックミライ', en: 'Tech Mirai' });
+  });
+
+  test('no Japanese line uses お申し込み (application); the failure lines say ご依頼 (request)', () => {
+    const text = readFileSync(path.join(REAL_CLIENTS_DIR, ID, 'client.yaml'), 'utf8');
+    expect(text).not.toContain('お申し込み');
+    expect(config.consultation?.scripts.failed.ja).toContain('ご依頼を保存できませんでした');
+    expect(config.scripts.callbackFailed.ja).toContain('ご依頼を保存できませんでした');
+  });
+
+  test('L3 says staff contact the caller only IF a request is left (FAQ v2.1)', () => {
+    const l3 = config.faq.find((e) => e.id === 'l3');
+    expect(l3?.answer.en?.startsWith('If you leave a request')).toBe(true);
+    expect(l3?.answer.ja?.startsWith('ご依頼をお預かりした場合は')).toBe(true);
   });
 
   test('L2 and L3 say weekdays', () => {
@@ -204,6 +222,23 @@ describe('prompt and tools', () => {
       ]);
       expect(rendered.transferTool).toBeUndefined();
     }
+  });
+
+  test('the greetings speak the pronunciation names; written text keeps the real name', async () => {
+    const rendered = await Promise.all(
+      ['ja', 'en'].map(async (member) =>
+        renderAssistant(config, member, await faq(), {
+          baseUrl: 'https://example.invalid',
+          credentialId: 'cred',
+          services: [],
+        }),
+      ),
+    );
+
+    expect(rendered[0]?.assistant.firstMessage).toContain('テックミライ受付のAI音声エージェント');
+    expect(rendered[0]?.assistant.firstMessage).not.toContain('TechMirai');
+    expect(rendered[1]?.assistant.firstMessage).toContain('Thank you for calling Tech Mirai.');
+    expect(rendered[1]?.assistant.firstMessage).not.toContain('TechMirai');
   });
 
   test('the greeting keeps the recording notice', () => {

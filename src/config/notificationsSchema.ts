@@ -142,6 +142,12 @@ const lineSchema = z.strictObject({
       rescheduled: z.string().min(1, 'must not be empty'),
     })
     .optional(),
+  /**
+   * Opt-in: the first time the daily LINE cap is hit each (client-local) day, staff get ONE extra
+   * LINE message with this plain text ("cap reached, check the dashboard"). It is exempt from the
+   * cap itself and is sent at most once a day. Omitted = no such message (a warning is only logged).
+   */
+  capReachedMessage: z.string().min(1, 'must not be empty').optional(),
   /** The staff alert for a consultation request. Placeholders: see notificationRules.ts. */
   consultationTemplate: z.string().min(1, 'must not be empty').optional(),
 });

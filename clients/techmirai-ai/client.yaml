@@ -17,6 +17,12 @@ business:
     postalCode: "-"
     ja: 非公開（日本国内を拠点としています）   # "Not published (based in Japan)"
     en: Not published (based in Japan)
+  # How the company name is SPOKEN (replaces [[clinicName]] in spoken text; written text such as the
+  # SMS keeps `name`). Jamal to confirm both: ja テックミライ = "Tekku Mirai"; en "Tech Mirai".
+  # Note: they leave out the word "AI"; use "テックミライ AI" / "Tech Mirai AI" to keep it.
+  namePronunciation:
+    ja: テックミライ
+    en: Tech Mirai
   phone:
     display: "050-3201-5722"
     e164: "+815032015722"
@@ -174,7 +180,7 @@ scripts:
     ja: ありがとうございます。担当者からご連絡して、面談の日程を調整いたします。
   callbackFailed:
     en: I'm sorry, we could not save your request. Please email info@techmirai-ai.com or use the contact form on our website.
-    ja: 申し訳ございません。お申し込みを保存できませんでした。info@techmirai-ai.com 宛てにメールをいただくか、ウェブサイトのお問い合わせフォームをご利用ください。
+    ja: 申し訳ございません。ご依頼を保存できませんでした。info@techmirai-ai.com 宛てにメールをいただくか、ウェブサイトのお問い合わせフォームをご利用ください。
   pleaseWait:
     en: One moment, please.
     ja: 少々お待ちくださいませ。   # "One moment please."
@@ -265,7 +271,7 @@ consultation:
       en: Understood. Without a number we cannot contact you, but you are welcome to email [[contactEmail]] or use the contact form on our website.
     # "I'm sorry, we could not save your request. Please email [address] or use the contact form."
     failed:
-      ja: 申し訳ございません。お申し込みを保存できませんでした。恐れ入りますが、[[contactEmail]]宛てにメールをいただくか、ウェブサイトのお問い合わせフォームをご利用ください。
+      ja: 申し訳ございません。ご依頼を保存できませんでした。恐れ入りますが、[[contactEmail]]宛てにメールをいただくか、ウェブサイトのお問い合わせフォームをご利用ください。
       en: I'm sorry, we could not save your request. Please email [[contactEmail]] or use the contact form on our website.
     # "I'm sorry, I cannot connect you to a person on this line right now. I can take your name, and our
     # staff will contact you [hours] to arrange a meeting." (same wording as FAQ L2)
@@ -298,6 +304,8 @@ notifications:
     channelAccessTokenEnv: LINE_CHANNEL_ACCESS_TOKEN
     recipientEnvs: [LINE_TECHMIRAI_STAFF_USER_ID]
     maxPerDay: 20
+    # Sent ONCE the first time the daily LINE cap is hit each day (exempt from the cap).
+    capReachedMessage: "Daily LINE cap reached for TechMirai AI. Further LINE alerts are paused until tomorrow. Check the dashboard for new consultation requests."
     consultationTemplate: |-
       [New consultation request] [[businessName]]
       Time: [[time]] (Japan time)
@@ -307,7 +315,7 @@ notifications:
       Reason: [[reason]]
       SMS to caller: [[smsStatus]]
 
-# FAQ v2 (techmirai-ai-FAQ-v2.md), converted mechanically, nothing reworded. The Japanese has not had a
+# FAQ v2.1 (techmirai-ai-FAQ-v2.1.md), converted mechanically, nothing reworded. The Japanese has not had a
 # native-speaker review yet. Tags are search hints added by the conversion.
 faq:
   - id: v1
@@ -326,7 +334,7 @@ faq:
       ja: "電話でどのような対応ができますか？"
     answer:
       en: "It greets the caller, answers from your approved information, and takes a message or callback request when it cannot help. It can forward the call to a person during your staff hours. Every call is logged with a status and a short summary."
-      ja: "発信者の挨拶、承認された情報に基づく回答、対応できない場合のメッセージや折り返し希望の受付を行います。スタッフの勤務時間内であれば、担当者への転送も可能です。すべての通話はステータスと簡単な要約とともに記録されます。"
+      ja: "発信者への挨拶、承認された情報に基づく回答、対応できない場合のメッセージや折り返し希望の受付を行います。スタッフの勤務時間内であれば、担当者への転送も可能です。すべての通話はステータスと簡単な要約とともに記録されます。"
 
   - id: v3
     tags: ["customers", "who is it for", "call centre"]
@@ -361,7 +369,7 @@ faq:
       en: "What can't it do today?"
       ja: "現時点でできないことは何ですか？"
     answer:
-      en: "Today it speaks Japanese and English, forwards calls without a summary for the agent, and is not an emergency service. Deeper links to CRM and booking systems are scoped per project. We would rather tell you the limits now than surprise you in a pilot."
+      en: "Today it speaks Japanese and English, forwards calls but does not yet include a hand-over summary for staff, and is not an emergency service. Deeper links to CRM and booking systems are scoped per project. We would rather tell you the limits now than surprise you in a pilot."
       ja: "現時点では、対応言語は日本語と英語です。通話の転送は可能ですが、担当者向けの引き継ぎ要約はまだ付きません。また、緊急サービスではありません。CRMや予約システムとの高度な連携は、プロジェクトごとに範囲を決めます。パイロット中に驚かせるよりも、事前に制限事項をお伝えしたいと考えています。"
 
   - id: v7
@@ -542,7 +550,7 @@ faq:
       ja: "「1週間ウェブサイト」とは何ですか？"
     answer:
       en: "A professional static website with clear pages for your services and contact details, delivered in about one week once we have your content and menu. It is the quickest way to get online, and you can upgrade to the full ecosystem later."
-      ja: "サービス内容や連絡先を明確に掲載したプロ仕様の静的ウェブサイトで、コンテンツやメニューをご提供いただいてから約1週間で納品されます. オンライン化を最もスピーディーに実現する方法であり、後から完全なエコシステムへアップグレードすることも可能です。"
+      ja: "サービス内容や連絡先を明確に掲載したプロ仕様の静的ウェブサイトで、コンテンツやメニューをご提供いただいてから約1週間で納品されます。オンライン化を最もスピーディーに実現する方法であり、後から完全なエコシステムへアップグレードすることも可能です。"
 
   - id: w3
     tags: ["ecosystem", "cms", "chatbot"]
@@ -640,8 +648,8 @@ faq:
       en: "When will your staff contact me?"
       ja: "担当者からはいつ連絡が来ますか？"
     answer:
-      en: "Our staff will contact you on weekdays between 9 a.m. and 6 p.m. Japan time to arrange a meeting."
-      ja: "平日の午前9時から午後6時（日本時間）の間に、担当者からご連絡して、面談の日程を調整いたします。"
+      en: "If you leave a request, our staff will contact you on weekdays between 9 a.m. and 6 p.m. Japan time to arrange a meeting."
+      ja: "ご依頼をお預かりした場合は、担当者から平日の午前9時から午後6時（日本時間）の間にご連絡して、面談の日程を調整いたします。"
 
 # TechMirai's own archive: it must NOT set `sharedDemoArchive`, and these variables must be created and
 # set (locally and in Vercel) before real calls. Until then archive jobs stay pending (fail closed) and

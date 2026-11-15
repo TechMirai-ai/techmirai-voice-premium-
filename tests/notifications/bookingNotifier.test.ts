@@ -86,6 +86,10 @@ class MemoryLog implements NotificationLogRepository {
   /** Which call booked an appointment: by convention `appt-N` belongs to `call-N`. */
   callOf = (appointmentId: string): string => appointmentId.replace('appt', 'call');
 
+  countRecorded(): Promise<number> {
+    return Promise.resolve(this.entries.filter((e) => e.detail === 'cap_alert').length);
+  }
+
   countReserved(query: ReservedCountQuery): Promise<ReservedCounts> {
     this.lastCount = query;
     const live = this.entries.filter(

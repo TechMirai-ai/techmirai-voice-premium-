@@ -140,6 +140,34 @@ describe.skipIf(!TEST_DATABASE_URL)('notification_log (real Postgres)', () => {
       expect(rows.every((row) => row.appointment_id === null)).toBe(true);
     });
 
+    test('countRecorded counts rows by detail since a time (the once-a-day cap notice)', async () => {
+      await log.record({
+        clientId: 'techmirai-ai',
+        channel: 'line',
+        status: 'skipped',
+        event: 'consultation_requested',
+        detail: 'cap_alert',
+      });
+      await log.record({
+        clientId: 'techmirai-ai',
+        channel: 'sms',
+        status: 'skipped',
+        event: 'consultation_requested',
+        detail: 'cap_alert',
+      });
+      await log.record({
+        clientId: CLIENT,
+        channel: 'line',
+        status: 'skipped',
+        detail: 'cap_alert',
+      });
+      const base = { clientId: 'techmirai-ai', channel: 'line' as const, detail: 'cap_alert' };
+
+      expect(await log.countRecorded({ ...base, since: new Date(Date.now() - HOUR_MS) })).toBe(1);
+      expect(await log.countRecorded({ ...base, since: new Date(Date.now() + HOUR_MS) })).toBe(0);
+      expect(await log.countRecorded({ ...base, detail: 'other', since: new Date(0) })).toBe(0);
+    });
+
     test('the three existing events are still accepted', async () => {
       for (const event of ['booked', 'cancelled', 'rescheduled'] as const) {
         await log.record({ clientId: CLIENT, channel: 'sms', status: 'sent', event });

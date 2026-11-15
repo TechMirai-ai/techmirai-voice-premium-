@@ -77,6 +77,14 @@ export interface ReservedCounts {
   forCall: number;
 }
 
+export interface RecordedCountQuery {
+  clientId: string;
+  channel: NotificationChannel;
+  /** The reason code stored in `detail`, e.g. `cap_alert`. */
+  detail: string;
+  since: Date;
+}
+
 export interface NotificationLogRepository {
   record(entry: NewNotificationLogEntry): Promise<void>;
   /** Inserts a `pending` row and returns its id. */
@@ -84,6 +92,8 @@ export interface NotificationLogRepository {
   /** Moves a reserved row to its final status. */
   settle(id: string, settlement: Settlement): Promise<void>;
   countReserved(query: ReservedCountQuery): Promise<ReservedCounts>;
+  /** Rows of any status carrying this `detail` since `since` (used to send a notice once a day). */
+  countRecorded(query: RecordedCountQuery): Promise<number>;
 }
 
 interface CountRow {
@@ -142,6 +152,15 @@ export class PgNotificationLogRepository implements NotificationLogRepository {
         WHERE id = $1`,
       [id, settlement.status, settlement.detail ?? null, settlement.providerMessageId ?? null],
     );
+  }
+
+  async countRecorded(query: RecordedCountQuery): Promise<number> {
+    const { rows } = await this.db.query(
+      `SELECT count(*)::text AS total FROM notification_log
+        WHERE client_id = $1 AND channel = $2 AND detail = $3 AND created_at >= $4`,
+      [query.clientId, query.channel, query.detail, query.since],
+    );
+    return Number((rows[0] as { total: string } | undefined)?.total ?? 0);
   }
 
   async countReserved(query: ReservedCountQuery): Promise<ReservedCounts> {

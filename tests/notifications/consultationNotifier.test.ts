@@ -15,6 +15,7 @@ import type { SmsMessage, SmsSender } from '../../src/notifications/telnyxSms.js
 import type {
   NewNotificationLogEntry,
   NotificationLogRepository,
+  RecordedCountQuery,
   Reservation,
   ReservedCountQuery,
   ReservedCounts,
@@ -38,6 +39,8 @@ type Row = (NewNotificationLogEntry | (Reservation & { status: 'pending' })) & {
 class MemoryLog implements NotificationLogRepository {
   readonly rows: Row[] = [];
   priorForClient = 0;
+  priorForLine = 0;
+  lastRecordedQuery: RecordedCountQuery | undefined;
 
   record(entry: NewNotificationLogEntry): Promise<void> {
     this.rows.push(entry);
@@ -52,13 +55,20 @@ class MemoryLog implements NotificationLogRepository {
     if (row) this.rows[Number(id)] = { ...row, ...settlement };
     return Promise.resolve();
   }
+  countRecorded(query: RecordedCountQuery): Promise<number> {
+    this.lastRecordedQuery = query;
+    return Promise.resolve(
+      this.rows.filter((row) => row.channel === query.channel && row.detail === query.detail)
+        .length,
+    );
+  }
   countReserved(query: ReservedCountQuery): Promise<ReservedCounts> {
     const live = this.rows.filter(
       (row) => row.channel === query.channel && (row.status === 'pending' || row.status === 'sent'),
     );
     return Promise.resolve({
       // The prior sends are SMS (each channel has its own cap).
-      forClient: (query.channel === 'sms' ? this.priorForClient : 0) + live.length,
+      forClient: (query.channel === 'sms' ? this.priorForClient : this.priorForLine) + live.length,
       forNumber: 0,
       forCall: live.filter((row) => row.callId === query.callId && row.event === query.event)
         .length,
@@ -67,7 +77,13 @@ class MemoryLog implements NotificationLogRepository {
 }
 
 function harness(
-  options: { smsFails?: boolean; lineFails?: boolean; priorForClient?: number } = {},
+  options: {
+    smsFails?: boolean;
+    lineFails?: boolean;
+    priorForClient?: number;
+    priorForLine?: number;
+    withoutCapMessage?: boolean;
+  } = {},
 ) {
   const sent: SmsMessage[] = [];
   const pushed: { to: string; text: string }[] = [];
@@ -88,9 +104,15 @@ function harness(
   };
   const log = new MemoryLog();
   log.priorForClient = options.priorForClient ?? 0;
+  log.priorForLine = options.priorForLine ?? 0;
   const consultations = new MemoryConsultations();
   const notifier = new ChannelBookingNotifier({
-    loadConfig: (clientId) => loadClient(clientId),
+    loadConfig: (clientId) => {
+      const config = loadClient(clientId);
+      if (!options.withoutCapMessage || !config.notifications?.line) return config;
+      const { capReachedMessage: _omitted, ...line } = config.notifications.line;
+      return { ...config, notifications: { ...config.notifications, line } };
+    },
     credential: (name) => {
       looked.push(name);
       return ENV[name];
@@ -282,6 +304,74 @@ describe('consultation notifications', () => {
 
     const lines = h.pushed[0]?.text.split('\n') ?? [];
     expect(lines.filter((l) => l.startsWith('[New consultation request]'))).toHaveLength(1);
+  });
+});
+
+describe('LINE daily cap notice', () => {
+  const CAP_TEXT = 'Daily LINE cap reached';
+
+  test('the first time the cap is hit, staff get one extra LINE message instead of the alert', async () => {
+    const h = harness({ priorForLine: 20 });
+
+    await h.notifier.notifyConsultation(await save(h));
+
+    expect(h.pushed).toHaveLength(1);
+    expect(h.pushed[0]?.text).toContain(CAP_TEXT);
+    expect(h.pushed[0]?.text).toContain('Check the dashboard');
+    expect(h.pushed[0]?.to).toBe('U-techmirai-staff');
+    // The caller's SMS is unaffected and the request is kept.
+    expect(h.sent).toHaveLength(1);
+    expect(await h.consultations.listByClient(TECHMIRAI_ID)).toHaveLength(1);
+  });
+
+  test('it is sent once a day: later refusals stay quiet', async () => {
+    const h = harness({ priorForLine: 20 });
+
+    await h.notifier.notifyConsultation(
+      await save(h, { callId: 'a', contactPhone: '09011110001' }),
+    );
+    await h.notifier.notifyConsultation(
+      await save(h, { callId: 'b', contactPhone: '09011110002' }),
+    );
+    await h.notifier.notifyConsultation(
+      await save(h, { callId: 'c', contactPhone: '09011110003' }),
+    );
+
+    expect(h.pushed.filter((p) => p.text.includes(CAP_TEXT))).toHaveLength(1);
+    expect(h.pushed).toHaveLength(1);
+  });
+
+  test('"once a day" means since local midnight in Japan', async () => {
+    const h = harness({ priorForLine: 20 });
+
+    await h.notifier.notifyConsultation(await save(h));
+
+    // now = 2026-11-16 12:00 JST, so the day started at 2026-11-16 00:00 JST = 2026-11-15T15:00Z.
+    expect(h.log.lastRecordedQuery?.since.toISOString()).toBe('2026-11-15T15:00:00.000Z');
+    expect(h.log.lastRecordedQuery?.detail).toBe('cap_alert');
+  });
+
+  test('it is exempt from the cap: it is logged as a row that never counts', async () => {
+    const h = harness({ priorForLine: 20 });
+
+    await h.notifier.notifyConsultation(await save(h));
+
+    const row = h.log.rows.find((r) => r.detail === 'cap_alert');
+    expect(row?.status).toBe('skipped');
+  });
+
+  test('without capReachedMessage in the config nothing extra is sent', async () => {
+    const h = harness({ priorForLine: 20, withoutCapMessage: true });
+
+    await h.notifier.notifyConsultation(await save(h));
+
+    expect(h.pushed).toHaveLength(0);
+  });
+
+  test('a failing LINE push for the notice never throws', async () => {
+    const h = harness({ priorForLine: 20, lineFails: true });
+
+    await expect(h.notifier.notifyConsultation(await save(h))).resolves.toBeUndefined();
   });
 });
 
