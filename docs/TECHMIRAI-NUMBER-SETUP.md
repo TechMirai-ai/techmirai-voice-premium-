@@ -59,20 +59,20 @@ Until the archive variables are set, archive jobs for TechMirai calls stay `pend
 
 ## 4. One real test SMS (you approve and run it)
 
-Preview first (sends nothing, no database):
+Preview first (sends nothing):
 
 ```
 npm run techmirai:test-sms -- <your mobile 070/080/090…>
 ```
 
-Then, once migration 0017 is applied and `TELNYX_API_KEY` is set, one real SMS (costs Telnyx credit, counts toward the daily cap of 20, no LINE, no request saved):
+Then one real SMS (costs Telnyx credit):
 
 ```
 npm run techmirai:test-sms -- <your mobile> --send            # Japanese text
 npm run techmirai:test-sms -- <your mobile> --language en --send
 ```
 
-It runs the real pipeline: sender "TechMirai", Japanese-mobile rule, delivery log. It prints your number masked.
+It sends only the SMS: no LINE, no consultation request, **no database** (the delivery log is in memory for the run, so migration 0017 is not needed and the real daily cap and cooldown are not consulted). It needs `TELNYX_API_KEY` in the environment or `.env`. It prints your number masked and the Telnyx message id, and never any secret. Output ends with `RESULT: SENT …` (exit 0) or `RESULT: NOT SENT. status=… reason=…` (exit 1).
 
 ## 5. Vapi objects (after Claude's `vapi:sync` is approved and run)
 

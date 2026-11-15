@@ -633,4 +633,4 @@ Only that CHECK changes: the three old values stay valid, one value is added, an
 
 ## 10. One-off test SMS (prepared, NOT run)
 
-`npm run techmirai:test-sms -- <your mobile>` previews only (no send, no database). `… --send` sends **one** real SMS through the real pipeline (sender "TechMirai", the Japanese-mobile rule, the delivery log, the daily cap) to your mobile, **no LINE, no request saved**; add `--language en` for the English text. It costs Telnyx credit and needs migration 0017 and the `TechMirai` sender first. I will only run it if you approve it separately.
+`npm run techmirai:test-sms -- <your mobile>` previews only (nothing sent). `… --send` sends **one** real SMS to your mobile with the real client settings (sender `TechMirai`, the messaging profile id from `client.yaml`, the real text; add `--language en` for English). It uses **no database** (migration 0017 not needed), sends no LINE and saves no request. It costs Telnyx credit and is run only when you approve it separately.

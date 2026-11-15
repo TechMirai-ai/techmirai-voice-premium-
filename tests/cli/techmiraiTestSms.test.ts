@@ -4,26 +4,11 @@ import { describe, expect, test } from 'vitest';
 import { runTestSms, type TestSmsDeps } from '../../src/cli/techmiraiTestSms.js';
 import { loadClient } from '../../src/config/loadClient.js';
 import type { SmsMessage } from '../../src/notifications/telnyxSms.js';
-import type { PgConsultationRequestRepository } from '../../src/repositories/consultationRequestRepository.js';
-import type {
-  NotificationLogRepository,
-  Reservation,
-} from '../../src/repositories/notificationLogRepository.js';
 
 function harness() {
   const sent: SmsMessage[] = [];
   const out: string[] = [];
   const err: string[] = [];
-  const reservations: Reservation[] = [];
-  const log: NotificationLogRepository = {
-    record: () => Promise.resolve(),
-    reserve: (reservation) => {
-      reservations.push(reservation);
-      return Promise.resolve('r1');
-    },
-    settle: () => Promise.resolve(),
-    countReserved: () => Promise.resolve({ forClient: 1, forNumber: 0, forCall: 1 }),
-  };
   const deps: TestSmsDeps = {
     loadConfig: (id) => loadClient(id),
     credential: (name) => (name === 'TELNYX_API_KEY' ? 'key' : undefined),
@@ -33,15 +18,11 @@ function harness() {
         return Promise.resolve({ messageId: 'm1' });
       },
     },
-    log,
-    consultations: {
-      countByPhoneSince: () => Promise.resolve(0),
-    } as unknown as PgConsultationRequestRepository,
     print: (line) => out.push(line),
     printError: (line) => err.push(line),
     now: () => new Date('2026-11-16T03:00:00Z'),
   };
-  return { deps, sent, out, err, reservations };
+  return { deps, sent, out, err };
 }
 
 describe('techmirai:test-sms', () => {
@@ -52,7 +33,6 @@ describe('techmirai:test-sms', () => {
 
     expect(code).toBe(0);
     expect(h.sent).toHaveLength(0);
-    expect(h.reservations).toHaveLength(0);
     const printed = h.out.join('\n');
     expect(printed).toContain('From:    TechMirai');
     expect(printed).toContain('Preview only');
@@ -69,9 +49,12 @@ describe('techmirai:test-sms', () => {
     expect(h.sent).toHaveLength(1);
     expect(h.sent[0]).toMatchObject({ from: 'TechMirai', to: '+819012345678' });
     expect(h.sent[0]?.text).toContain('Please do not reply');
-    expect(h.reservations.map((r) => [r.channel, r.event])).toEqual([
-      ['sms', 'consultation_requested'],
-    ]);
+    expect(h.sent[0]).toMatchObject({
+      messagingProfileId: '4001a195-9a6f-4a6b-8c61-c4c1d09caf3d',
+    });
+    expect(h.out.join('\n')).toContain('RESULT: SENT');
+    expect(h.out.join('\n')).toContain('message id m1');
+    expect(h.out.join('\n')).toContain('Profile: 4001a195-9a6f-4a6b-8c61-c4c1d09caf3d');
     expect(h.out.join('\n')).not.toContain('09012345678');
   });
 
@@ -104,6 +87,7 @@ describe('techmirai:test-sms', () => {
 
     expect(code).toBe(1);
     expect(h.sent).toHaveLength(0);
-    expect(h.err.join('\n')).toContain('Not sent');
+    expect(h.err.join('\n')).toContain('RESULT: NOT SENT');
+    expect(h.err.join('\n')).toContain('missing_credentials');
   });
 });

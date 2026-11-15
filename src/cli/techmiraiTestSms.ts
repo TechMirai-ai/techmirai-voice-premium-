@@ -1,18 +1,19 @@
 /**
  * `npm run techmirai:test-sms -- <your mobile number> [--language ja|en] [--send]`
  *
- * ONE-OFF check that TechMirai's consultation SMS really reaches a phone. It runs the real
- * pipeline — the same ChannelBookingNotifier, client.yaml settings (sender "TechMirai", Japanese
- * mobiles only, daily cap), Telnyx and the delivery log — for one made-up consultation request.
+ * ONE-OFF check that TechMirai's consultation SMS reaches a phone. It runs the real notifier —
+ * client.yaml settings (sender, messaging profile, Japanese-mobile rule, the real SMS text) and the
+ * real Telnyx call — for one made-up consultation request.
  *
- *  - Without `--send` it only PREVIEWS: the SMS text, sender and a masked number. Nothing is sent
- *    and the database is not touched.
- *  - With `--send` it sends ONE real SMS (costs Telnyx credit) and writes one notification_log row
- *    that counts toward the client's daily cap. It does NOT send the LINE staff alert and does NOT
- *    save a consultation request.
+ *  - Without `--send` it only PREVIEWS: the text, sender, profile id and a masked number. Nothing is
+ *    sent.
+ *  - With `--send` it sends ONE real SMS (costs Telnyx credit).
  *
- * Needs migration 0017 applied (else the send reservation fails closed and nothing is sent),
- * TELNYX_API_KEY and DATABASE_URL. Never prints the number in full or any secret.
+ * It uses NO database: the delivery log and the cooldown source are in memory for this one run, so
+ * nothing is written anywhere (migration 0017 is not needed), and the daily cap / cooldown of the
+ * real system are not consulted. It does not send the LINE alert and saves no consultation request.
+ * Needs TELNYX_API_KEY (from the environment or `.env`). The number is read from the command line
+ * only; it is printed masked and never written to a file or log.
  */
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
@@ -20,18 +21,21 @@ import { fileURLToPath } from 'node:url';
 
 import { loadClient } from '../config/loadClient.js';
 import type { ClientConfig } from '../config/schema.js';
-import { createPool } from '../db/pool.js';
-import { envCredentialLookup, loadDatabaseUrl } from '../env.js';
+import { config as loadDotenv } from 'dotenv';
+
+import { envCredentialLookup } from '../env.js';
 import { normalizeCallerPhone } from '../lib/callerPhone.js';
 import { ChannelBookingNotifier } from '../notifications/bookingNotifier.js';
 import { consultationJob } from '../notifications/notificationJobs.js';
 import { checkSmsNumber } from '../notifications/smsEligibility.js';
 import { TelnyxSmsSender, type SmsMessage, type SmsSender } from '../notifications/telnyxSms.js';
 import { renderTemplate } from '../notifications/template.js';
-import { PgConsultationRequestRepository } from '../repositories/consultationRequestRepository.js';
-import {
-  PgNotificationLogRepository,
-  type NotificationLogRepository,
+import type {
+  NewNotificationLogEntry,
+  NotificationLogRepository,
+  Reservation,
+  ReservedCounts,
+  Settlement,
 } from '../repositories/notificationLogRepository.js';
 import type { LinePusher } from '../notifications/linePush.js';
 
@@ -39,12 +43,36 @@ export const TEST_SMS_CLIENT_ID = 'techmirai-ai';
 export const TEST_SMS_USAGE =
   'Usage: npm run techmirai:test-sms -- <your mobile number> [--language ja|en] [--send]';
 
+/** What one run records instead of the database: the outcome and Telnyx's message id, never a number. */
+class RunLog implements NotificationLogRepository {
+  outcome: { status: string; detail?: string; providerMessageId?: string } | undefined;
+  record(entry: NewNotificationLogEntry): Promise<void> {
+    this.outcome = {
+      status: entry.status,
+      ...(entry.detail ? { detail: entry.detail } : {}),
+    };
+    return Promise.resolve();
+  }
+  reserve(_reservation: Reservation): Promise<string> {
+    return Promise.resolve('run');
+  }
+  settle(_id: string, settlement: Settlement): Promise<void> {
+    this.outcome = {
+      status: settlement.status,
+      ...(settlement.detail ? { detail: settlement.detail } : {}),
+      ...(settlement.providerMessageId ? { providerMessageId: settlement.providerMessageId } : {}),
+    };
+    return Promise.resolve();
+  }
+  countReserved(): Promise<ReservedCounts> {
+    return Promise.resolve({ forClient: 1, forNumber: 0, forCall: 1 });
+  }
+}
+
 export interface TestSmsDeps {
   loadConfig: (clientId: string) => ClientConfig;
   credential: (envName: string) => string | undefined;
   sms: SmsSender;
-  log: NotificationLogRepository;
-  consultations: PgConsultationRequestRepository;
   print: (line: string) => void;
   printError: (line: string) => void;
   now?: () => Date;
@@ -109,6 +137,7 @@ export async function runTestSms(argv: string[], deps: TestSmsDeps): Promise<num
 
   deps.print(`To:      ${masked(national)}`);
   deps.print(`From:    ${sms.senderId}`);
+  deps.print(`Profile: ${sms.messagingProfileId}`);
   deps.print(`Text:    ${text}`);
   if (!send) {
     deps.print('');
@@ -124,6 +153,7 @@ export async function runTestSms(argv: string[], deps: TestSmsDeps): Promise<num
       return result;
     },
   };
+  const log = new RunLog();
   const notifier = new ChannelBookingNotifier({
     // The LINE alert is switched off for this test.
     loadConfig: (clientId) => {
@@ -134,20 +164,27 @@ export async function runTestSms(argv: string[], deps: TestSmsDeps): Promise<num
     credential: deps.credential,
     sms: recording,
     line: NO_LINE,
-    log: deps.log,
-    consultations: deps.consultations,
+    log,
     now: deps.now ?? (() => new Date()),
   });
 
   await notifier.notifyConsultation(request);
 
+  const { outcome } = log;
   if (sentCount === 1) {
     deps.print('');
-    deps.print('Sent: 1 SMS handed to Telnyx. Check the phone; delivery can take a minute.');
+    deps.print(
+      `RESULT: SENT. Telnyx accepted 1 SMS (message id ${outcome?.providerMessageId ?? 'unknown'}).`,
+    );
+    deps.print('Check the phone; delivery can take a minute. Acceptance is not delivery.');
     return 0;
   }
+  deps.printError('');
   deps.printError(
-    'Not sent. See the notification_log row for this test call (event consultation_requested) for the reason.',
+    `RESULT: NOT SENT. status=${outcome?.status ?? 'unknown'} reason=${outcome?.detail ?? 'unknown'}`,
+  );
+  deps.printError(
+    'Reasons: http_<status>[_<telnyx code>] = Telnyx refused it; missing_credentials = TELNYX_API_KEY not set.',
   );
   return 1;
 }
@@ -157,26 +194,20 @@ const invokedDirectly =
   path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
 
 if (invokedDirectly) {
-  (async () => {
-    const preview = !process.argv.includes('--send');
-    // A preview needs no database; only a real send does.
-    const pool = preview ? undefined : createPool({ connectionString: loadDatabaseUrl() });
-    const db = pool ?? { query: () => Promise.reject(new Error('no database in preview')) };
-    try {
-      process.exitCode = await runTestSms(process.argv.slice(2), {
-        loadConfig: (clientId) => loadClient(clientId),
-        credential: envCredentialLookup(),
-        sms: new TelnyxSmsSender(),
-        log: new PgNotificationLogRepository(db),
-        consultations: new PgConsultationRequestRepository(db),
-        print: (line) => process.stdout.write(`${line}\n`),
-        printError: (line) => process.stderr.write(`${line}\n`),
-      });
-    } finally {
-      await pool?.end();
-    }
-  })().catch((error: unknown) => {
-    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-    process.exitCode = 1;
-  });
+  loadDotenv({ quiet: true });
+  runTestSms(process.argv.slice(2), {
+    loadConfig: (clientId) => loadClient(clientId),
+    credential: envCredentialLookup(),
+    sms: new TelnyxSmsSender(),
+    print: (line) => process.stdout.write(`${line}\n`),
+    printError: (line) => process.stderr.write(`${line}\n`),
+  }).then(
+    (code) => {
+      process.exitCode = code;
+    },
+    (error: unknown) => {
+      process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+      process.exitCode = 1;
+    },
+  );
 }
