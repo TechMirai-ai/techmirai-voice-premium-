@@ -5,11 +5,15 @@
     "techmirai-ai--ja--handoff-to-en": "3ef25b11-471f-452b-965a-08e256c3d224",
     "techmirai-ai--ja-return--request-consultation": "1030bc30-c07f-4273-a7c7-4418b989a069",
     "techmirai-ai--ja-return--log-call-topic": "385e49e8-4886-45c5-b093-4380ecf8d375",
-    "techmirai-ai--ja-return--handoff-to-en": "0c0d42e2-2004-4554-94cf-cff247353682"
+    "techmirai-ai--ja-return--handoff-to-en": "0c0d42e2-2004-4554-94cf-cff247353682",
+    "techmirai-ai--en--request-consultation": "551e104b-77fb-4917-b28c-476651fae61b",
+    "techmirai-ai--en--log-call-topic": "61eec0e4-e4e1-4525-9a32-fb910d3b45ef",
+    "techmirai-ai--en--handoff-to-ja": "b4bb16f3-9ce6-4fc2-b234-09e7010a2473"
   },
   "assistants": {
     "techmirai-ai--ja": "61ea7d26-3a38-4d0a-8c85-1a46a2b9fb0d",
-    "techmirai-ai--ja-return": "578c05ad-f9ec-49db-8f62-e98bfeab9b70"
+    "techmirai-ai--ja-return": "578c05ad-f9ec-49db-8f62-e98bfeab9b70",
+    "techmirai-ai--en": "6f5c2e9e-7c5f-4282-8b25-efee88ff314c"
   },
   "squads": {},
   "structuredOutputs": {
