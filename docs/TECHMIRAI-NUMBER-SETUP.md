@@ -46,6 +46,11 @@ It changes only that CHECK: the three old values stay valid, anything else is st
 3. Run it when the system is idle (a brief lock on `notification_log`). Keep the Vercel `DATABASE_URL` on the **pooled** string.
 4. Rollback (manual, only if no `consultation_requested` rows exist): in the SQL file's header comment.
 
+Rules for every migration, now and later:
+
+- **Always run migrations with `npm run db:migrate`, on the direct (non-pooled) host.** The runner takes a session-level advisory lock, so the pooled host (`-pooler`) must never be used for migrations.
+- **Any one-off Node script that connects to Neon from this machine must disable dual-stack connection racing** (`require('node:net').setDefaultAutoSelectFamily(false)` before connecting), as `src/db/pool.ts` documents. Otherwise it can show a false `ETIMEDOUT` on networks without IPv6. `npm run db:migrate` and the app's own pool already do this.
+
 ## 2. The TechMirai archive (own Sheet + two Drive folders)
 
 Follow `docs/ARCHIVE-PER-CLIENT-SETUP.md` with client id `techmirai-ai`:
