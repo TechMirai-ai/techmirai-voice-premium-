@@ -1,0 +1,14 @@
+{
+  "tools": {
+    "techmirai-ai--ja--request-consultation": "92ce6802-eb4a-45d8-90fc-01ab3f48f2f2",
+    "techmirai-ai--ja--log-call-topic": "9144df84-07d2-4ae9-a27a-38ed248a42cc",
+    "techmirai-ai--ja--handoff-to-en": "3ef25b11-471f-452b-965a-08e256c3d224"
+  },
+  "assistants": {
+    "techmirai-ai--ja": "61ea7d26-3a38-4d0a-8c85-1a46a2b9fb0d"
+  },
+  "squads": {},
+  "structuredOutputs": {
+    "techmirai-ai--call-outcome": "b232f0be-7b2f-4b64-ab64-df67f8ebe8aa"
+  }
+}
