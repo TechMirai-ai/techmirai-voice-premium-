@@ -33,6 +33,7 @@
     "staff:create": "tsx src/cli/createStaffUser.ts",
     "demo:seed": "tsx src/cli/seedReservationDemoData.ts",
     "demo:clear-calls": "tsx src/cli/clearDemoCalls.ts",
+    "techmirai:test-sms": "tsx src/cli/techmiraiTestSms.ts",
     "services:remove-follow-up": "tsx src/cli/removeFollowUpService.ts"
   },
   "dependencies": {

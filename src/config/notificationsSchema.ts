@@ -71,8 +71,26 @@ const smsObjectSchema = z.strictObject({
     .min(1)
     .max(20)
     .default(DEFAULT_SMS_MAX_PER_RECIPIENT_PER_DAY),
-  /** The message per language code (which codes are required is checked in notificationRules.ts). */
-  templates: z.record(z.string(), z.string().min(1, 'must not be empty')),
+  /**
+   * Number-type allow-list, checked AFTER `allowedCountryCodes`: an SMS only goes to an E.164
+   * number that starts with one of these prefixes (e.g. "+8190" = Japanese 090 mobiles). Omitted =
+   * no number-type check, exactly as before, so a client opts in and nobody else changes.
+   */
+  allowedNumberPrefixes: z
+    .array(z.string().regex(/^\+[1-9]\d{3,9}$/, 'must look like "+8190"'))
+    .min(1, 'needs at least one prefix')
+    .optional(),
+  /**
+   * Consultation requests only: one number gets at most one consultation text per this many hours
+   * (the earlier request counts, whatever its text outcome). Omitted = no cooldown.
+   */
+  consultationCooldownHours: z.number().int().min(1).max(720).optional(),
+  /**
+   * The booking message per language code (which codes are required is checked in
+   * notificationRules.ts). Optional: a client that takes no bookings (a consultation client)
+   * has none. A client that sets it is validated exactly as before.
+   */
+  templates: z.record(z.string(), z.string().min(1, 'must not be empty')).optional(),
   /**
    * VP-25: what the caller is texted after cancelling or rescheduling by phone — same placeholders
    * and the same "factual, no links" rules as `templates`. Omitted = the caller gets no text for
@@ -84,6 +102,8 @@ const smsObjectSchema = z.strictObject({
       rescheduled: z.record(z.string(), z.string().min(1, 'must not be empty')),
     })
     .optional(),
+  /** The text after a consultation request (see `consultation` in client.yaml); same rules. */
+  consultationTemplates: z.record(z.string(), z.string().min(1, 'must not be empty')).optional(),
 });
 
 const smsSchema = smsObjectSchema.superRefine((sms, ctx) => {
@@ -109,8 +129,8 @@ const lineSchema = z.strictObject({
    * demo page cannot exhaust the LINE monthly quota or flood the clinic's LINE.
    */
   maxPerDay: z.number().int().min(1).max(1000).default(DEFAULT_LINE_MAX_PER_DAY),
-  /** The staff alert, written in the language the client's staff read. */
-  messageTemplate: z.string().min(1, 'must not be empty'),
+  /** The booking staff alert, in the language the client's staff read. Optional, like sms `templates`. */
+  messageTemplate: z.string().min(1, 'must not be empty').optional(),
   /**
    * VP-25: the staff alert for a cancellation and for a reschedule, in the same language. May also
    * use `[[oldDate]]` and `[[oldTime]]` (where the booking was before). REQUIRED whenever the
@@ -122,6 +142,8 @@ const lineSchema = z.strictObject({
       rescheduled: z.string().min(1, 'must not be empty'),
     })
     .optional(),
+  /** The staff alert for a consultation request. Placeholders: see notificationRules.ts. */
+  consultationTemplate: z.string().min(1, 'must not be empty').optional(),
 });
 
 export const notificationsSchema = z.strictObject({

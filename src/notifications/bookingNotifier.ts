@@ -24,7 +24,6 @@ import type {
   SmsNotificationConfig,
 } from '../config/notificationsSchema.js';
 import type { ClientConfig } from '../config/schema.js';
-import { toE164 } from '../lib/callerPhone.js';
 import { logger } from '../lib/logger.js';
 import type {
   NewNotificationLogEntry,
@@ -35,8 +34,17 @@ import type {
 } from '../repositories/notificationLogRepository.js';
 import { deliveryErrorCode } from './deliveryError.js';
 import type { LinePusher } from './linePush.js';
-import { bookedJob, changedJob, type NotificationJob } from './notificationJobs.js';
+import {
+  bookedJob,
+  changedJob,
+  consultationJob,
+  type NotificationJob,
+  type SmsOutcome,
+} from './notificationJobs.js';
+import type { PhoneSource } from '../repositories/consultationRequestRepository.js';
+import type { ConsultationCooldownSource } from './notificationJobs.js';
 import type { SmsSender } from './telnyxSms.js';
+import { checkSmsNumber } from './smsEligibility.js';
 import { renderTemplate } from './template.js';
 
 /** Looks up a secret/identifier by the env-var name a client's config gave. */
@@ -85,12 +93,34 @@ export interface BookingNotifier {
   notifyChanged(change: AppointmentChangeNotification): Promise<void>;
 }
 
+/** A consultation request just saved (TechMirai's own agent). Holds personal data: never log it. */
+export interface ConsultationNotification {
+  clientId: string;
+  /** The saved row's id (names the SMS idempotency key; never shown to anyone). */
+  requestId: string;
+  callId: string;
+  language: string;
+  contactName: string;
+  /** The saved number (normalised national/international form); null when there is none. */
+  contactPhone: string | null;
+  phoneSource: PhoneSource;
+  reason: string | null;
+  createdAt: Date;
+}
+
+export interface ConsultationNotifier {
+  /** Never rejects. */
+  notifyConsultation(request: ConsultationNotification): Promise<void>;
+}
+
 export interface BookingNotifierDeps {
   loadConfig(clientId: string): ClientConfig;
   credential: CredentialLookup;
   sms: SmsSender;
   line: LinePusher;
   log: NotificationLogRepository;
+  /** Needed only for consultation requests: how many earlier requests a number already made. */
+  consultations?: ConsultationCooldownSource;
   now?: () => Date;
 }
 
@@ -111,7 +141,7 @@ const RATE_WINDOW_MS = 24 * 60 * 60 * 1000;
 const PENDING_STALE_MS = 5 * 60 * 1000;
 const MAX_SENDS_PER_CALL_AND_CHANNEL = 1;
 
-export class ChannelBookingNotifier implements BookingNotifier {
+export class ChannelBookingNotifier implements BookingNotifier, ConsultationNotifier {
   constructor(private readonly deps: BookingNotifierDeps) {}
 
   notifyBooked(booking: BookingNotification): Promise<void> {
@@ -122,13 +152,28 @@ export class ChannelBookingNotifier implements BookingNotifier {
     return this.notify(changedJob(change));
   }
 
+  notifyConsultation(request: ConsultationNotification): Promise<void> {
+    const cooldown = this.deps.consultations;
+    return this.notify(consultationJob(request, cooldown, this.now()));
+  }
+
   private async notify(job: NotificationJob): Promise<void> {
     try {
       const config = this.deps.loadConfig(job.clientId);
       const sms = config.notifications?.sms;
       const line = config.notifications?.line;
+      if (job.lineAfterSms) {
+        // The staff alert reports how the caller's SMS went, so the SMS runs first.
+        const outcome: SmsOutcome = sms
+          ? await this.guardedSms(job, config, sms)
+          : { status: 'skipped', detail: 'sms_not_configured' };
+        if (line) {
+          await this.guarded(job, 'line', () => this.sendLine(job, config, line, outcome));
+        }
+        return;
+      }
       await Promise.all([
-        sms ? this.guarded(job, 'sms', () => this.sendSms(job, config, sms)) : undefined,
+        sms ? this.guardedSms(job, config, sms) : undefined,
         line ? this.guarded(job, 'line', () => this.sendLine(job, config, line)) : undefined,
       ]);
     } catch (error) {
@@ -141,30 +186,63 @@ export class ChannelBookingNotifier implements BookingNotifier {
     }
   }
 
+  /** Runs the SMS; a failure is logged and turned into a `failed` outcome, never thrown. */
+  private async guardedSms(
+    job: NotificationJob,
+    config: ClientConfig,
+    sms: SmsNotificationConfig,
+  ): Promise<SmsOutcome> {
+    try {
+      return await this.sendSms(job, config, sms);
+    } catch (error) {
+      const detail = deliveryErrorCode(error);
+      logger.error('booking notification failed', {
+        clientId: job.clientId,
+        appointmentId: job.appointmentId,
+        event: job.event,
+        channel: 'sms',
+        reason: detail,
+      });
+      return { status: 'failed', detail };
+    }
+  }
+
+  private async skipSms(job: NotificationJob, detail: string): Promise<SmsOutcome> {
+    await this.record(job, 'sms', 'skipped', detail);
+    return { status: 'skipped', detail };
+  }
+
   private async sendSms(
     job: NotificationJob,
     config: ClientConfig,
     sms: SmsNotificationConfig,
-  ): Promise<void> {
-    const to = job.callerPhone ? toE164(job.callerPhone, sms.defaultCountryCode) : undefined;
-    if (!job.callerPhone) return this.record(job, 'sms', 'skipped', 'no_caller_number');
-    if (!to) return this.record(job, 'sms', 'skipped', 'invalid_caller_number');
-    if (!sms.allowedCountryCodes.some((countryCode) => to.startsWith(countryCode))) {
-      return this.record(job, 'sms', 'skipped', 'country_not_allowed');
-    }
+  ): Promise<SmsOutcome> {
+    if (!job.callerPhone) return this.skipSms(job, 'no_caller_number');
+    // Country allow-list, then the client's opt-in number-type allow-list (e.g. mobiles only).
+    const checked = checkSmsNumber(job.callerPhone, sms);
+    if (checked.rejection) return this.skipSms(job, checked.rejection);
+    const { to } = checked;
 
     const apiKey = this.deps.credential(sms.apiKeyEnv);
-    if (!apiKey) return this.skipMissingCredential(job, 'sms', sms.apiKeyEnv);
+    if (!apiKey) {
+      await this.skipMissingCredential(job, 'sms', sms.apiKeyEnv);
+      return { status: 'skipped', detail: 'missing_credentials' };
+    }
 
     const templates = job.smsTemplates(sms);
     const template = templates?.[job.language] ?? templates?.[config.languages.default];
-    if (!template) return this.record(job, 'sms', 'skipped', 'no_template');
+    if (!template) return this.skipSms(job, 'no_template');
 
-    const reservationId = await this.reserveWithinCaps(job, 'sms', {
+    // A job-specific gate (a consultation's per-number cooldown) runs before a slot is claimed.
+    const gate = job.smsGate ? await job.smsGate(sms) : undefined;
+    if (gate) return this.skipSms(job, gate);
+
+    const reserved = await this.reserveWithinCaps(job, 'sms', {
       perClientPerDay: sms.maxPerDay,
       perNumber: { phone: job.callerPhone, max: sms.maxPerRecipientPerDay },
     });
-    if (!reservationId) return;
+    if (!('reservationId' in reserved)) return { status: 'skipped', detail: reserved.refusal };
+    const { reservationId } = reserved;
 
     try {
       const { messageId } = await this.deps.sms.send({
@@ -179,11 +257,11 @@ export class ChannelBookingNotifier implements BookingNotifier {
         status: 'sent',
         providerMessageId: messageId,
       });
+      return { status: 'sent' };
     } catch (error) {
-      await this.settle(job, 'sms', reservationId, {
-        status: 'failed',
-        detail: deliveryErrorCode(error),
-      });
+      const detail = deliveryErrorCode(error);
+      await this.settle(job, 'sms', reservationId, { status: 'failed', detail });
+      return { status: 'failed', detail };
     }
   }
 
@@ -191,13 +269,14 @@ export class ChannelBookingNotifier implements BookingNotifier {
     job: NotificationJob,
     config: ClientConfig,
     line: LineNotificationConfig,
+    smsOutcome?: SmsOutcome,
   ): Promise<void> {
     const accessToken = this.deps.credential(line.channelAccessTokenEnv);
     if (!accessToken) return this.skipMissingCredential(job, 'line', line.channelAccessTokenEnv);
 
     const template = job.lineTemplate(line);
     if (!template) return this.record(job, 'line', 'skipped', 'no_template');
-    const text = renderTemplate(template, job.lineValues(config));
+    const text = renderTemplate(template, job.lineValues(config, smsOutcome));
 
     // A recipient whose variable is unset is skipped on its own and never counts toward a cap.
     const recipients: { envName: string; to: string }[] = [];
@@ -211,13 +290,14 @@ export class ChannelBookingNotifier implements BookingNotifier {
     // ONE reservation per event, however many staff it fans out to: `maxPerDay` is alerts, not
     // individual pushes, so adding a recipient never shrinks the budget and a cap hit can never
     // tell some staff and not others.
-    const reservationId = await this.reserveWithinCaps(
+    const reserved = await this.reserveWithinCaps(
       job,
       'line',
       { perClientPerDay: line.maxPerDay },
       recipients.map((recipient) => recipient.envName).join(','),
     );
-    if (!reservationId) return;
+    if (!('reservationId' in reserved)) return;
+    const { reservationId } = reserved;
 
     const outcomes = await Promise.all(
       recipients.map(async ({ to }) => {
@@ -240,7 +320,7 @@ export class ChannelBookingNotifier implements BookingNotifier {
   /**
    * Claims a send slot: inserts a `pending` row, then counts live rows (`sent`, or `pending` for
    * under PENDING_STALE_MS; its own included) in the last 24 h. Over a cap → the row is settled as
-   * `skipped` and undefined is returned. Because every request inserts BEFORE it counts, the
+   * `skipped` and the refusal reason is returned. Because every request inserts BEFORE it counts, the
    * request that counts last sees all the others' reservations, so together they can never exceed
    * a cap (concurrent requests may both be refused, which is the safe direction). A request that
    * crashed mid-send leaves a stale `pending` row that stops counting after PENDING_STALE_MS, so it
@@ -251,7 +331,7 @@ export class ChannelBookingNotifier implements BookingNotifier {
     channel: NotificationChannel,
     caps: Caps,
     recipientRef?: string,
-  ): Promise<string | undefined> {
+  ): Promise<{ reservationId: string } | { refusal: string }> {
     const reservationId = await this.deps.log.reserve({
       clientId: job.clientId,
       appointmentId: job.appointmentId,
@@ -272,7 +352,7 @@ export class ChannelBookingNotifier implements BookingNotifier {
     });
 
     const refusal = refusalReason(counts, caps);
-    if (!refusal) return reservationId;
+    if (!refusal) return { reservationId };
 
     if (refusal === 'daily_limit') {
       // Real patients and staff are now going without this channel until the window rolls — make
@@ -284,7 +364,7 @@ export class ChannelBookingNotifier implements BookingNotifier {
       });
     }
     await this.settle(job, channel, reservationId, { status: 'skipped', detail: refusal });
-    return undefined;
+    return { refusal };
   }
 
   /** Runs one channel's work; a failure is logged and never reaches the other channel or the caller. */

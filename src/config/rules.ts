@@ -6,6 +6,7 @@
  * There is no language-specific branch anywhere in this file.
  */
 import type { ConfigIssue } from './issues.js';
+import { consultationIssues } from './consultationRules.js';
 import { notificationIssues } from './notificationRules.js';
 import type { ClientConfig, LocalizedText } from './schema.js';
 import { KNOWN_TOP_LEVEL_KEYS, SCRIPT_KEYS } from './schema.js';
@@ -60,6 +61,7 @@ export function collectCrossFieldIssues(
     ...reservationFlowIssues(config),
     ...recallIssues(config),
     ...notificationIssues(config),
+    ...consultationIssues(config),
     ...transferIssues(config),
   ];
 }

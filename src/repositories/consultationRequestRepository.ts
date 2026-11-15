@@ -47,6 +47,16 @@ export interface ConsultationRequestRepository {
   create(request: NewConsultationRequest): Promise<CreateResult>;
   /** One client's requests, newest first, optionally only one status. Always scoped. */
   listByClient(clientId: string, status?: ConsultationStatus): Promise<ConsultationRequest[]>;
+  /**
+   * How many of this client's requests were made under `phone` at or after `since`, not counting
+   * `exceptRequestId` — the per-number cooldown for the caller's text message.
+   */
+  countByPhoneSince(
+    clientId: string,
+    phone: string,
+    since: Date,
+    exceptRequestId: string,
+  ): Promise<number>;
   /** `found: false` — and nothing changed — when the id is unknown or belongs to another client. */
   updateStatus(
     id: string,
@@ -134,6 +144,20 @@ export class PgConsultationRequestRepository implements ConsultationRequestRepos
       [clientId, status ?? null],
     );
     return (rows as ConsultationRow[]).map(toRequest);
+  }
+
+  async countByPhoneSince(
+    clientId: string,
+    phone: string,
+    since: Date,
+    exceptRequestId: string,
+  ): Promise<number> {
+    const { rows } = await this.db.query(
+      `SELECT count(*)::text AS total FROM consultation_requests
+       WHERE client_id = $1 AND contact_phone = $2 AND created_at >= $3 AND id <> $4`,
+      [clientId, phone, since, exceptRequestId],
+    );
+    return Number((rows[0] as { total: string } | undefined)?.total ?? 0);
   }
 
   async updateStatus(

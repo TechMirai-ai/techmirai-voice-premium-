@@ -14,6 +14,7 @@ import { callerPhoneFromCall } from './callVariables.js';
 
 const LOOKUP_TOOL = 'lookup_patient';
 const CALLBACK_TOOL = 'request_callback';
+const CONSULTATION_TOOL = 'request_consultation';
 const FOUND_PREFIX = 'Found:';
 
 const argumentsSchema = z.union([z.string(), z.record(z.string(), z.unknown())]);
@@ -119,8 +120,10 @@ type Message = z.infer<typeof messageSchema>;
 function callerNameOf(messages: readonly Message[]): string | undefined {
   for (const message of messages) {
     for (const call of message.toolCalls ?? []) {
-      if (call.function?.name !== CALLBACK_TOOL) continue;
-      const name = parseArguments(call.function.arguments)?.callerName;
+      const tool = call.function?.name;
+      if (tool !== CALLBACK_TOOL && tool !== CONSULTATION_TOOL) continue;
+      const args = parseArguments(call.function?.arguments);
+      const name = tool === CONSULTATION_TOOL ? args?.contact_name : args?.callerName;
       if (typeof name === 'string' && name.trim()) return name.trim();
     }
   }

@@ -97,7 +97,7 @@ class MemoryLog implements NotificationLogRepository {
       // Every booking in these tests comes from the same number, so the in-memory rows all count.
       forNumber: query.patientPhone ? this.priorForNumber + live.length : 0,
       forCall: query.callId
-        ? live.filter((entry) => this.callOf(entry.appointmentId) === query.callId).length
+        ? live.filter((entry) => this.callOf(entry.appointmentId ?? '') === query.callId).length
         : 0,
     });
   }

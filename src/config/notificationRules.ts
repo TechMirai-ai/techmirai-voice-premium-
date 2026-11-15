@@ -26,6 +26,25 @@ export const LINE_PLACEHOLDERS = [
   'serviceName',
 ] as const;
 
+/** Consultation request texts: the caller's SMS may carry the business name, the hours and the e-mail. */
+export const CONSULTATION_SMS_PLACEHOLDERS = [
+  'businessName',
+  'contactHours',
+  'contactEmail',
+] as const;
+
+/** Consultation staff alert: internal, so it carries who, where from, and how the SMS went. */
+export const CONSULTATION_LINE_PLACEHOLDERS = [
+  'businessName',
+  'time',
+  'language',
+  'contactName',
+  'contactPhone',
+  'phoneSource',
+  'reason',
+  'smsStatus',
+] as const;
+
 /** The staff alert for a cancellation / reschedule (VP-25) also knows where the booking was before. */
 export const LINE_CHANGE_PLACEHOLDERS = [...LINE_PLACEHOLDERS, 'oldDate', 'oldTime'] as const;
 
@@ -57,7 +76,17 @@ function smsIssues(config: ClientConfig): ConfigIssue[] {
   if (!sms) return [];
 
   return [
-    ...smsTemplateSetIssues(config, 'notifications.sms.templates', sms.templates),
+    ...(sms.templates
+      ? smsTemplateSetIssues(config, 'notifications.sms.templates', sms.templates)
+      : []),
+    ...(sms.consultationTemplates
+      ? smsTemplateSetIssues(
+          config,
+          'notifications.sms.consultationTemplates',
+          sms.consultationTemplates,
+          CONSULTATION_SMS_PLACEHOLDERS,
+        )
+      : []),
     // VP-25: the caller texts for a cancellation / reschedule follow the very same rules.
     ...(['cancelled', 'rescheduled'] as const).flatMap((event) =>
       sms.changeTemplates
@@ -76,6 +105,7 @@ function smsTemplateSetIssues(
   config: ClientConfig,
   basePath: string,
   templates: Readonly<Record<string, string>>,
+  allowedPlaceholders: readonly string[] = SMS_PLACEHOLDERS,
 ): ConfigIssue[] {
   const { supported, default: defaultLanguage } = config.languages;
   const issues: ConfigIssue[] = [];
@@ -93,7 +123,7 @@ function smsTemplateSetIssues(
     if (!supported.includes(code)) {
       issues.push({ path, message: `"${code}" is not in languages.supported` });
     }
-    issues.push(...placeholderIssues(path, text, SMS_PLACEHOLDERS));
+    issues.push(...placeholderIssues(path, text, allowedPlaceholders));
     if (URL_PATTERN.test(text)) {
       issues.push({ path, message: 'must not contain a URL or link — confirmations stay factual' });
     }
@@ -105,11 +135,23 @@ function smsTemplateSetIssues(
 function lineIssues(config: ClientConfig): ConfigIssue[] {
   const line = config.notifications?.line;
   if (!line) return [];
-  const issues = placeholderIssues(
-    'notifications.line.messageTemplate',
-    line.messageTemplate,
-    LINE_PLACEHOLDERS,
-  );
+  const issues = line.messageTemplate
+    ? placeholderIssues(
+        'notifications.line.messageTemplate',
+        line.messageTemplate,
+        LINE_PLACEHOLDERS,
+      )
+    : [];
+
+  if (line.consultationTemplate) {
+    issues.push(
+      ...placeholderIssues(
+        'notifications.line.consultationTemplate',
+        line.consultationTemplate,
+        CONSULTATION_LINE_PLACEHOLDERS,
+      ),
+    );
+  }
 
   if (line.changeTemplates) {
     for (const event of ['cancelled', 'rescheduled'] as const) {

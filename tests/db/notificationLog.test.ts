@@ -108,6 +108,61 @@ describe.skipIf(!TEST_DATABASE_URL)('notification_log (real Postgres)', () => {
     expect(rows.map((row) => row.column_name)).toEqual(NOTIFICATION_LOG_COLUMNS);
   });
 
+  describe('the consultation_requested event (migration 0017)', () => {
+    test('is accepted, without an appointment, and counted per call', async () => {
+      await log.record({
+        clientId: 'techmirai-ai',
+        channel: 'sms',
+        status: 'sent',
+        event: 'consultation_requested',
+        callId: 'call-c1',
+      });
+      const reservation = await log.reserve({
+        clientId: 'techmirai-ai',
+        channel: 'line',
+        event: 'consultation_requested',
+        callId: 'call-c1',
+      });
+      await log.settle(reservation, { status: 'sent' });
+
+      const counts = await log.countReserved({
+        clientId: 'techmirai-ai',
+        channel: 'sms',
+        since: new Date(Date.now() - HOUR_MS),
+        pendingSince: new Date(Date.now() - 5 * 60 * 1000),
+        callId: 'call-c1',
+        event: 'consultation_requested',
+      });
+      expect(counts).toEqual({ forClient: 1, forNumber: 0, forCall: 1 });
+      const { rows } = await pool.query<{ appointment_id: string | null }>(
+        'SELECT appointment_id FROM notification_log',
+      );
+      expect(rows.every((row) => row.appointment_id === null)).toBe(true);
+    });
+
+    test('the three existing events are still accepted', async () => {
+      for (const event of ['booked', 'cancelled', 'rescheduled'] as const) {
+        await log.record({ clientId: CLIENT, channel: 'sms', status: 'sent', event });
+      }
+      const { rows } = await pool.query<{ event: string }>(
+        'SELECT event FROM notification_log ORDER BY event',
+      );
+      expect(rows.map((row) => row.event)).toEqual(['booked', 'cancelled', 'rescheduled']);
+    });
+
+    test.each(['consultation', 'CONSULTATION_REQUESTED', 'bogus', ''])(
+      'an unknown event (%j) is still rejected by the database',
+      async (event) => {
+        await expect(
+          pool.query(
+            "INSERT INTO notification_log (client_id, channel, status, event) VALUES ('c', 'sms', 'sent', $1)",
+            [event],
+          ),
+        ).rejects.toThrow(/notification_log_event_check/);
+      },
+    );
+  });
+
   test('stores one attempt, with optional fields left null', async () => {
     const appointmentId = await bookFor(PHONE_A);
 

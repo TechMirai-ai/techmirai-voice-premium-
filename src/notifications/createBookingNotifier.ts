@@ -6,17 +6,32 @@
 import { loadClient } from '../config/loadClient.js';
 import type { Queryable } from '../db/pool.js';
 import { envCredentialLookup } from '../env.js';
+import { PgConsultationRequestRepository } from '../repositories/consultationRequestRepository.js';
 import { PgNotificationLogRepository } from '../repositories/notificationLogRepository.js';
-import { ChannelBookingNotifier, type BookingNotifier } from './bookingNotifier.js';
+import {
+  ChannelBookingNotifier,
+  type BookingNotifier,
+  type ConsultationNotifier,
+} from './bookingNotifier.js';
 import { LineMessagingPusher } from './linePush.js';
 import { TelnyxSmsSender } from './telnyxSms.js';
 
 export function createBookingNotifier(db: Queryable): BookingNotifier {
+  return createChannelNotifier(db);
+}
+
+/** The same pipeline, for consultation requests (needs the requests table for the cooldown). */
+export function createConsultationNotifier(db: Queryable): ConsultationNotifier {
+  return createChannelNotifier(db);
+}
+
+function createChannelNotifier(db: Queryable): ChannelBookingNotifier {
   return new ChannelBookingNotifier({
     loadConfig: (clientId) => loadClient(clientId),
     credential: envCredentialLookup(),
     sms: new TelnyxSmsSender(),
     line: new LineMessagingPusher(),
     log: new PgNotificationLogRepository(db),
+    consultations: new PgConsultationRequestRepository(db),
   });
 }

@@ -21,6 +21,7 @@ import {
   simpleReservationSection,
   transferSection,
 } from './promptExtraSections.js';
+import { consultationSection } from './promptConsultationSection.js';
 import { appointmentChangeSection } from './promptChangeSection.js';
 import { isRecallActive, recallSection } from './promptRecallSection.js';
 import {
@@ -529,7 +530,9 @@ function clinicInformationSection(config: ClientConfig, language: string, faq: F
       'never tell them to call it.',
     `- Timezone: ${hours.timezone}`,
     `- Hours: ${formatWeeklyHours(hours.weekly)}`,
-    `- Closed on national holidays: ${hours.closedOnNationalHolidays ? 'yes' : 'no'}`,
+    ...(hours.closedOnNationalHolidays === undefined
+      ? []
+      : [`- Closed on national holidays: ${hours.closedOnNationalHolidays ? 'yes' : 'no'}`]),
     '',
     "Frequently asked questions. Match the caller's wording flexibly — callers rarely phrase " +
       'things exactly like the question text below, so match by meaning and by the listed tags, ' +
@@ -655,7 +658,10 @@ export function buildSystemPrompt(
     ...callerAdaptationSection(config),
     leadingSection(config, language),
     answeringSection(config, language),
-    callbackSection(config, language),
+    // A consultation client takes leads, not callbacks: its section replaces the callback flow.
+    ...(config.consultation
+      ? consultationSection(config, language)
+      : [callbackSection(config, language)]),
     ...transferSection(config, language),
     ...reservationSection(config, language, services),
     ...appointmentChangeSection(config, language, services),

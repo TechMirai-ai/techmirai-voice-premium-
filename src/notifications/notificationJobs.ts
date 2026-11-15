@@ -11,8 +11,27 @@ import type {
 } from '../config/notificationsSchema.js';
 import type { ClientConfig } from '../config/schema.js';
 import type { NotificationEvent } from '../repositories/notificationLogRepository.js';
-import type { AppointmentChangeNotification, BookingNotification } from './bookingNotifier.js';
+import { formatClinicDateTime } from '../lib/clinicTime.js';
+import type {
+  AppointmentChangeNotification,
+  BookingNotification,
+  ConsultationNotification,
+} from './bookingNotifier.js';
 import { formatBookingDate, sanitizeInline } from './template.js';
+
+/** How the caller's SMS ended — the consultation staff alert reports it. `detail` is a reason code. */
+export type SmsOutcome = { status: 'sent' } | { status: 'skipped' | 'failed'; detail: string };
+
+/** What the cooldown gate needs from the consultation requests table. */
+export interface ConsultationCooldownSource {
+  /** Requests by this number for this client created at or after `since`, not counting `exceptRequestId`. */
+  countByPhoneSince(
+    clientId: string,
+    phone: string,
+    since: Date,
+    exceptRequestId: string,
+  ): Promise<number>;
+}
 
 /** Shown in a staff alert where the booking has no value (no service, no caller number). */
 const NO_VALUE = '-';
@@ -20,7 +39,8 @@ const NO_VALUE = '-';
 export interface NotificationJob {
   event: NotificationEvent;
   clientId: string;
-  appointmentId: string;
+  /** Absent for an event that is not about an appointment (a consultation request). */
+  appointmentId?: string;
   /** The call that CAUSED this notification: at most one send per call, channel and event. */
   callId: string;
   /** The call's language — picks the caller's SMS template. */
@@ -32,9 +52,17 @@ export interface NotificationJob {
   /** The caller's SMS texts per language for this event; undefined = the client set none. */
   smsTemplates(sms: SmsNotificationConfig): Readonly<Record<string, string>> | undefined;
   smsValues(config: ClientConfig): Record<string, string>;
+  /**
+   * An extra check run just before the SMS claims a send slot: a reason code to skip with, or
+   * undefined to go ahead. A throw is handled like a failed send, never shown to the caller.
+   */
+  smsGate?(sms: SmsNotificationConfig): Promise<string | undefined>;
   /** The staff alert for this event; undefined = the client set none. */
   lineTemplate(line: LineNotificationConfig): string | undefined;
-  lineValues(config: ClientConfig): Record<string, string>;
+  /** `smsOutcome` is set only for a job with `lineAfterSms`. */
+  lineValues(config: ClientConfig, smsOutcome?: SmsOutcome): Record<string, string>;
+  /** True = send the SMS first and tell staff how it went; false/absent = both channels at once. */
+  lineAfterSms?: boolean;
 }
 
 /** The business name in `language`, falling back to the client's default language. */
@@ -113,6 +141,96 @@ export function changedJob(change: AppointmentChangeNotification): NotificationJ
       ...staffValues(config, change, change.date, change.time),
       oldDate: formatBookingDate(change.oldDate, config.languages.default),
       oldTime: change.oldTime,
+    }),
+  };
+}
+
+const HOUR_MS = 60 * 60 * 1000;
+const NO_REASON = '-';
+const SMS_NOT_SENT = 'not sent';
+
+/** Staff read English here: plain words for each reason code a consultation SMS can end with. */
+const SMS_REASON_WORDS: Readonly<Record<string, string>> = {
+  no_caller_number: 'no number',
+  invalid_caller_number: 'number not valid',
+  country_not_allowed: 'not a Japanese number',
+  number_type_not_allowed: 'not a mobile number (landline or other)',
+  cooldown: 'this number already got a text in the last day',
+  daily_limit: "the client's daily text limit was reached",
+  call_limit: 'a text was already sent for this call',
+  rate_limited: 'this number reached its daily text limit',
+  missing_credentials: 'SMS is not set up (missing credentials)',
+  no_template: 'no text template for this language',
+  sms_not_configured: 'SMS is not set up for this client',
+};
+
+/** "sent", "skipped - <why>" or "failed - <code>": one line for the staff alert. */
+export function smsStatusText(outcome: SmsOutcome | undefined): string {
+  if (!outcome) return SMS_NOT_SENT;
+  if (outcome.status === 'sent') return 'sent';
+  const why = SMS_REASON_WORDS[outcome.detail] ?? outcome.detail;
+  return `${outcome.status} - ${why}`;
+}
+
+const PHONE_SOURCE_WORDS: Readonly<Record<ConsultationNotification['phoneSource'], string>> = {
+  caller_id: 'caller ID (the number they called from)',
+  spoken: 'spoken by the caller',
+};
+
+/** The language's own name in English ("Japanese"), falling back to the code. */
+function languageName(code: string): string {
+  try {
+    return new Intl.DisplayNames('en', { type: 'language' }).of(code) ?? code;
+  } catch {
+    return code;
+  }
+}
+
+/**
+ * A consultation request (TechMirai's own agent): a thank-you SMS to the caller and an alert to
+ * staff that says how the SMS went. `cooldown` is the per-number gate; without one it is skipped.
+ */
+export function consultationJob(
+  request: ConsultationNotification,
+  cooldown: ConsultationCooldownSource | undefined,
+  now: Date,
+): NotificationJob {
+  const { contactPhone } = request;
+  return {
+    event: 'consultation_requested',
+    clientId: request.clientId,
+    callId: request.callId,
+    language: request.language,
+    ...(contactPhone ? { callerPhone: contactPhone } : {}),
+    smsIdempotencyKey: `consultation-${request.requestId}-sms`,
+    lineAfterSms: true,
+    smsTemplates: (sms) => sms.consultationTemplates,
+    smsValues: (config) => ({
+      businessName: businessName(config, request.language),
+      contactHours: config.consultation?.contactHours[request.language] ?? '',
+      contactEmail: config.consultation?.contactEmail ?? '',
+    }),
+    smsGate: async (sms) => {
+      if (!cooldown || !contactPhone || !sms.consultationCooldownHours) return undefined;
+      const since = new Date(now.getTime() - sms.consultationCooldownHours * HOUR_MS);
+      const earlier = await cooldown.countByPhoneSince(
+        request.clientId,
+        contactPhone,
+        since,
+        request.requestId,
+      );
+      return earlier > 0 ? 'cooldown' : undefined;
+    },
+    lineTemplate: (line) => line.consultationTemplate,
+    lineValues: (config, smsOutcome) => ({
+      businessName: businessName(config, config.languages.default),
+      time: formatClinicDateTime(request.createdAt, config.business.hours.timezone),
+      language: languageName(request.language),
+      contactName: sanitizeInline(request.contactName) || NO_REASON,
+      contactPhone: contactPhone ?? NO_REASON,
+      phoneSource: PHONE_SOURCE_WORDS[request.phoneSource],
+      reason: sanitizeInline(request.reason ?? '', 300) || NO_REASON,
+      smsStatus: smsStatusText(smsOutcome),
     }),
   };
 }

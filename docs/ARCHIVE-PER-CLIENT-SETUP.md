@@ -2,6 +2,8 @@
 
 Every client archives into **its own** Google Sheet and **its own two** Drive folders (audio, transcripts). Nothing is written to a location shared with another client — with one deliberate exception: the **demo clients** (`sakura-seikotsuin` and `kanto-city-gas-demo`) share the existing demo archive (see "Demo clients share one archive" below). **A real client, and TechMirai's own agent, must NOT share: follow the steps below and do NOT set the sharing flag.** The Google *credentials* (service account, OAuth token, retry secret) stay global and are set up once — see `docs/VP12-GOOGLE-SETUP.md`. This page is only about the destination of one more client.
 
+> **TechMirai's own agent** (`techmirai-ai`) is set up with this page plus its own runbook: `docs/TECHMIRAI-NUMBER-SETUP.md` (Sheet, folders, env vars `GOOGLE_ARCHIVE_TECHMIRAI_*`, number connection, real-call checklist). Agent description: `docs/TECHMIRAI-AGENT.md`.
+
 ## How it works (read once)
 
 - `clients/<clientId>/client.yaml` has a **required** `archive` block holding env var **names** (never the ids):

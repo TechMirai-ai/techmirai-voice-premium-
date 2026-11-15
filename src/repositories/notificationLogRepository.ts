@@ -11,15 +11,16 @@
 import type { Queryable } from '../db/pool.js';
 
 export type NotificationChannel = 'sms' | 'line';
-/** What a notification is about. Rows written before VP-25 are all `booked`. */
-export type NotificationEvent = 'booked' | 'cancelled' | 'rescheduled';
+/** What a notification is about. Rows written before VP-25 are all `booked`; a consultation request has no appointment. */
+export type NotificationEvent = 'booked' | 'cancelled' | 'rescheduled' | 'consultation_requested';
 export const DEFAULT_NOTIFICATION_EVENT: NotificationEvent = 'booked';
 export type NotificationStatus = 'pending' | 'sent' | 'failed' | 'skipped';
 export type SettledStatus = Exclude<NotificationStatus, 'pending'>;
 
 export interface NewNotificationLogEntry {
   clientId: string;
-  appointmentId: string;
+  /** Absent for events that are not about an appointment (a consultation request). */
+  appointmentId?: string | undefined;
   channel: NotificationChannel;
   /** What it was about; defaults to `booked`. */
   event?: NotificationEvent;
@@ -36,7 +37,7 @@ export interface NewNotificationLogEntry {
 
 export interface Reservation {
   clientId: string;
-  appointmentId: string;
+  appointmentId?: string | undefined;
   channel: NotificationChannel;
   event?: NotificationEvent;
   callId?: string;
@@ -102,7 +103,7 @@ export class PgNotificationLogRepository implements NotificationLogRepository {
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [
         entry.clientId,
-        entry.appointmentId,
+        entry.appointmentId ?? null,
         entry.channel,
         entry.status,
         entry.recipientRef ?? null,
@@ -122,7 +123,7 @@ export class PgNotificationLogRepository implements NotificationLogRepository {
        RETURNING id`,
       [
         reservation.clientId,
-        reservation.appointmentId,
+        reservation.appointmentId ?? null,
         reservation.channel,
         reservation.recipientRef ?? null,
         reservation.event ?? DEFAULT_NOTIFICATION_EVENT,

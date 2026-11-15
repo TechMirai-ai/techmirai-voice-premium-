@@ -11,6 +11,31 @@ import {
 const booked = { name: 'book_appointment', result: 'Booked. Reservation number: R000001.' };
 const callback = { name: 'request_callback', result: 'The callback request was saved.' };
 
+describe('deriveCallStatus — consultation requests', () => {
+  const saved = {
+    name: 'request_consultation',
+    result: 'The consultation request was saved. Say staff will contact the caller.',
+  };
+
+  test('a saved consultation request needs staff, even if the model also marked it resolved', () => {
+    expect(deriveCallStatus({ toolResults: [saved], resolved: true })).toBe('needs_callback');
+  });
+
+  test('a failed or refused consultation request does not look handled', () => {
+    const failed = { name: 'request_consultation', error: 'That number is not valid.' };
+    expect(deriveCallStatus({ toolResults: [failed], resolved: false })).toBe('unresolved');
+    const refused = {
+      name: 'request_consultation',
+      result: 'That number is not valid, so nothing was saved.',
+    };
+    expect(deriveCallStatus({ toolResults: [refused], resolved: false })).toBe('unresolved');
+  });
+
+  test('a name-only call (no tool ran, caller gave no number) is unresolved, not needs_callback', () => {
+    expect(deriveCallStatus({ toolResults: [], resolved: false })).toBe('unresolved');
+  });
+});
+
 describe('deriveCallStatus', () => {
   test('exposes exactly the four fixed statuses', () => {
     expect([...CALL_STATUSES]).toEqual([

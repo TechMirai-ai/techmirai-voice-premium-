@@ -1,0 +1,652 @@
+clientId: techmirai-ai
+# `demo` is the schema's status for "not a live customer"; this is TechMirai's OWN line, which is also
+# a live demo of the product. There is no real-customer data here.
+status: demo
+
+# TechMirai AI's own voice agent: answers questions about the company (from the FAQ below) and takes
+# consultation requests. See docs/TECHMIRAI-AGENT.md. NEEDS NATIVE-SPEAKER REVIEW for every Japanese
+# string. English meanings are in the comments or in docs/TECHMIRAI-AGENT.md.
+business:
+  type: company
+  name:
+    ja: TechMirai AI
+    en: TechMirai AI
+  # The postal address is not published: the field is required by the shared schema, so it says so
+  # instead of inventing one. (Jamal: replace with a real address if you want the agent to give one.)
+  address:
+    postalCode: "-"
+    ja: 非公開（日本国内を拠点としています）   # "Not published (based in Japan)"
+    en: Not published (based in Japan)
+  phone:
+    display: "050-3201-5722"
+    e164: "+815032015722"
+  # ASSUMPTION (Jamal to confirm): the website that the contact form lives on. Not spoken by the agent.
+  website: https://techmirai-ai.com
+  # These are the hours staff CONTACT callers, not when the line answers (the line answers at any
+  # hour; see promptOverrides.guardrails). Weekdays only; no claim about public holidays.
+  hours:
+    timezone: Asia/Tokyo
+    weekly:
+      mon: { open: "09:00", close: "18:00" }
+      tue: { open: "09:00", close: "18:00" }
+      wed: { open: "09:00", close: "18:00" }
+      thu: { open: "09:00", close: "18:00" }
+      fri: { open: "09:00", close: "18:00" }
+      sat: closed
+      sun: closed
+
+languages:
+  default: ja
+  supported: [ja, en]
+  settings:
+    ja:
+      # Same voices and transcribers as Sakura (proven on real calls). Jamal: say if you want others.
+      voice: { provider: cartesia, voiceId: e63d7d05-76b0-4ff5-b8fb-503a82688bfe }
+      transcriber: { provider: deepgram, model: nova-3, language: ja }
+      switchKeywords: ["日本語", "Japanese"]   # 日本語 = "Japanese"
+      # 失礼いたします / 失礼します = "goodbye" (lit. "excuse me for leaving"). Speaking one hangs up.
+      endCallPhrases: ["失礼いたします", "失礼します"]
+      # "Thank you very much", "That's all", "No, that's all, thank you", "Understood, thank you", "Yes, that's fine".
+      callerDoneExamples: ["ありがとうございました", "以上です", "いえ、大丈夫です、ありがとうございます", "わかりました、ありがとうございました", "はい、結構です"]
+      avoidRepeatedAcknowledgement: true
+      # "What can I help you with today?" / (softer) / (more formal).
+      openingQuestions:
+        - 本日はどのようなご用件でしょうか？
+        - 本日はどういったご用件でしょうか？
+        - どのようなご用件でいらっしゃいますか？
+      # "Could you wait a moment?" / "Sorry to trouble you, one moment please."
+      pleaseWaitVariants:
+        - 少々お待ちいただけますでしょうか。
+        - 恐れ入ります、少々お待ちくださいませ。
+    en:
+      voice: { provider: cartesia, voiceId: e4d5f4c4-6601-4779-bee1-b3c14d629dc6 }
+      transcriber: { provider: deepgram, model: nova-3, language: en }
+      switchKeywords: ["English", "英語", "イングリッシュ"]   # 英語 = "English"; イングリッシュ = "English" (katakana)
+      endCallPhrases: ["goodbye", "have a great day"]
+      callerDoneExamples: ["Thank you very much", "That's all", "No, that's all, thank you", "Got it, thank you", "OK, thanks"]
+      avoidRepeatedAcknowledgement: true
+      openingQuestions:
+        - How may I assist you today?
+        - How can I help you today?
+        - What can I help you with today?
+      pleaseWaitVariants:
+        - Just a moment, please.
+        - One second, please.
+        - Please bear with me for a moment.
+
+# Not used: a consultation client takes `consultation` requests instead (see below). The section is
+# required by the shared schema.
+callback:
+  enabled: false
+  collect: [name]
+  offerWhen: [no_faq_match, caller_asks_for_staff]
+  notifiers: []
+
+safety:
+  noMedicalAdvice: false
+
+# Wording overrides for the shared prompt (English meta-instruction to the model, never spoken).
+promptOverrides:
+  businessNoun: company
+  staffLabel: TechMirai AI staff
+  identity: >-
+    You are the AI voice agent on the phone line of [[clinicName]] (TechMirai AI), a Japan-based
+    company that builds AI voice agents and business websites. Your name is Hinata when you speak
+    Japanese and Jenny when you speak English. You are an AI and never claim to be human: if asked
+    whether you are an AI, say yes, as the FAQ entry "Am I speaking to an AI?" does. This call is also
+    a live demo of the product and you may say so when it fits. You answer questions about
+    TechMirai AI using ONLY the company information below, in short natural spoken sentences: give the
+    one or two sentences that answer the question, never read a long FAQ entry out word for word. You
+    can take a consultation request: the caller's name and a number, so staff can contact them to
+    arrange a meeting. You cannot transfer calls. Never invent prices (pricing is not published),
+    results, customer names, certifications or data-retention periods; none are in the information
+    below. If something is not in the information below, say you are not sure and offer the
+    consultation request.
+  sympathy: >-
+    If the caller is frustrated about missed calls or a difficult situation, acknowledge it briefly,
+    once per call, not routinely — for example "I understand, that sounds frustrating." in English, or
+    「それは大変でいらっしゃいますね」 in Japanese.
+  offTopic: >-
+    Off-topic: only when the caller raises something with no connection at all to the company or this
+    call (the weather, small talk, chit-chat), answer in a few words, politely, then return to how you
+    can help. If they have nothing company-related left, end the call warmly. This never applies to a
+    topic shift within company matters, which the New topic rule above covers.
+  visitingOrBooking: >-
+    A caller who wants a demo, a meeting, a quote or to get started: that is a consultation request —
+    offer it. Never say a specific day or time is free or promise one; staff arrange it. Pricing is
+    not published: say so, and offer the consultation request.
+  guardrails: >-
+    The "Hours" listed in the company information are the hours when TechMirai AI staff contact
+    callers, NOT when this phone line answers: this line, like the product, answers at any hour.
+    Say nothing about public holidays. Call forwarding to a person is switched off on this line:
+    describing what the product can do for businesses is fine, but never offer or promise to connect
+    this caller to a person. Never claim that staff have been told or will call unless the
+    request_consultation tool succeeded in this call.
+
+scripts:
+  # First message of the Japanese assistant (Hinata). "Thank you for calling. I am Hinata, the AI voice
+  # agent of [name] reception. This call is recorded to improve our service. [What can I help you with?]"
+  greeting:
+    en: Thank you for calling [[clinicName]]. How may I assist you today?   # gloss, never spoken
+    ja: お電話ありがとうございます。[[clinicName]]受付のAI音声エージェント、ヒナタと申します。サービス向上のため、この通話は録音されます。[[openingQuestion]]
+  # First message of the English assistant (Jenny) after a handoff.
+  englishGreeting:
+    en: Thank you for calling [[clinicName]]. I am Jenny, the AI voice agent. This call is recorded to improve our service. [[openingQuestion]]
+    ja: こんにちは。[[clinicName]]です。こちらは英語でご案内するAI音声エージェントでございます。ご用件をお聞かせください。   # unused
+  # A number that has called before. "Thank you for calling again. I am Hinata, the AI voice agent of
+  # [name] reception. This call is recorded. [What can I help you with?]"
+  returningGreeting:
+    en: Welcome back to [[clinicName]]. This is Jenny, the AI voice agent. This call is recorded. [[openingQuestion]]
+    ja: 再度のお電話ありがとうございます。[[clinicName]]受付のAI音声エージェント、ヒナタでございます。この通話は録音されます。[[openingQuestion]]
+  handoffToJapanese:
+    ja: 日本語で承ります。ご用件をお伺いいたします。   # "I will assist you in Japanese. Please tell me what you need."
+    en: "(Gloss, not spoken: 'I will assist you in Japanese. Please tell me what you need.')"
+  anythingElse:
+    en: Is there anything else I can help you with today?
+    ja: ほかに何かお手伝いできることはございますか？   # "Is there anything else I can help you with?"
+  noMatch:
+    en: >-
+      I'm sorry, I'm not sure about that. I can take your request so our staff can contact you.
+      May I have your name, please?
+    ja: >-
+      申し訳ございません。その件については、確かなことをお答えできません。
+      担当者からご連絡できるよう手配いたします。お名前を伺ってもよろしいでしょうか？
+  staffContactOffer:
+    en: >-
+      Of course. I can take your request so our staff can contact you to arrange a meeting.
+      May I have your name, please?
+    ja: >-
+      かしこまりました。担当者から面談の日程をご連絡できるよう、ご依頼を承ります。
+      お名前を伺ってもよろしいでしょうか？
+  # The next four are not used by this client (the consultation flow has its own lines); the shared
+  # schema requires them.
+  askName:
+    en: May I have your name, please?
+    ja: お名前を伺ってもよろしいでしょうか？
+  confirmName:
+    en: Just to confirm, that's [[callerName]], correct?
+    ja: 確認いたします。お名前は[[callerName]]様でよろしいでしょうか？
+  askContactNumber:
+    en: Is it okay for our staff to contact you on the number you are calling from?
+    ja: 今お電話いただいているこちらの番号に、担当者からご連絡してもよろしいでしょうか？
+  callbackSaved:
+    en: Thank you. Our staff will contact you to arrange a meeting.
+    ja: ありがとうございます。担当者からご連絡して、面談の日程を調整いたします。
+  callbackFailed:
+    en: I'm sorry, we could not save your request. Please email info@techmirai-ai.com or use the contact form on our website.
+    ja: 申し訳ございません。お申し込みを保存できませんでした。info@techmirai-ai.com 宛てにメールをいただくか、ウェブサイトのお問い合わせフォームをご利用ください。
+  pleaseWait:
+    en: One moment, please.
+    ja: 少々お待ちくださいませ。   # "One moment please."
+  didNotCatch:
+    en: I'm sorry, I didn't quite catch that. Could you say it again, please?
+    ja: 申し訳ございません。うまく聞き取れませんでした。もう一度おっしゃっていただけますか？
+  # Said after three failed attempts in a row; ends with a closing phrase so the call hangs up.
+  repeatedMisunderstanding:
+    en: >-
+      I'm sorry, the line seems unclear. Could you please call again a little later? Goodbye.
+    ja: >-
+      申し訳ございません。お電話が遠いようですので、お手数ですが、
+      少し時間をおいておかけ直しいただけますでしょうか。失礼いたします。
+  noMedicalAdvice:
+    en: I'm sorry, I can't give medical advice.
+    ja: 申し訳ございません。医学的なアドバイスはいたしかねます。
+  goodbye:
+    en: Thank you for your call. Have a great day.
+    ja: お電話いただき、誠にありがとうございました。失礼いたします。   # "Thank you very much for calling. Goodbye."
+  silenceCheck1:
+    en: Hello, can you hear me?
+    ja: もしもし、お聞きになれますでしょうか？
+  silenceCheck2:
+    en: Are you still on the line?
+    ja: お電話はつながっておりますでしょうか？
+  silenceEnding:
+    en: As I haven't heard a response, I'll end this call now. Thank you for calling. Goodbye.
+    ja: お返事がないようですので、お電話を終了させていただきます。お電話ありがとうございました。失礼いたします。
+  # The booking flow's lines: unused (no bookable services), required by the shared schema.
+  reservationAskType:
+    en: Is this your first time calling us?
+    ja: 初めてのお電話でしょうか？
+  reservationAskService:
+    en: Which service are you interested in?
+    ja: どちらのサービスにご興味がおありでしょうか？
+  reservationAskDateTime:
+    en: What date and time would you prefer?
+    ja: ご希望の日時はございますか？
+  reservationPatientNotFound:
+    en: I'm sorry, I couldn't find that name in our records.
+    ja: 申し訳ございません。そのお名前は記録に見つかりませんでした。
+  reservationSaved:
+    en: Thank you. We have saved your request.
+    ja: ありがとうございます。ご依頼を承りました。
+  reservationFailed:
+    en: I'm sorry. We weren't able to complete your request.
+    ja: 申し訳ございません。ご依頼を完了できませんでした。
+
+# Consultation requests (a lead). The assistant asks the name, asks whether staff may use the number
+# the caller is calling from, saves it with `request_consultation`, and says staff will be in touch.
+# No transfer on this line (there is deliberately no `transfer` block).
+consultation:
+  contactEmail: info@techmirai-ai.com
+  # ONE value for "when staff contact callers" — used in every spoken line and in the SMS.
+  # Ja: "on weekdays between 9 a.m. and 6 p.m. (Japan time)".
+  contactHours:
+    ja: 平日の午前9時から午後6時（日本時間）の間
+    en: on weekdays between 9 a.m. and 6 p.m. Japan time
+  scripts:
+    # "May I have your name, please?"
+    askName:
+      ja: お名前を伺ってもよろしいでしょうか？
+      en: May I have your name, please?
+    # "May our staff contact you on the number you are calling from now?"
+    askContactNumber:
+      ja: 今お電話いただいているこちらの番号に、担当者からご連絡してもよろしいでしょうか？
+      en: Is it okay for our staff to contact you on the number you are calling from?
+    # "Certainly. May I have the phone number we should contact you on?"
+    askSpokenNumber:
+      ja: かしこまりました。ご連絡先のお電話番号をお伺いしてもよろしいでしょうか？
+      en: Certainly. What number would you like us to use?
+    # "Let me confirm. Your phone number is [number], is that correct?"
+    confirmSpokenNumber:
+      ja: 確認いたします。お電話番号は[[number]]でよろしいでしょうか？
+      en: "Let me read that back: [[number]]. Is that correct?"
+    # "Thank you. Our staff will contact you [weekdays 9-6 Japan time] to arrange a meeting."
+    saved:
+      ja: ありがとうございます。担当者から[[contactHours]]にご連絡して、面談の日程を調整いたします。
+      en: Thank you. Our staff will contact you [[contactHours]] to arrange a meeting.
+    # "We plan to send you a text message shortly." (only when the tool says a text is expected)
+    smsNote:
+      ja: まもなく、ショートメッセージをお送りする予定です。
+      en: You should also receive a text message shortly.
+    # "Understood. Without a phone number we cannot contact you. Please email [address] or use the
+    # contact form on our website."
+    numberRefused:
+      ja: 承知いたしました。お電話番号をお伺いできないため、こちらからご連絡することができません。[[contactEmail]]宛てにメールをいただくか、ウェブサイトのお問い合わせフォームをご利用ください。
+      en: Understood. Without a number we cannot contact you, but you are welcome to email [[contactEmail]] or use the contact form on our website.
+    # "I'm sorry, we could not save your request. Please email [address] or use the contact form."
+    failed:
+      ja: 申し訳ございません。お申し込みを保存できませんでした。恐れ入りますが、[[contactEmail]]宛てにメールをいただくか、ウェブサイトのお問い合わせフォームをご利用ください。
+      en: I'm sorry, we could not save your request. Please email [[contactEmail]] or use the contact form on our website.
+    # "I'm sorry, I cannot connect you to a person on this line right now. I can take your name, and our
+    # staff will contact you [hours] to arrange a meeting." (same wording as FAQ L2)
+    noTransfer:
+      ja: 申し訳ございません。この回線では、今すぐ担当者におつなぎすることができません。お名前をお伺いし、担当者から[[contactHours]]にご連絡して、面談の日程を調整いたします。
+      en: I am sorry, I cannot connect you to a person on this line right now. I can take your name, and our staff will contact you [[contactHours]] to arrange a meeting.
+
+# Caller SMS (Telnyx, alphanumeric sender "TechMirai") and a staff alert on LINE. Credentials are env var
+# NAMES only. SMS goes only to Japanese 070/080/090 mobiles, at most one per number per 24 h and
+# `maxPerDay` per rolling 24 h. The sender ID and the messaging profile are set up in Telnyx by Jamal.
+notifications:
+  sms:
+    provider: telnyx
+    apiKeyEnv: TELNYX_API_KEY
+    messagingProfileId: 4001a195-9a6f-4a6b-8c61-c4c1d09caf3d
+    senderId: TechMirai
+    allowedCountryCodes: ["+81"]
+    allowedNumberPrefixes: ["+8170", "+8180", "+8190"]
+    maxPerDay: 20
+    consultationCooldownHours: 24
+    consultationTemplates:
+      # "This is [name]. Thank you for calling. We have received your request. Our staff will contact you
+      # [weekdays 9-6 Japan time] to arrange a meeting. Please do not reply to this message. Contact:
+      # [email]."
+      ja: "[[businessName]]です。お電話ありがとうございます。ご依頼を承りました。担当者から[[contactHours]]にご連絡し、面談の日程を調整いたします。このメッセージには返信できません。お問い合わせ: [[contactEmail]]"
+      en: "[[businessName]]: Thank you for calling. We have received your request. Our staff will contact you [[contactHours]] to arrange a meeting. Please do not reply to this message. Contact: [[contactEmail]]"
+  # Staff alert (English: the person reading it does not read Japanese). The first recipient is Jamal's
+  # own LINE; a LINE group can be added later by adding one more env var name here (no code change).
+  line:
+    channelAccessTokenEnv: LINE_CHANNEL_ACCESS_TOKEN
+    recipientEnvs: [LINE_TECHMIRAI_STAFF_USER_ID]
+    maxPerDay: 20
+    consultationTemplate: |-
+      [New consultation request] [[businessName]]
+      Time: [[time]] (Japan time)
+      Language: [[language]]
+      Name: [[contactName]]
+      Phone: [[contactPhone]] - from [[phoneSource]]
+      Reason: [[reason]]
+      SMS to caller: [[smsStatus]]
+
+# FAQ v2 (techmirai-ai-FAQ-v2.md), converted mechanically, nothing reworded. The Japanese has not had a
+# native-speaker review yet. Tags are search hints added by the conversion.
+faq:
+  - id: v1
+    tags: ["product", "what is", "overview"]
+    question:
+      en: "What is TechMirai AI?"
+      ja: "TechMirai AI受付とは何ですか？"
+    answer:
+      en: "TechMirai AI is an AI phone agent that answers your calls in natural Japanese or English. It handles common questions, takes callback requests and forwards calls to your staff. It is built for call centres and businesses that get more calls than people can answer."
+      ja: "TechMirai AI受付は、自然な日本語または英語で電話対応を行うAI電話エージェントです。よくある質問への回答、折り返し連絡の受付、スタッフへの転送を行います。コールセンターや、人員体制を超える多数の電話を受ける企業向けに構築されています。"
+
+  - id: v2
+    tags: ["capabilities", "features", "what can it do"]
+    question:
+      en: "What can it do on a call?"
+      ja: "電話でどのような対応ができますか？"
+    answer:
+      en: "It greets the caller, answers from your approved information, and takes a message or callback request when it cannot help. It can forward the call to a person during your staff hours. Every call is logged with a status and a short summary."
+      ja: "発信者の挨拶、承認された情報に基づく回答、対応できない場合のメッセージや折り返し希望の受付を行います。スタッフの勤務時間内であれば、担当者への転送も可能です。すべての通話はステータスと簡単な要約とともに記録されます。"
+
+  - id: v3
+    tags: ["customers", "who is it for", "call centre"]
+    question:
+      en: "Who is it for?"
+      ja: "どのような企業向けですか？"
+    answer:
+      en: "Small and mid-size call centres, BPOs and call-heavy businesses such as utilities and chain stores. They have repeat questions, evening peaks and night calls that are costly to staff. Call centres can also offer it to their own clients under their own brand."
+      ja: "中小規模のコールセンター、BPO、そしてユーティリティ（公共インフラ）やチェーン店など、電話対応の多い企業向けです。繰り返しの質問、夕方のピーク、夜間の電話など、人員を配置するとコストのかかる電話を抱えている企業に適しています。コールセンターが自社ブランドとしてクライアントに提供することも可能です。"
+
+  - id: v4
+    tags: ["ivr", "phone menu", "difference"]
+    question:
+      en: "How is it different from a phone menu?"
+      ja: "電話メニュー（IVR）と何が違いますか？"
+    answer:
+      en: "A phone menu makes callers press numbers. TechMirai AI lets them speak in their own words and answers from your approved information. When it cannot help, it takes a callback request or forwards the call, so callers are not stuck in a menu."
+      ja: "従来の電話メニューでは発信者に番号入力が求められますが、TechMirai AI受付では発信者が自分の言葉で話すことができ、承認された情報から回答します。対応できない場合は折り返しの受付や転送を行うため、発信者がメニュー内で立ち往生することがありません。"
+
+  - id: v5
+    tags: ["demo", "live demo", "trial"]
+    question:
+      en: "Can I see or hear a demo?"
+      ja: "デモを見る、または聞くことはできますか？"
+    answer:
+      en: "Yes. You are hearing a live demo right now, with the same kind of voice agent we build for businesses. We also run live demos on request using a sample business, so you can hear how it speaks and see what staff get afterwards. If you would like a short demo tailored to your own call types, I can take your name and our staff will contact you to arrange it."
+      ja: "はい。今まさに、お客様向けにご提供している音声エージェントと同じ種類のライブデモをお聞きいただいています。ご要望に応じて、サンプル企業を用いたライブデモも実施しており、実際の音声や、対応後にスタッフが受け取る内容をご確認いただけます。お客様の通話タイプに合わせた短いデモをご希望でしたら、お名前をお伺いし、担当者からご連絡して日程を調整いたします。"
+
+  - id: v6
+    tags: ["limits", "limitations", "cannot do"]
+    question:
+      en: "What can't it do today?"
+      ja: "現時点でできないことは何ですか？"
+    answer:
+      en: "Today it speaks Japanese and English, forwards calls without a summary for the agent, and is not an emergency service. Deeper links to CRM and booking systems are scoped per project. We would rather tell you the limits now than surprise you in a pilot."
+      ja: "現時点では、対応言語は日本語と英語です。通話の転送は可能ですが、担当者向けの引き継ぎ要約はまだ付きません。また、緊急サービスではありません。CRMや予約システムとの高度な連携は、プロジェクトごとに範囲を決めます。パイロット中に驚かせるよりも、事前に制限事項をお伝えしたいと考えています。"
+
+  - id: v7
+    tags: ["after hours", "peak", "24 hours", "availability"]
+    question:
+      en: "Can it answer after hours and at peak times?"
+      ja: "営業時間外やピーク時にも対応できますか？"
+    answer:
+      en: "Yes. It is built to answer at any hour, including nights, weekends and rush-hour peaks, so callers are not left in a queue or at voicemail. How many calls it can take at the same time is agreed per project."
+      ja: "はい。夜間、週末、ラッシュ時のピークを含め、いつでも対応できるように設計されているため、発信者がキュー（待ち行列）や留守番電話のまま放置されることはありません。同時通話可能な件数はプロジェクトごとに合意の上決定します。"
+
+  - id: v8
+    tags: ["languages", "japanese", "english"]
+    question:
+      en: "Which languages does it speak?"
+      ja: "対応している言語は何ですか？"
+    answer:
+      en: "Japanese and English today. A caller speaks Japanese by default or asks for English at the start of the call. More languages are planned, and the system is designed so adding one does not mean rebuilding it."
+      ja: "現在は日本語と英語に対応しています。デフォルトで日本語に対応し、通話開始時に英語をリクエストすることも可能です。今後さらに言語を追加予定であり、言語追加のためにシステムを再構築する必要がない設計になっています。"
+
+  - id: v9
+    tags: ["cannot answer", "escalation", "fallback"]
+    question:
+      en: "What happens when it can't answer?"
+      ja: "AIが回答できない場合はどうなりますか？"
+    answer:
+      en: "It does not guess. It tells the caller it will pass the request to staff, takes their name, confirms the number to call back on, and saves a callback request for your team. If the caller asks for a person, it forwards the call during staff hours."
+      ja: "推測で回答することはありません。スタッフにリクエストを伝える旨を発信者に伝え、お名前と折り返し先のお電話番号を確認して、チーム向けの折り返しリクエストを保存します。発信者が担当者を希望した場合は、スタッフの勤務時間内であれば通話を転送します。"
+
+  - id: v10
+    tags: ["transfer", "human", "forwarding"]
+    question:
+      en: "Can it transfer to a human agent?"
+      ja: "オペレーター（人間のスタッフ）へ転送できますか？"
+    answer:
+      en: "Yes. It can forward the call to a team you choose, during the hours you set. A hand-over summary is not included yet, so the agent may need to ask the caller to repeat the details. On this phone line, call forwarding is switched off, so I cannot connect you to a person now, but I can take your name and our staff will contact you."
+      ja: "はい。指定したチームへ、設定した時間内に通話を転送できます。引き継ぎ用の要約機能はまだ含まれていないため、担当者から発信者に詳細を再度お伺いする場合があります。なお、この電話回線では通話転送を無効にしているため、今すぐ担当者におつなぎすることはできませんが、お名前をお伺いして、担当者からご連絡いたします。"
+
+  - id: v11
+    tags: ["reseller", "partner", "white label"]
+    question:
+      en: "Can call centres resell it under their own brand?"
+      ja: "コールセンターが自社ブランドとして再販できますか？"
+    answer:
+      en: "Yes. Our partner model lets a call centre offer AI after-hours and overflow call handling to its own clients under its own brand. You keep the client relationship and we run the technology. Details are agreed in a partner discussion."
+      ja: "はい。当社のパートナーモデルにより、コールセンターは営業時間外や溢れ電話（オーバーフロー）の対応を、自社ブランドとしてクライアントに提供できます。クライアントとの関係は御社が維持し、当社は技術面を運営します。詳細はパートナー協議にて決定します。"
+
+  - id: v12
+    tags: ["messages", "callback", "booking"]
+    question:
+      en: "Can it take messages or book callbacks?"
+      ja: "メッセージの受付や折り返しの予約はできますか？"
+    answer:
+      en: "Yes. When a caller needs a person, it collects their name, confirms the best number to reach them, and saves a callback request for your staff to follow up. Anything else it collects, such as the reason for the call, is set up for each business. A simple booking step can be added for businesses that take appointments."
+      ja: "はい。発信者が担当者を必要とする場合、お名前を伺い、ご連絡先のお電話番号を確認して、スタッフが後からフォローアップできるように折り返しリクエストを保存します。用件など、その他に収集する内容は企業ごとに設定します。予約を受け付ける企業向けに、簡単な予約ステップを追加することも可能です。"
+
+  - id: v13
+    tags: ["dashboard", "call list", "summary", "status"]
+    question:
+      en: "What do we see after each call?"
+      ja: "通話後はどのような情報を確認できますか？"
+    answer:
+      en: "Your staff see a call list with time, duration, status and a short AI summary, plus callback requests to follow up. The status shows whether the AI resolved the call, took a callback, made a booking or could not help."
+      ja: "スタッフは、日時、通話時間、ステータス、AIによる簡単な要約が含まれた通話リストと、フォローアップ用の折り返しリクエストを確認できます。ステータスには、AIが解決したか、折り返しを受付したか、予約を行ったか、対応できなかったかが表示されます。"
+
+  - id: v14
+    tags: ["accuracy", "hallucination", "made up answers"]
+    question:
+      en: "Will it make up answers?"
+      ja: "勝手に回答を作り出してしまうことはありませんか？"
+    answer:
+      en: "It is designed not to. It answers from the information you approve, and when it is not sure it says so and offers a callback or a person. During the pilot we test it on your real question types before anything goes live."
+      ja: "作り出さないよう設計されています。承認された情報に基づいて回答し、確信のない場合はその旨を伝えた上で、折り返しや担当者への連絡を提案します。パイロット期間中に、実際の質問タイプでテストを行ってから本番稼働させます。"
+
+  - id: v15
+    tags: ["security", "data", "privacy"]
+    question:
+      en: "Is our call data safe?"
+      ja: "通話データは安全に保護されますか？"
+    answer:
+      en: "We treat call data as confidential. Staff see summaries and status, while recordings and transcripts sit in a restricted archive. We do not hold a formal security certification yet and are working toward one. We agree data handling, storage and access in writing before any pilot."
+      ja: "通話データは機密情報として取り扱います。スタッフは要約とステータスを閲覧できますが、録音データや文字起こしはアクセスが制限されたアーカイブに保存されます。現時点で正式なセキュリティ認証は取得しておらず、取得に向けた取り組みを進めています。データの取り扱い、保管、アクセス権については、パイロット開始前に書面で合意します。"
+
+  - id: v16
+    tags: ["recording", "recorded calls"]
+    question:
+      en: "Are calls recorded?"
+      ja: "通話は録音されますか？"
+    answer:
+      en: "Calls can be recorded for quality review. When recording is on, the AI tells the caller at the start of the call. Which calls are recorded, who can listen and how long recordings are kept is agreed with you before launch."
+      ja: "品質管理のために通話を録音することができます。録音が有効な場合、通話開始時にAIが発信者にその旨を伝えます。どの通話を録音するか、誰が聴取できるか、録音データの保存期間は、ローンチ前に事前に合意の上決定します。"
+
+  - id: v17
+    tags: ["emergency", "urgent"]
+    question:
+      en: "Can it handle urgent or emergency calls?"
+      ja: "緊急の電話にも対応できますか？"
+    answer:
+      en: "It is not an emergency service. For urgent situations we agree rules with each client, such as telling the caller to use the official emergency number and forwarding to staff when someone is available. We do not promise automatic emergency escalation."
+      ja: "緊急サービスではありません。緊急時の状況については、公式の緊急通報用電話番号を利用するよう発信者に案内することや、スタッフが対応可能な場合に転送することなど、クライアントごとにルールを取り決めます。自動的な緊急エスカレーションはお約束していません。"
+
+  - id: v18
+    tags: ["control", "approved answers"]
+    question:
+      en: "Can we control what it says?"
+      ja: "AIの発言内容を管理・制御できますか？"
+    answer:
+      en: "Yes. Its answers come from an approved answer set for your business: hours, services, common questions and what to do when it cannot help. We set it up with you and update it when your information changes."
+      ja: "はい。営業時間、サービス内容、よくある質問、対応できない場合の対処法など、ビジネス向けに承認された回答セットから回答が生成されます。お客様と一緒に設定を行い、情報が変更された際には適宜アップデートします。"
+
+  - id: v19
+    tags: ["pilot", "getting started"]
+    question:
+      en: "How does a pilot work?"
+      ja: "パイロット運用はどのように進みますか？"
+    answer:
+      en: "We start with a short pilot in four steps: validate your call types, measure how the agent performs on them, decide together whether it is worth it, then build the production version. You see results before you commit to a full rollout."
+      ja: "以下の4つのステップによる短いパイロットから開始します：通話タイプの検証、エージェントのパフォーマンス測定、導入メリットの共同評価、本番バージョンの構築。本格的な導入を決定する前に、成果をご確認いただけます。"
+
+  - id: v20
+    tags: ["requirements", "what we need", "onboarding"]
+    question:
+      en: "What do you need from us to start?"
+      ja: "開始にあたって何を提供する必要がありますか？"
+    answer:
+      en: "A list of your most common call types and questions, your opening hours, where calls should be forwarded and which languages you need. Call samples or scripts help a lot. We do the rest of the setup."
+      ja: "最も頻繁にある通話タイプや質問のリスト、営業時間、転送先、必要な言語情報をご提供いただきます。実際の通話サンプルやスクリプトがあると非常にスムーズです。その他の設定は当社で行います。"
+
+  - id: v21
+    tags: ["phone number", "routing", "connect"]
+    question:
+      en: "How does it connect to our phone number?"
+      ja: "電話番号とはどのように接続されますか？"
+    answer:
+      en: "We look at how your calls reach you today and agree the simplest way to route them to the agent. This is decided in the first consultation, because every call centre's setup is different."
+      ja: "現在の電話の着信方法を確認し、エージェントへルーティングする最もシンプルな方法を協議して決定します。コールセンターごとに設定が異なるため、最初のコンサルティングで決定します。"
+
+  - id: v22
+    tags: ["pricing", "cost", "price"]
+    question:
+      en: "How much does it cost?"
+      ja: "料金はいくらかかりますか？"
+    answer:
+      en: "Pricing depends on call volume, languages and how much integration you need, so we do not publish a fixed price. After a short call we propose a clear quote, starting with a pilot you can evaluate."
+      ja: "通話量、言語、必要な統合の度合いによって異なるため、固定料金は公開していません。簡単なヒアリングの後、評価可能なパイロットから始まる明確なお見積もりをご提案いたします。"
+
+  - id: v23
+    tags: ["other industries", "utilities", "chain stores"]
+    question:
+      en: "Does it work outside call centres?"
+      ja: "コールセンター以外でも利用できますか？"
+    answer:
+      en: "Yes. Utilities and chain businesses with many repeat calls can use it directly. We focus on call centres first, so that is where we can help you fastest."
+      ja: "はい。繰り返し多い電話が発生するユーティリティ企業やチェーン企業なども直接ご利用いただけます。まずはコールセンターに焦点を当てているため、最速でサポートできる領域となっています。"
+
+  - id: v24
+    tags: ["crm", "booking system", "integration"]
+    question:
+      en: "Can it connect to our CRM or booking system?"
+      ja: "CRMや予約システムと連携できますか？"
+    answer:
+      en: "Every call is logged with a summary and status, and a simple booking step can be added. Connecting to your CRM or ticketing system is scoped per project. Tell us which system you use and we will say what is realistic before you commit."
+      ja: "すべての通話は要約とステータスとともに記録され、簡単な予約ステップを追加することも可能です。CRMやチケット管理システムとの連携はプロジェクトごとにスコープを定義します。ご利用中のシステムをお知らせいただければ、導入前に実現可能性をお伝えします。"
+
+  - id: w1
+    tags: ["website", "offerings", "services"]
+    question:
+      en: "What do you offer besides the voice agent?"
+      ja: "音声エージェント以外には何を提供していますか？"
+    answer:
+      en: "Three things. The AI voice agent is our main product. We also build a one-week static website, and a full ecosystem: a custom website with its own CMS (editing screen) plus chatbot, voice agent, LINE, social media and booking, built around your business."
+      ja: "主に3つ提供しています。AI音声エージェントが主力製品ですが、1週間で納品する静的ウェブサイトの構築、およびビジネスに合わせて構築された、専用CMS（編集画面）付きカスタムウェブサイト、チャットボット、音声エージェント、LINE、SNS、予約機能を含んだ完全なエコシステムの構築を行っています。"
+
+  - id: w2
+    tags: ["one-week website", "static website"]
+    question:
+      en: "What is the one-week website?"
+      ja: "「1週間ウェブサイト」とは何ですか？"
+    answer:
+      en: "A professional static website with clear pages for your services and contact details, delivered in about one week once we have your content and menu. It is the quickest way to get online, and you can upgrade to the full ecosystem later."
+      ja: "サービス内容や連絡先を明確に掲載したプロ仕様の静的ウェブサイトで、コンテンツやメニューをご提供いただいてから約1週間で納品されます. オンライン化を最もスピーディーに実現する方法であり、後から完全なエコシステムへアップグレードすることも可能です。"
+
+  - id: w3
+    tags: ["ecosystem", "cms", "chatbot"]
+    question:
+      en: "What is the full ecosystem website?"
+      ja: "「フルエコシステムウェブサイト」とは何ですか？"
+    answer:
+      en: "A custom system built around your business: a website with its own CMS, plus a chatbot, voice agent, LINE, social media and booking. Everything works together, so a customer can read, chat, call or book in one place."
+      ja: "お客様のビジネスに合わせて構築されたカスタムシステムです。専用CMS付きウェブサイトに、チャットボット、音声エージェント、LINE、SNS、予約機能が統合されています。すべてが連携しているため、顧客は1つの場所で情報の閲覧、チャット、電話、予約を行うことができます。"
+
+  - id: w4
+    tags: ["edit website", "cms"]
+    question:
+      en: "Can I edit the website myself?"
+      ja: "自分でウェブサイトを編集できますか？"
+    answer:
+      en: "On the full ecosystem, yes. The CMS is an admin screen where you update text, photos and news without writing code. Ask us what you can edit on the one-week static site, since it is a simpler build."
+      ja: "フルエコシステムの場合は可能です。CMSは管理画面になっており、コードを書かずにテキスト、写真、ニュースを更新できます。1週間静的サイトはよりシンプルな構築となっているため、編集可能な範囲についてはお問い合わせください。"
+
+  - id: w5
+    tags: ["which option", "choose"]
+    question:
+      en: "Which option should I choose?"
+      ja: "どのオプションを選ぶべきですか？"
+    answer:
+      en: "If missed or overloaded calls are your problem, start with the voice agent. If you just need to be online quickly, choose the one-week website. If you want site, chat, calls and booking working together, choose the ecosystem."
+      ja: "電話の取りこぼしや過負荷が問題であれば、音声エージェントから始めてください。早急にオンライン上に存在感を示したい場合は、1週間ウェブサイトをお選びください。サイト、チャット、電話、予約を連動させたい場合は、エコシステムをお選びください。"
+
+  - id: w6
+    tags: ["online shop", "e-commerce"]
+    question:
+      en: "Do you build online shops?"
+      ja: "オンラインショップ（ECサイト）も構築できますか？"
+    answer:
+      en: "Not today. Our websites focus on business and service sites with content, enquiries, chat, voice and booking. We do not build e-commerce stores, and we would rather tell you now than waste your time."
+      ja: "現時点では構築していません。当社のウェブサイトは、コンテンツ、問い合わせ、チャット、音声、予約を備えたビジネスおよびサービスサイトに特化しています。ECストアの構築は行っておりませんので、お時間を無駄にしないよう事前にお伝えしております。"
+
+  - id: c1
+    tags: ["company", "about", "who are you"]
+    question:
+      en: "Who is TechMirai AI?"
+      ja: "TechMirai AIとはどのような会社ですか？"
+    answer:
+      en: "TechMirai AI is a Japan-based company building AI voice agents and business websites. Our founders work in Japan with an international engineering team. We focus on practical AI that answers real calls and does real work."
+      ja: "TechMirai AIは、日本を拠点にAI音声エージェントやビジネス用ウェブサイトを開発している企業です。創業者たちは日本を拠点に活動し、国際的なエンジニアチームを擁しています。実際の電話対応を行い、実用的な仕事をする「実践的なAI」に焦点を当てています。"
+
+  - id: c2
+    tags: ["customers", "case studies", "references"]
+    question:
+      en: "Do you have customers or case studies?"
+      ja: "顧客や導入事例はありますか？"
+    answer:
+      en: "We are in our early-partner phase and building our first references with call centres. We can show a live demo and walk you through a pilot. We will share case studies once partners agree to be named."
+      ja: "現在はアーリーパートナーフェーズにあり、コールセンター向けに最初の実績を構築している段階です。ライブデモの実施やパイロットのご案内が可能です。パートナー企業からの掲載許可が得られ次第、導入事例を共有いたします。"
+
+  - id: c3
+    tags: ["contact", "book a demo", "email", "meeting"]
+    question:
+      en: "How do I contact you or book a demo?"
+      ja: "問い合わせやデモの予約方法を教えてください。"
+    answer:
+      en: "I can take your name now, and our staff will contact you to arrange a meeting or a demo. You can also email info@techmirai-ai.com or use the contact form on our website, and tell us your call volume, languages and goals."
+      ja: "今すぐお名前をお伺いし、担当者から面談やデモの日程調整のご連絡を差し上げることができます。info@techmirai-ai.com 宛てのメール、またはウェブサイトのお問い合わせフォームからも、通話量、言語、目標をお知らせいただけます。"
+
+  - id: c4
+    tags: ["language", "english", "japanese", "communication"]
+    question:
+      en: "Can we talk in English or Japanese?"
+      ja: "英語または日本語でやり取りできますか？"
+    answer:
+      en: "Yes. We work in both English and Japanese, and our website is available in both. Tell us which you prefer when you write, and we will reply in that language."
+      ja: "はい。英語と日本語の両方で対応しており、ウェブサイトも両言語でご利用いただけます。お問い合わせの際にご希望の言語をお知らせいただければ、その言語でご返信いたします。"
+
+  - id: l1
+    tags: ["ai", "am i speaking to an ai", "human"]
+    question:
+      en: "Am I speaking to an AI?"
+      ja: "AIと話していますか？"
+    answer:
+      en: "Yes. I am Jenny, an AI voice agent for TechMirai AI. You are hearing the same kind of agent we build for call centres and businesses."
+      ja: "はい、私はTechMirai AIのAI音声エージェント、ヒナタです。コールセンターや企業向けに構築している音声エージェントと同じ種類のものです。"
+
+  - id: l2
+    tags: ["transfer", "person", "human", "connect me"]
+    question:
+      en: "Can you transfer me to a person?"
+      ja: "今すぐ担当者につないでもらえますか？"
+    answer:
+      en: "I am sorry, I cannot connect you to a person on this line right now. I can take your name, and our staff will contact you on weekdays between 9 a.m. and 6 p.m. Japan time to arrange a meeting."
+      ja: "申し訳ございません。この回線では、今すぐ担当者におつなぎすることができません。お名前をお伺いし、担当者から平日の午前9時から午後6時（日本時間）の間にご連絡して、面談の日程を調整いたします。"
+
+  - id: l3
+    tags: ["when will staff contact", "contact hours", "weekdays"]
+    question:
+      en: "When will your staff contact me?"
+      ja: "担当者からはいつ連絡が来ますか？"
+    answer:
+      en: "Our staff will contact you on weekdays between 9 a.m. and 6 p.m. Japan time to arrange a meeting."
+      ja: "平日の午前9時から午後6時（日本時間）の間に、担当者からご連絡して、面談の日程を調整いたします。"
+
+# TechMirai's own archive: it must NOT set `sharedDemoArchive`, and these variables must be created and
+# set (locally and in Vercel) before real calls. Until then archive jobs stay pending (fail closed) and
+# nothing is written to the shared demo archive. See docs/TECHMIRAI-NUMBER-SETUP.md.
+archive:
+  sheetIdEnv: GOOGLE_ARCHIVE_TECHMIRAI_SHEET_ID
+  audioFolderIdEnv: GOOGLE_ARCHIVE_TECHMIRAI_DRIVE_FOLDER_ID
+  transcriptFolderIdEnv: GOOGLE_ARCHIVE_TECHMIRAI_TRANSCRIPT_FOLDER_ID

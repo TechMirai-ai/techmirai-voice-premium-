@@ -7,7 +7,11 @@ import { createApp } from '../../src/app.js';
 import type { Queryable } from '../../src/db/pool.js';
 import { FileKnowledgeSource } from '../../src/knowledge/KnowledgeSource.js';
 import type { CallbackNotifier, CallbackNotification } from '../../src/lib/callbackNotifier.js';
-import type { BookingNotifier } from '../../src/notifications/bookingNotifier.js';
+import type {
+  BookingNotifier,
+  ConsultationNotifier,
+} from '../../src/notifications/bookingNotifier.js';
+import type { ConsultationRequestRepository } from '../../src/repositories/consultationRequestRepository.js';
 import type { ClinicNow } from '../../src/lib/clinicTime.js';
 import {
   ChangeLimitError,
@@ -447,6 +451,11 @@ export function buildVoiceApp(
     transferEnv?: (name: string) => string | undefined;
     /** VP-24: the clock the transfer gate reads. */
     now?: () => Date;
+    /** Consultation requests: the store and the notifier. Omitted = the tool route is not mounted. */
+    consultations?: ConsultationRequestRepository;
+    consultationNotifier?: ConsultationNotifier;
+    /** Replaces the default resolver (which only knows Sakura's Japanese assistant). */
+    resolver?: AssistantResolver;
   } = {},
 ) {
   const callbacks = new MemoryCallbacks();
@@ -459,7 +468,7 @@ export function buildVoiceApp(
   const postalCodes = new MemoryPostalCodes();
   const voiceOptions: VoiceRouterOptions = {
     webhookSecret: WEBHOOK_SECRET,
-    resolver,
+    resolver: options.resolver ?? resolver,
     knowledge: new FileKnowledgeSource(),
     callbacks,
     topics,
@@ -476,6 +485,8 @@ export function buildVoiceApp(
     ...(options.archive ? { archive: options.archive } : {}),
     ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
     ...(options.bookingNotifier ? { bookingNotifier: options.bookingNotifier } : {}),
+    ...(options.consultations ? { consultations: options.consultations } : {}),
+    ...(options.consultationNotifier ? { consultationNotifier: options.consultationNotifier } : {}),
   };
   const app = createApp({
     db: healthyDb,

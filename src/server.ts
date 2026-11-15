@@ -11,10 +11,14 @@ import { LoggingNotifier } from './lib/callbackNotifier.js';
 import { logger } from './lib/logger.js';
 import { FileKnowledgeSource } from './knowledge/KnowledgeSource.js';
 import { ZipcloudPostalCodeLookup } from './address/postalCodeLookup.js';
-import { createBookingNotifier } from './notifications/createBookingNotifier.js';
+import {
+  createBookingNotifier,
+  createConsultationNotifier,
+} from './notifications/createBookingNotifier.js';
 import { PgAppointmentRepository } from './repositories/appointmentRepository.js';
 import { PgCallbackRequestRepository } from './repositories/callbackRequestRepository.js';
 import { PgCallLogRepository } from './repositories/callLogRepository.js';
+import { PgConsultationRequestRepository } from './repositories/consultationRequestRepository.js';
 import { PgCallTopicRepository } from './repositories/callTopicRepository.js';
 import { PgReservationPatientRepository } from './repositories/reservationPatientRepository.js';
 import { PgReservationServiceRepository } from './repositories/reservationServiceRepository.js';
@@ -59,6 +63,9 @@ const app = createApp({
     services: new PgReservationServiceRepository(pool),
     // VP-23: booking SMS + staff LINE alert, configured per client in client.yaml.
     bookingNotifier: createBookingNotifier(pool),
+    // Consultation requests (TechMirai's own agent): saved here, then SMS + LINE.
+    consultations: new PgConsultationRequestRepository(pool),
+    consultationNotifier: createConsultationNotifier(pool),
     // VP-20: postal code → prefecture / city / town for clients that collect a service address.
     postalCodes: new ZipcloudPostalCodeLookup(),
   },

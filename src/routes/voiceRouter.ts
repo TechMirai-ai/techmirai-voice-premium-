@@ -12,6 +12,10 @@ import { endOfCallReportRouter, type EndOfCallReportRouteDeps } from './endOfCal
 import { lookupPatientRouter, type LookupPatientRouteDeps } from './lookupPatient.js';
 import { lookupPostalCodeRouter, type LookupPostalCodeRouteDeps } from './lookupPostalCode.js';
 import { recallLastVisitRouter, type RecallLastVisitRouteDeps } from './recallLastVisit.js';
+import {
+  requestConsultationRouter,
+  type RequestConsultationRouteDeps,
+} from './requestConsultation.js';
 import { silenceEndRouter, type SilenceEndRouteDeps } from './silenceEnd.js';
 import { transferToStaffRouter, type TransferToStaffRouteDeps } from './transferToStaff.js';
 
@@ -39,7 +43,8 @@ export interface VoiceRouterOptions
     LookupPatientRouteDeps,
     LookupPostalCodeRouteDeps,
     SilenceEndRouteDeps,
-    TransferToStaffRouteDeps {
+    TransferToStaffRouteDeps,
+    Partial<Omit<RequestConsultationRouteDeps, 'resolver'>> {
   webhookSecret: string;
   rateLimit?: RateLimitOptions;
 }
@@ -62,6 +67,18 @@ export function voiceRouter(options: VoiceRouterOptions): Router {
   router.use(recallLastVisitRouter(options));
   router.use(silenceEndRouter(options));
   router.use(transferToStaffRouter(options));
+  // Mounted only when the deployment wires the consultation repository (same idea as the archive).
+  if (options.consultations) {
+    router.use(
+      requestConsultationRouter({
+        resolver: options.resolver,
+        consultations: options.consultations,
+        ...(options.consultationNotifier
+          ? { consultationNotifier: options.consultationNotifier }
+          : {}),
+      }),
+    );
+  }
 
   return router;
 }

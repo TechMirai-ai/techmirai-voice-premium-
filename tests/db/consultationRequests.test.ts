@@ -94,6 +94,34 @@ describe.skipIf(!TEST_DATABASE_URL)('consultation_requests (real Postgres)', () 
     expect(rows).toHaveLength(0);
   });
 
+  describe('countByPhoneSince (the per-number SMS cooldown)', () => {
+    const DAY_AGO = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    test('counts other requests by the same number for the same client, not itself', async () => {
+      const first = (await repo.create(newRequest({ callId: 'c1' }))).request;
+      const second = (await repo.create(newRequest({ callId: 'c2' }))).request;
+
+      expect(await repo.countByPhoneSince('client-a', '09012345678', DAY_AGO, second.id)).toBe(1);
+      expect(await repo.countByPhoneSince('client-a', '09012345678', DAY_AGO, first.id)).toBe(1);
+    });
+
+    test('ignores other clients, other numbers and requests older than the window', async () => {
+      await repo.create(newRequest({ callId: 'c1' }));
+      await repo.create(newRequest({ clientId: 'client-b', callId: 'c1' }));
+      await repo.create(newRequest({ callId: 'c2', contactPhone: '08011112222' }));
+      const old = (await repo.create(newRequest({ callId: 'c3' }))).request;
+      await pool.query(
+        "UPDATE consultation_requests SET created_at = now() - interval '2 days' WHERE id = $1",
+        [old.id],
+      );
+
+      const { request } = await repo.create(newRequest({ callId: 'c4' }));
+
+      // c1 only: the other client's row, the other number and the 2-day-old row do not count.
+      expect(await repo.countByPhoneSince('client-a', '09012345678', DAY_AGO, request.id)).toBe(1);
+    });
+  });
+
   test('inserts with a NULL phone and applies the defaults', async () => {
     const { request, created } = await repo.create(
       newRequest({ contactPhone: null, phoneSource: 'spoken' }),

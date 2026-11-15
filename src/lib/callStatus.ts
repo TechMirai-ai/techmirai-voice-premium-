@@ -55,8 +55,21 @@ export function withTransferNote(
 
 export const BOOK_SUCCESS_PREFIX = 'Booked.';
 
+/** What `request_consultation` answers when it saved the request (src/routes/requestConsultation.ts). */
+export const CONSULTATION_SUCCESS_PREFIX = 'The consultation request was saved.';
+
 const BOOK_TOOL = 'book_appointment';
 const CALLBACK_TOOL = 'request_callback';
+const CONSULTATION_TOOL = 'request_consultation';
+
+/** Only a SAVED consultation request needs staff: a failed one saved nothing and must not look handled. */
+function consultationSaved(outcome: ToolOutcome): boolean {
+  return (
+    outcome.name === CONSULTATION_TOOL &&
+    !outcome.error &&
+    (outcome.result ?? '').trimStart().startsWith(CONSULTATION_SUCCESS_PREFIX)
+  );
+}
 
 function bookingSucceeded(outcome: ToolOutcome): boolean {
   return (
@@ -69,6 +82,7 @@ function bookingSucceeded(outcome: ToolOutcome): boolean {
 export function deriveCallStatus(input: CallStatusInput): CallStatus {
   if (input.toolResults.some(bookingSucceeded)) return 'reservation_made';
   if (input.toolResults.some((outcome) => outcome.name === CALLBACK_TOOL)) return 'needs_callback';
+  if (input.toolResults.some(consultationSaved)) return 'needs_callback';
   // Only an explicit `true` counts: a missing/failed classification must surface to staff.
   // A transfer's outcome is never confirmed (see TRANSFER_ENDED_REASON), so it is never "resolved".
   if (input.resolved === true && !input.transferred) return 'resolved_by_ai';

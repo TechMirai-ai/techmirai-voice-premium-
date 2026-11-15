@@ -101,8 +101,16 @@ export interface SyncClientOptions {
   repoRoot?: StateStoreOptions['repoRoot'];
 }
 
-function toolStateName(clientId: string, language: string): string {
-  return `${clientId}--${language}--request-callback`;
+/**
+ * The primary tool's state key: `request-callback`, or `request-consultation` for a client with a
+ * `consultation` section (its assistants have no callback tool).
+ */
+function toolStateName(
+  config: { clientId: string; consultation?: unknown },
+  memberId: string,
+): string {
+  const key = config.consultation ? 'request-consultation' : 'request-callback';
+  return `${config.clientId}--${memberId}--${key}`;
 }
 
 function topicToolStateName(clientId: string, language: string): string {
@@ -264,7 +272,7 @@ export async function syncClient(
     ...(outcomeOutputId ? { outcomeOutputId } : {}),
   });
   const assistantName = assistantResourceName(clientId, memberId);
-  const toolName = toolStateName(clientId, memberId);
+  const toolName = toolStateName(config, memberId);
 
   const toolPlan: PlannedTool = {
     result: planResource(toolName, state.tools[toolName]),
@@ -419,7 +427,7 @@ function squadPrerequisites(config: ClientConfig): { assistants: string[]; tools
     tools: memberIds.flatMap((id) => {
       const language = contentLanguageOf(config, id);
       return [
-        toolStateName(config.clientId, id),
+        toolStateName(config, id),
         topicToolStateName(config.clientId, id),
         ...handoffTargets(config, language).map((to) =>
           handoffToolStateName(config.clientId, id, to),

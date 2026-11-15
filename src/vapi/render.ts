@@ -32,6 +32,7 @@ import {
   LOOKUP_POSTAL_CODE_FUNCTION_NAME,
   RECALL_LAST_VISIT_FUNCTION_NAME,
   REQUEST_CALLBACK_FUNCTION_NAME,
+  REQUEST_CONSULTATION_FUNCTION_NAME,
 } from './toolNames.js';
 import type { FaqEntry } from '../knowledge/KnowledgeSource.js';
 import {
@@ -455,6 +456,59 @@ function renderRecallTool(baseUrl: string, credentialId: string): RenderedReserv
 }
 
 /**
+ * The `request_consultation` tool (clients with a `consultation` section). The model never
+ * supplies the call id or the caller-ID number: the server reads both from the call itself, and
+ * `spoken_phone` is only for a number the caller said aloud.
+ */
+function renderConsultationTool(
+  url: string,
+  credentialId: string,
+  pleaseWaitMessages: string[],
+  failureMessage: string,
+): VapiFunctionToolPayload {
+  return {
+    type: 'function',
+    function: {
+      name: REQUEST_CONSULTATION_FUNCTION_NAME,
+      description:
+        'Saves a consultation request so staff can contact the caller to arrange a meeting. ' +
+        'Call it only after the caller has given a name and clearly agreed to be contacted on ' +
+        'the number.',
+      parameters: {
+        type: 'object',
+        properties: {
+          contact_name: { type: 'string', description: "The caller's name." },
+          phone_source: {
+            type: 'string',
+            enum: ['caller_id', 'spoken'],
+            description:
+              '"caller_id" when the caller agreed to be contacted on the number they are calling ' +
+              'from; "spoken" when they gave a different number aloud.',
+          },
+          spoken_phone: {
+            type: 'string',
+            description:
+              'Only with phone_source "spoken": the number the caller said, as digits, after you ' +
+              'read it back and they said yes.',
+          },
+          reason: {
+            type: 'string',
+            description: 'Only if the caller volunteered one: a short summary. Never ask for it.',
+          },
+          language: { type: 'string', description: 'The language of this call, "ja" or "en".' },
+        },
+        required: ['contact_name', 'phone_source'],
+      },
+    },
+    server: { url, credentialId },
+    messages: [
+      ...requestStartMessagesOf(pleaseWaitMessages),
+      { type: 'request-failed', content: failureMessage },
+    ],
+  };
+}
+
+/**
  * VP-25: find / cancel / reschedule a booking the caller made. None takes a phone number or a
  * name: the server matches by the number the call came from, so the model cannot widen the search.
  * `appointmentId` comes only from `find_my_appointments`' result and is never spoken.
@@ -579,7 +633,14 @@ export function renderAssistant(
       ? fillClinicPlaceholders(config, language, pick(config.scripts.greeting, language))
       : renderArrivalMessage(config, language);
 
-  const tool: VapiFunctionToolPayload = {
+  // A client with a `consultation` section takes leads instead of callbacks: its primary tool is
+  // request_consultation (same bookkeeping slot), and the callback tool does not exist for it.
+  const consultationUrl = `${baseUrl}/api/voice/request-consultation`;
+  const consultationFailure = config.consultation
+    ? fillClinicPlaceholders(config, language, pick(config.consultation.scripts.failed, language))
+    : failureMessage;
+
+  const callbackTool: VapiFunctionToolPayload = {
     type: 'function',
     function: {
       name: REQUEST_CALLBACK_FUNCTION_NAME,
@@ -607,6 +668,15 @@ export function renderAssistant(
       { type: 'request-failed', content: failureMessage },
     ],
   };
+
+  const tool: VapiFunctionToolPayload = config.consultation
+    ? renderConsultationTool(
+        consultationUrl,
+        options.credentialId,
+        pleaseWaitMessages,
+        consultationFailure,
+      )
+    : callbackTool;
 
   const topicTool = renderTopicTool(
     topicUrl,

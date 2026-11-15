@@ -18,11 +18,12 @@ import { createArchive } from '../src/google/createArchive.js';
 import { envCredentialLookup, isProduction, loadEnv } from '../src/env.js';
 import { LoggingNotifier } from '../src/lib/callbackNotifier.js';
 import { logger } from '../src/lib/logger.js';
-import { createBookingNotifier } from '../src/notifications/createBookingNotifier.js';
+import { createBookingNotifier, createConsultationNotifier } from '../src/notifications/createBookingNotifier.js';
 import { FileKnowledgeSource } from '../src/knowledge/KnowledgeSource.js';
 import { PgAppointmentRepository } from '../src/repositories/appointmentRepository.js';
 import { PgCallbackRequestRepository } from '../src/repositories/callbackRequestRepository.js';
 import { PgCallLogRepository } from '../src/repositories/callLogRepository.js';
+import { PgConsultationRequestRepository } from '../src/repositories/consultationRequestRepository.js';
 import { PgCallTopicRepository } from '../src/repositories/callTopicRepository.js';
 import { PgReservationPatientRepository } from '../src/repositories/reservationPatientRepository.js';
 import { PgReservationServiceRepository } from '../src/repositories/reservationServiceRepository.js';
@@ -60,6 +61,9 @@ const app = createApp({
     services: new PgReservationServiceRepository(pool),
     // VP-23: booking SMS + staff LINE alert, configured per client in client.yaml.
     bookingNotifier: createBookingNotifier(pool),
+    // Consultation requests (TechMirai's own agent): saved here, then SMS + LINE.
+    consultations: new PgConsultationRequestRepository(pool),
+    consultationNotifier: createConsultationNotifier(pool),
     // VP-20: postal code → prefecture / city / town for clients that collect a service address.
     postalCodes: new ZipcloudPostalCodeLookup(),
   },

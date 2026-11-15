@@ -15,6 +15,7 @@ import { recallSchema } from './recallSchema.js';
 import { archiveSchema } from './archiveSchema.js';
 import { notificationsSchema } from './notificationsSchema.js';
 import { transferSchema } from './transferSchema.js';
+import { consultationSchema } from './consultationSchema.js';
 
 /** Lowercase slug: also the folder name under `clients/` and the Vapi name prefix. */
 export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -81,7 +82,11 @@ const businessSchema = z.strictObject({
   hours: z.strictObject({
     timezone: nonEmpty,
     weekly: weeklyHoursSchema,
-    closedOnNationalHolidays: z.boolean(),
+    /**
+     * Optional: a client that makes no claim about public holidays leaves it out, and the prompt
+     * then says nothing about them. Every existing client sets it, so nothing changes for them.
+     */
+    closedOnNationalHolidays: z.boolean().optional(),
   }),
 });
 
@@ -352,6 +357,8 @@ export const clientConfigSchema = z.looseObject({
   emergency: emergencySchema.optional(),
   // VP-23: booking SMS (Telnyx) + staff LINE alert. Omitted = no notifications for this client.
   notifications: notificationsSchema.optional(),
+  // Consultation requests (a lead: name + number) instead of callback requests. Omitted = callback flow.
+  consultation: consultationSchema.optional(),
   // VP-24: hand a live call to a staff phone number. Omitted = no transfer for this client.
   transfer: transferSchema.optional(),
   // Per-client Google archive destination (env var names). REQUIRED: a client with no destination
