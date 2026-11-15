@@ -256,8 +256,10 @@ describe.skipIf(!TEST_DATABASE_URL)('client-scoped scripts (real Postgres)', () 
         expect(await countFor(table, SAKURA_ID)).toBe(0);
         expect(await countFor(table, KANTO_ID)).toBe(1);
       }
-      // Not part of the demo-call wipe.
-      expect(await countFor('consultation_requests', SAKURA_ID)).toBe(1);
+      // Consultation requests are part of the wipe too (the owner cleans test leads before launch)…
+      expect(await countFor('consultation_requests', SAKURA_ID)).toBe(0);
+      // …and only for that client.
+      expect(await countFor('consultation_requests', KANTO_ID)).toBe(1);
       const printed = io.out.join('\n');
       expect(printed).toContain('Committed.');
       expect(printed).not.toContain('09012345678');

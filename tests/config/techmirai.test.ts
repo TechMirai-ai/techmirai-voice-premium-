@@ -32,8 +32,9 @@ const mutated = (change: (draft: Record<string, any>) => void) => {
 describe('clients/techmirai-ai/client.yaml', () => {
   const config = loadClient(ID);
 
-  test('loads, is its own client, and has transfer switched off', () => {
+  test('loads, is its own client, is live, and has transfer switched off', () => {
     expect(config.clientId).toBe(ID);
+    expect(config.status).toBe('live');
     expect(config.transfer).toBeUndefined();
     expect(config.consultation?.contactEmail).toBe('info@techmirai-ai.com');
   });
@@ -86,7 +87,10 @@ describe('clients/techmirai-ai/client.yaml', () => {
 
   test('the written company name is TechMirai AI; the SPOKEN name is a config value per language', () => {
     expect(config.business.name.en).toBe('TechMirai AI');
-    expect(config.business.namePronunciation).toEqual({ ja: 'テックミライ', en: 'Tech Mirai' });
+    expect(config.business.namePronunciation).toEqual({
+      ja: 'テックミライAI',
+      en: 'Tech Mirai AI',
+    });
   });
 
   test('no Japanese line uses お申し込み (application); the failure lines say ご依頼 (request)', () => {
@@ -235,9 +239,9 @@ describe('prompt and tools', () => {
       ),
     );
 
-    expect(rendered[0]?.assistant.firstMessage).toContain('テックミライ受付のAI音声エージェント');
+    expect(rendered[0]?.assistant.firstMessage).toContain('テックミライAI受付のAI音声エージェント');
     expect(rendered[0]?.assistant.firstMessage).not.toContain('TechMirai');
-    expect(rendered[1]?.assistant.firstMessage).toContain('Thank you for calling Tech Mirai.');
+    expect(rendered[1]?.assistant.firstMessage).toContain('Thank you for calling Tech Mirai AI.');
     expect(rendered[1]?.assistant.firstMessage).not.toContain('TechMirai');
   });
 

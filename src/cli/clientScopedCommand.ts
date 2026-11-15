@@ -3,24 +3,28 @@
  * services:remove-follow-up): argument parsing, the known-client guard, and a
  * preview-by-default transaction that prints row counts only.
  */
-import type { LoadClientOptions } from '../config/loadClient.js';
+import { loadClient, type LoadClientOptions } from '../config/loadClient.js';
 import { isKnownClient, unknownClientMessage } from '../config/knownClient.js';
 import type { Queryable } from '../db/pool.js';
 
 export const COMMIT_FLAG = '--commit';
+/** Needed, on top of --commit, to change a client whose client.yaml says `status: live`. */
+export const ALLOW_LIVE_FLAG = '--allow-live';
 
 export type ParsedArgs =
-  { ok: true; clientId: string; commit: boolean } | { ok: false; error: string };
+  | { ok: true; clientId: string; commit: boolean; allowLive: boolean }
+  | { ok: false; error: string };
 
-/** `<clientId> [--commit]`, in any order. A missing id, an extra argument or a typo'd flag fails. */
+/** `<clientId> [--commit] [--allow-live]`, in any order. A missing id, an extra argument or a typo'd flag fails. */
 export function parseClientScopedArgs(argv: string[], usage: string): ParsedArgs {
   const commit = argv.includes(COMMIT_FLAG);
-  const positional = argv.filter((arg) => arg !== COMMIT_FLAG);
+  const allowLive = argv.includes(ALLOW_LIVE_FLAG);
+  const positional = argv.filter((arg) => arg !== COMMIT_FLAG && arg !== ALLOW_LIVE_FLAG);
   const [clientId, ...extra] = positional;
   if (!clientId || extra.length > 0 || clientId.startsWith('-')) {
     return { ok: false, error: usage };
   }
-  return { ok: true, clientId, commit };
+  return { ok: true, clientId, commit, allowLive };
 }
 
 export interface ClientScopedDeps {
@@ -57,9 +61,29 @@ export async function runClientScopedCommand(
     deps.printError(parsed.error);
     return 1;
   }
-  const { clientId, commit } = parsed;
+  const { clientId, commit, allowLive } = parsed;
   if (!isKnownClient(clientId, deps.clientsOptions)) {
     deps.printError(unknownClientMessage(clientId));
+    return 1;
+  }
+
+  // A client whose config says `status: live` holds real data: changing it needs --allow-live as
+  // well as --commit. A preview changes nothing, so it always works. An unreadable config fails
+  // closed: we cannot tell whether the client is live.
+  let live: boolean;
+  try {
+    live = loadClient(clientId, deps.clientsOptions).status === 'live';
+  } catch {
+    deps.printError(
+      `Cannot read clients/${clientId}/client.yaml, so I cannot tell whether it is live. Nothing was changed.`,
+    );
+    return 1;
+  }
+  if (commit && live && !allowLive) {
+    deps.printError(
+      `Refused: ${clientId} is a LIVE client (status: live in its client.yaml). Nothing was changed. ` +
+        `Preview without ${COMMIT_FLAG} to see the counts; to really change live data, add ${ALLOW_LIVE_FLAG}.`,
+    );
     return 1;
   }
 
@@ -67,12 +91,12 @@ export async function runClientScopedCommand(
   try {
     const counts = await action.apply(deps.db, clientId);
     await deps.db.query(commit ? 'COMMIT' : 'ROLLBACK');
-    deps.print(`Client: ${clientId}`);
+    deps.print(`Client: ${clientId}${live ? ' (LIVE)' : ''}`);
     for (const [label, count] of Object.entries(counts)) deps.print(`  ${label}: ${count}`);
     deps.print(
       commit
         ? 'Committed.'
-        : `Preview only — nothing was changed. Run again with ${COMMIT_FLAG} to apply.`,
+        : `Preview only — nothing was changed. Run again with ${COMMIT_FLAG}${live ? ` ${ALLOW_LIVE_FLAG}` : ''} to apply.`,
     );
     return 0;
   } catch (error) {

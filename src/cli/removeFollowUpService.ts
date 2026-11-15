@@ -27,7 +27,7 @@ import {
 } from './clientScopedCommand.js';
 
 export const REMOVE_FOLLOW_UP_USAGE =
-  'Usage: npm run services:remove-follow-up -- <clientId> [--commit]';
+  'Usage: npm run services:remove-follow-up -- <clientId> [--commit] [--allow-live]';
 
 const SERVICE_ID = 'follow-up';
 

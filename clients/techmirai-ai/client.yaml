@@ -1,7 +1,8 @@
 clientId: techmirai-ai
-# `demo` is the schema's status for "not a live customer"; this is TechMirai's OWN line, which is also
-# a live demo of the product. There is no real-customer data here.
-status: demo
+# `live`: this line takes real leads. demo:clear-calls and the other destructive CLIs refuse a live
+# client unless --allow-live is given (src/cli/clientScopedCommand.ts). Nothing else in the code
+# branches on this value.
+status: live
 
 # TechMirai AI's own voice agent: answers questions about the company (from the FAQ below) and takes
 # consultation requests. See docs/TECHMIRAI-AGENT.md. NEEDS NATIVE-SPEAKER REVIEW for every Japanese
@@ -18,11 +19,10 @@ business:
     ja: 非公開（日本国内を拠点としています）   # "Not published (based in Japan)"
     en: Not published (based in Japan)
   # How the company name is SPOKEN (replaces [[clinicName]] in spoken text; written text such as the
-  # SMS keeps `name`). Jamal to confirm both: ja テックミライ = "Tekku Mirai"; en "Tech Mirai".
-  # Note: they leave out the word "AI"; use "テックミライ AI" / "Tech Mirai AI" to keep it.
+  # SMS keeps `name`). ja テックミライAI = "Tekku Mirai AI" ("AI" read as エーアイ); en "Tech Mirai AI".
   namePronunciation:
-    ja: テックミライ
-    en: Tech Mirai
+    ja: テックミライAI
+    en: Tech Mirai AI
   phone:
     display: "050-3201-5722"
     e164: "+815032015722"
