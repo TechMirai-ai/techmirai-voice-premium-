@@ -10,7 +10,7 @@ Nothing is final until you approve section 1-6. After you approve I run `vapi:sy
 2. **Website URL** for `business.website`: I put `https://techmirai-ai.com` as a placeholder (the agent never says it; the shared schema requires a field).
 3. **Postal address**: `business.address` is required by the shared schema; I wrote "Not published (based in Japan)" instead of inventing one. Give me a real address if the agent should ever state one.
 4. **Voices**: I reused Sakura's (Miki for Japanese, Jillian for English) because they are proven on real calls. Say if you want different ones.
-5. **Telnyx**: the `TechMirai` sender must exist on the messaging profile id in `client.yaml` (`4001a195-…`, the one Sakura's sender uses), or give me another profile id.
+5. **Telnyx**: you rename the messaging profile's Alpha sender to `TechMirai` (profile id in `client.yaml`: `4001a195-…`, the one Sakura's SMS uses). The request sends `from: "TechMirai"` through that profile. Sakura's requests send `from: "Sakura"` explicitly; an optional separate commit switches Sakura to `TechMirai` too (see the report). The +1-725-715-8112 number is not used and not touched.
 6. **`status: demo`**: the schema only has `demo`/`live`; I used `demo` (this line is also a live demo). Confirm.
 7. **FAQ flags** (not edited): section 7.
 

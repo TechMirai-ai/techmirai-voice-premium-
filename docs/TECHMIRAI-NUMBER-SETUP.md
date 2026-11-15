@@ -50,11 +50,12 @@ Do **not** reuse the demo variables and do **not** add `sharedDemoArchive`.
 
 Until the archive variables are set, archive jobs for TechMirai calls stay `pending` (`archive destination not configured for techmirai-ai (unset: …)`) and nothing is written to any archive; once set, `npm run archive:retry` (or the scheduled retry) archives them.
 
-## 3. Telnyx: the "TechMirai" sender ID (SMS)
+## 3. Telnyx: the messaging profile's "Alpha sender" (SMS)
 
-1. In Telnyx, create the alphanumeric sender ID **TechMirai** on the messaging profile whose id is in `clients/techmirai-ai/client.yaml` (`notifications.sms.messagingProfileId`, the same profile Sakura's `Sakura` sender uses), or tell Claude to use another profile id.
-2. Do **not** touch +1-725-715-8112: it stays on Sakura's inbound voice line.
-3. Set a **spend limit** on the Telnyx account if you have not (the app's caps bound the count, not the money).
+1. In Telnyx, open the messaging profile whose id is in `clients/techmirai-ai/client.yaml` (`notifications.sms.messagingProfileId`, the profile Sakura's SMS uses) and change its **Alpha sender** name from `Sakura` to `TechMirai`. Recipients do not see a phone number; they see that name.
+2. Do **not** touch +1-725-715-8112: it stays attached to Sakura's inbound voice line in Vapi. The code never sends it as `from`.
+3. Effect on the demos: every client on that profile shows "TechMirai" (accepted). Sakura's requests send `from: "Sakura"` explicitly (the profile name is not in the request); whether Telnyx then shows "Sakura" or the profile name is not known from the repo. If you want Sakura to match the profile for certain, include the optional commit "chore: Sakura SMS senderId to TechMirai" (separate from the TechMirai work; Kanto sends no SMS).
+4. Set a **spend limit** on the Telnyx account if you have not (the app's caps bound the count, not the money).
 
 ## 4. One real test SMS (you approve and run it)
 

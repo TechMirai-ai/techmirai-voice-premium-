@@ -36,7 +36,7 @@ Same as every other table: a Japanese number as national digits (`09012345678`, 
 
 Order for a new request: **SMS first, then LINE**, so the staff message can say how the SMS went.
 
-- **SMS to the caller**: from the alphanumeric sender **"TechMirai"** (config `notifications.sms.senderId`; the +1-725-715-8112 number is NOT used and stays on Sakura's inbound line), in the call's language. Thanks, request received, staff will contact you on weekdays between 9 a.m. and 6 p.m. Japan time to arrange a meeting, please do not reply, contact e-mail. No phone number to call, nothing promotional, no link (the e-mail address is filled in from `consultation.contactEmail`).
+- **SMS to the caller**: `from` = `TechMirai` (config `notifications.sms.senderId`, the same mechanism as Sakura's `Sakura`) through the shared messaging profile, whose Alpha sender name Jamal sets to "TechMirai" in Telnyx; the +1-725-715-8112 number is NOT used as `from` and stays on Sakura's inbound voice line, in the call's language. Thanks, request received, staff will contact you on weekdays between 9 a.m. and 6 p.m. Japan time to arrange a meeting, please do not reply, contact e-mail. No phone number to call, nothing promotional, no link (the e-mail address is filled in from `consultation.contactEmail`).
 - **Who may be texted** (all per-client config, so Sakura and Kanto behave exactly as before):
   - `allowedCountryCodes: ["+81"]` and `allowedNumberPrefixes: ["+8170", "+8180", "+8190"]` — Japanese mobiles only. Landlines, 050 numbers, non-Japanese and withheld numbers are saved but get no SMS.
   - one SMS per call (fixed rule), a per-number cooldown `consultationCooldownHours: 24`, a per-client cap `maxPerDay: 20` per rolling 24 h.
@@ -76,7 +76,7 @@ A spoken number can be any Japanese mobile (one text per number per 24 h, 20 a d
 
 ## Facts and assumptions to confirm
 
-- **Sender "TechMirai"**: Jamal created / will create it in Telnyx and reports that a text from Sakura's alphanumeric sender reached a Japanese mobile (recorded in `NOTIFICATION-FACTS.md` as reported by Jamal, not verified by ECC). The yaml uses Sakura's messaging profile id; the sender must exist on it.
+- **Sender "TechMirai"**: Jamal renames the shared messaging profile's Alpha sender to "TechMirai" in Telnyx himself. A booking SMS from Sakura reached a Japanese mobile (reported by Jamal, no date, not verified by ECC; `NOTIFICATION-FACTS.md` T7). The yaml uses Sakura's messaging profile id.
 - **Website** `https://techmirai-ai.com` and the **address** ("not published") in `business` are placeholders the shared schema needs; the agent does not speak the website.
 - **Voices** are Sakura's (Miki for Japanese, Jillian for English) — proven on real calls; change in `languages.settings.<lang>.voice` if wanted.
 - **FAQ flags** (not edited): see the report — notably FAQ W2's Japanese has an ASCII full stop in `できます. オンライン`, and several entries (V1, V2, V4, V6, V9, V12) say callbacks are taken and calls forwarded; the prompt rule "no transfer on this line" overrides forwarding wording.
