@@ -59,14 +59,16 @@ describe('silenceHooks (VP-16 graduated silence)', () => {
     expect(hooks.map((h) => h.options.timeoutSeconds)).toEqual([4, 9, 14, 19, 31]);
   });
 
-  test('step 1 is model-generated from the conversation, not a fixed line', () => {
-    const [first] = hooks;
+  test.each([
+    ['ja', hooks],
+    ['en', enHooks],
+  ])('%s: step 1 is a FIXED configured line, never a model-written prompt', (language, set) => {
+    const first = set[0];
 
     expect(first?.do).toHaveLength(1);
-    const action = first?.do[0];
-    expect(action?.type).toBe('say');
-    expect(action && 'prompt' in action ? action.prompt : '').toMatch(/last question/i);
-    expect(action && 'exact' in action).toBe(false);
+    expect(first?.do[0]).toEqual({ type: 'say', exact: config.scripts.silenceRepeat[language] });
+    // No `prompt` anywhere in any hook: a prompt means a hidden, unlogged model call.
+    expect(JSON.stringify(set)).not.toContain('"prompt"');
   });
 
   test.each([

@@ -47,16 +47,6 @@ const SILENCE_GAP_SECONDS = {
   hangUp: 12,
 } as const;
 
-/**
- * Step 1 is written by the model from the actual conversation, so the repeat is the real last
- * question and never a generic line (the work order's hard requirement). Language-neutral on
- * purpose: "the language of the call" keeps it correct for every language and handoff leg.
- */
-const REPEAT_LAST_QUESTION_PROMPT =
-  'The caller has gone quiet. Repeat the last question you asked them, in the same language and ' +
-  'the same polite tone, using fresh wording. Say only that question — no greeting, no apology, ' +
-  'no extra commentary. If your last turn was not a question, gently ask how you can help.';
-
 /** `language`'s configured hang-up phrases, or `undefined` when the client sets none. */
 export function endCallPhrasesFor(config: ClientConfig, language: string): string[] | undefined {
   return config.languages.settings[language]?.endCallPhrases;
@@ -111,7 +101,7 @@ function silenceEndAction(server: VapiServerConfig): VapiSilenceHookAction {
 }
 
 /**
- * The five escalating hooks, in order: repeat the last question, two "are you there?" checks, the
+ * The five escalating hooks, in order: a fixed gentle nudge, two "are you there?" checks, the
  * server-driven announcement + hang-up (`silence_end_call`), then the built-in `endCall` as a
  * backstop if that did not end the call. Each fires once and only while the caller stays silent.
  */
@@ -128,10 +118,14 @@ export function silenceHooks(
   const at5 = at4 + gap.hangUp;
 
   return [
-    silenceHook('silence-repeat-question', at1, {
-      type: 'say',
-      prompt: REPEAT_LAST_QUESTION_PROMPT,
-    }),
+    // Step 1 is a FIXED per-language line (client.yaml `scripts.silenceRepeat`). It used to be a
+    // model-written `say.prompt`; the real call 01a1e78d (2026-11-17) showed that route speaking
+    // outside the transcript with an English instruction and no conversation context.
+    silenceHook(
+      'silence-repeat-question',
+      at1,
+      exactLine(config, language, config.scripts.silenceRepeat),
+    ),
     silenceHook('silence-check-1', at2, exactLine(config, language, config.scripts.silenceCheck1)),
     silenceHook('silence-check-2', at3, exactLine(config, language, config.scripts.silenceCheck2)),
     silenceHook('silence-announce-end', at4, silenceEndAction(silenceEndServer)),

@@ -22,7 +22,7 @@ import { loadClient } from '../config/loadClient.js';
 import { normalizeCallerPhone } from '../lib/callerPhone.js';
 import { logger } from '../lib/logger.js';
 import type { ConsultationNotifier } from '../notifications/bookingNotifier.js';
-import { checkSmsNumber } from '../notifications/smsEligibility.js';
+import type { SmsOutcome } from '../notifications/notificationJobs.js';
 import { sanitizeInline } from '../notifications/template.js';
 import type { ConsultationRequestRepository } from '../repositories/consultationRequestRepository.js';
 import type { AssistantResolver } from '../vapi/assistantResolver.js';
@@ -65,6 +65,23 @@ export interface RequestConsultationRouteDeps {
   consultations: ConsultationRequestRepository;
   /** Omit to save requests without telling anyone (tests). */
   consultationNotifier?: ConsultationNotifier;
+}
+
+/**
+ * What the model may say about a text, from how the caller's SMS REALLY ended. Only a text that was
+ * actually sent may be mentioned (never as a guarantee: the provider accepting it is not delivery).
+ * A skipped or failed one forbids any mention, and the reason code is for the model's logs only —
+ * it must not be spoken. `undefined` = no notifier ran, so nothing was sent.
+ */
+export function textMessageInstruction(outcome: SmsOutcome | undefined): string {
+  if (outcome?.status === 'sent') {
+    return (
+      "A text message has just been sent to the caller's number and should reach them shortly: " +
+      'you may mention it, as something that should arrive, not a guarantee.'
+    );
+  }
+  const reason = outcome ? ` (${outcome.detail})` : '';
+  return `No text message was sent${reason}: do not mention a text message, and do not say why.`;
 }
 
 /** Names the invalid field only — never echoes the value back into logs or the model. */
@@ -131,38 +148,32 @@ export function requestConsultationRouter(deps: RequestConsultationRouteDeps): R
           created,
         });
 
-        // Only a NEW row notifies anyone: a repeated tool call in the same call is a no-op. The
-        // send is awaited — a serverless function may be frozen once the response is sent.
-        if (created) {
-          await deps.consultationNotifier?.notifyConsultation({
-            clientId: context.clientId,
-            requestId: request.id,
-            callId: context.callId,
-            language: context.language,
-            contactName,
-            contactPhone,
-            phoneSource,
-            reason,
-            createdAt: request.createdAt,
-          });
-        }
-
-        // A repeat in the same call changes nothing: the FIRST details stay. Say so, so the model
-        // never claims the corrected number was saved or that a text is coming for it.
+        // A repeat in the same call changes nothing: the FIRST details stay, nobody is notified
+        // again. Say so, so the model never claims the corrected number was saved or that a text
+        // is coming for it.
         if (!created) return okResult(call, ALREADY_SAVED);
 
-        // Whether a text is expected follows the number's type, from the client's own SMS rules.
-        const sms = config.notifications?.sms;
-        const smsExpected =
-          sms !== undefined && checkSmsNumber(contactPhone, sms).rejection === undefined;
+        // Only a NEW row notifies anyone. The send is awaited — a serverless function may be
+        // frozen once the response is sent — and its REAL outcome (sent, or skipped/failed with a
+        // reason: number type, country, cooldown, caps, missing key, provider error) decides what
+        // the model may say about a text. No notifier wired = nothing was sent.
+        const outcome = await deps.consultationNotifier?.notifyConsultation({
+          clientId: context.clientId,
+          requestId: request.id,
+          callId: context.callId,
+          language: context.language,
+          contactName,
+          contactPhone,
+          phoneSource,
+          reason,
+          createdAt: request.createdAt,
+        });
+
         return okResult(
           call,
           `${CONSULTATION_SUCCESS_PREFIX} Say staff will contact the caller to arrange a ` +
             'meeting, during the contact hours in your instructions. ' +
-            (smsExpected
-              ? 'A text message should reach them shortly: you may mention it, as something that ' +
-                'should arrive, not a guarantee.'
-              : 'No text message will be sent to this number: do not mention one.'),
+            textMessageInstruction(outcome),
         );
       },
     }),

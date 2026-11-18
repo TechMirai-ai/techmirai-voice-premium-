@@ -40,6 +40,7 @@ class MemoryLog implements NotificationLogRepository {
   readonly rows: Row[] = [];
   priorForClient = 0;
   priorForLine = 0;
+  priorForNumber = 0;
   lastRecordedQuery: RecordedCountQuery | undefined;
 
   record(entry: NewNotificationLogEntry): Promise<void> {
@@ -69,7 +70,7 @@ class MemoryLog implements NotificationLogRepository {
     return Promise.resolve({
       // The prior sends are SMS (each channel has its own cap).
       forClient: (query.channel === 'sms' ? this.priorForClient : this.priorForLine) + live.length,
-      forNumber: 0,
+      forNumber: query.channel === 'sms' ? this.priorForNumber : 0,
       forCall: live.filter((row) => row.callId === query.callId && row.event === query.event)
         .length,
     });
@@ -82,7 +83,11 @@ function harness(
     lineFails?: boolean;
     priorForClient?: number;
     priorForLine?: number;
+    priorForNumber?: number;
     withoutCapMessage?: boolean;
+    withoutSms?: boolean;
+    withoutTemplates?: boolean;
+    withoutApiKey?: boolean;
   } = {},
 ) {
   const sent: SmsMessage[] = [];
@@ -105,17 +110,28 @@ function harness(
   const log = new MemoryLog();
   log.priorForClient = options.priorForClient ?? 0;
   log.priorForLine = options.priorForLine ?? 0;
+  log.priorForNumber = options.priorForNumber ?? 0;
   const consultations = new MemoryConsultations();
   const notifier = new ChannelBookingNotifier({
     loadConfig: (clientId) => {
       const config = loadClient(clientId);
-      if (!options.withoutCapMessage || !config.notifications?.line) return config;
-      const { capReachedMessage: _omitted, ...line } = config.notifications.line;
-      return { ...config, notifications: { ...config.notifications, line } };
+      const notifications = config.notifications;
+      if (!notifications) return config;
+      if (options.withoutSms) {
+        const { sms: _sms, ...rest } = notifications;
+        return { ...config, notifications: rest };
+      }
+      if (options.withoutTemplates && notifications.sms) {
+        const { consultationTemplates: _templates, ...sms } = notifications.sms;
+        return { ...config, notifications: { ...notifications, sms } };
+      }
+      if (!options.withoutCapMessage || !notifications.line) return config;
+      const { capReachedMessage: _omitted, ...line } = notifications.line;
+      return { ...config, notifications: { ...notifications, line } };
     },
     credential: (name) => {
       looked.push(name);
-      return ENV[name];
+      return options.withoutApiKey && name === 'TELNYX_API_KEY' ? undefined : ENV[name];
     },
     sms,
     line,
@@ -257,7 +273,10 @@ describe('consultation notifications', () => {
   test('a failed SMS is reported to staff as failed; nothing is thrown', async () => {
     const h = harness({ smsFails: true });
 
-    await expect(h.notifier.notifyConsultation(await save(h))).resolves.toBeUndefined();
+    await expect(h.notifier.notifyConsultation(await save(h))).resolves.toEqual({
+      status: 'failed',
+      detail: 'http_503',
+    });
 
     expect(h.pushed[0]?.text).toContain('SMS to caller: failed - http_503');
     expect(await h.consultations.listByClient(TECHMIRAI_ID)).toHaveLength(1);
@@ -266,7 +285,7 @@ describe('consultation notifications', () => {
   test('a failed LINE push never throws and does not stop the SMS', async () => {
     const h = harness({ lineFails: true });
 
-    await expect(h.notifier.notifyConsultation(await save(h))).resolves.toBeUndefined();
+    await expect(h.notifier.notifyConsultation(await save(h))).resolves.toEqual({ status: 'sent' });
 
     expect(h.sent).toHaveLength(1);
   });
@@ -371,7 +390,110 @@ describe('LINE daily cap notice', () => {
   test('a failing LINE push for the notice never throws', async () => {
     const h = harness({ priorForLine: 20, lineFails: true });
 
-    await expect(h.notifier.notifyConsultation(await save(h))).resolves.toBeUndefined();
+    await expect(h.notifier.notifyConsultation(await save(h))).resolves.toEqual({ status: 'sent' });
+  });
+});
+
+/**
+ * The outcome `notifyConsultation` returns is what the tool tells the model, so it must be the
+ * REAL result of the send — and the same one the staff LINE alert reports (the alert is built from
+ * the same object, so the two can never disagree).
+ */
+describe('consultation SMS outcome (what the agent is told)', () => {
+  const LANDLINE = '0312345678';
+
+  const cases: {
+    name: string;
+    options?: Parameters<typeof harness>[0];
+    overrides?: Partial<ConsultationNotification>;
+    prior?: boolean;
+    expected: { status: 'sent' } | { status: 'skipped' | 'failed'; detail: string };
+    staffWords: string;
+  }[] = [
+    { name: 'sent', expected: { status: 'sent' }, staffWords: 'SMS to caller: sent' },
+    {
+      name: 'landline: number type not allowed',
+      overrides: { contactPhone: LANDLINE },
+      expected: { status: 'skipped', detail: 'number_type_not_allowed' },
+      staffWords: 'not a mobile number',
+    },
+    {
+      name: 'foreign number: country not allowed',
+      overrides: { contactPhone: '+14155550123' },
+      expected: { status: 'skipped', detail: 'country_not_allowed' },
+      staffWords: 'not a Japanese number',
+    },
+    {
+      name: 'no number at all',
+      overrides: { contactPhone: null },
+      expected: { status: 'skipped', detail: 'no_caller_number' },
+      staffWords: 'no number',
+    },
+    {
+      name: 'cooldown: this number already got a text',
+      prior: true,
+      expected: { status: 'skipped', detail: 'cooldown' },
+      staffWords: 'already got a text in the last day',
+    },
+    {
+      name: 'client daily cap',
+      options: { priorForClient: 20 },
+      expected: { status: 'skipped', detail: 'daily_limit' },
+      staffWords: 'daily text limit',
+    },
+    {
+      name: 'per-number daily cap',
+      options: { priorForNumber: 99 },
+      expected: { status: 'skipped', detail: 'rate_limited' },
+      staffWords: 'reached its daily text limit',
+    },
+    {
+      name: 'missing Telnyx key',
+      options: { withoutApiKey: true },
+      expected: { status: 'skipped', detail: 'missing_credentials' },
+      staffWords: 'missing credentials',
+    },
+    {
+      name: 'no template for the language',
+      options: { withoutTemplates: true },
+      expected: { status: 'skipped', detail: 'no_template' },
+      staffWords: 'no text template',
+    },
+    {
+      name: 'SMS not configured for the client',
+      options: { withoutSms: true },
+      expected: { status: 'skipped', detail: 'sms_not_configured' },
+      staffWords: 'SMS is not set up for this client',
+    },
+    {
+      name: 'provider error',
+      options: { smsFails: true },
+      expected: { status: 'failed', detail: 'http_503' },
+      staffWords: 'failed - http_503',
+    },
+  ];
+
+  test.each(cases)('$name', async ({ options, overrides, prior, expected, staffWords }) => {
+    const h = harness(options);
+    if (prior) await h.notifier.notifyConsultation(await save(h, { callId: 'earlier' }));
+    h.pushed.length = 0;
+
+    const outcome = await h.notifier.notifyConsultation(await save(h, { ...overrides }));
+
+    expect(outcome).toEqual(expected);
+    // The staff alert reports the very same result.
+    expect(h.pushed[0]?.text).toContain(staffWords);
+  });
+
+  test('call limit: a repeat for the same call reports it was already texted, not a second send', async () => {
+    const h = harness();
+    const request = await save(h);
+
+    await h.notifier.notifyConsultation(request);
+    const second = await h.notifier.notifyConsultation(request);
+
+    expect(second).toEqual({ status: 'skipped', detail: 'call_limit' });
+    expect(h.sent).toHaveLength(1);
   });
 });
 

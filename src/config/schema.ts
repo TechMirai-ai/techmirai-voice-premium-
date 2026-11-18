@@ -305,7 +305,13 @@ const scriptsSchema = z.strictObject({
   noMedicalAdvice: localizedTextSchema,
   goodbye: localizedTextSchema,
   // --- VP-16 graduated caller-silence handling ---
-  /** First "are you there?" check after the repeated question gets no answer. */
+  /**
+   * First silence step: a fixed, gentle nudge that fits after ANY question (a hook `say.exact`, so
+   * no model call and no chance of the wrong language). It deliberately does not try to repeat the
+   * last question — that needed a model-written line, which once came out in the wrong language.
+   */
+  silenceRepeat: localizedTextSchema,
+  /** First "are you there?" check after the nudge gets no answer. */
   silenceCheck1: localizedTextSchema,
   /** Second check, when the caller is still silent. */
   silenceCheck2: localizedTextSchema,

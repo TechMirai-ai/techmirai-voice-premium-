@@ -306,6 +306,10 @@ scripts:
     ja: お電話いただき、誠にありがとうございました。失礼いたします。
   # VP-16 silence escalation: the existing mechanism, unchanged. Only the closing line differs
   # from sakura's (no "please take care" / お大事に — a get-well phrase).
+  silenceRepeat:
+    en: Take your time. I'm happy to help whenever you're ready.
+    # Gloss: "Please take your time; tell me whenever convenient."
+    ja: ゆっくりで大丈夫ですので、ご都合のよいときにお聞かせください。
   silenceCheck1:
     en: Hello, can you hear me?
     ja: もしもし、お聞きになれますでしょうか？

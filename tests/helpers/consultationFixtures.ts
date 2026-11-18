@@ -3,6 +3,7 @@ import type {
   ConsultationNotification,
   ConsultationNotifier,
 } from '../../src/notifications/bookingNotifier.js';
+import type { SmsOutcome } from '../../src/notifications/notificationJobs.js';
 import type {
   ConsultationRequest,
   ConsultationRequestRepository,
@@ -88,9 +89,11 @@ export class MemoryConsultations implements ConsultationRequestRepository {
 
 export class RecordingConsultationNotifier implements ConsultationNotifier {
   readonly calls: ConsultationNotification[] = [];
+  /** How the caller's SMS "ended" for every notification; a test sets it to simulate a skip. */
+  outcome: SmsOutcome = { status: 'sent' };
 
-  notifyConsultation(request: ConsultationNotification): Promise<void> {
+  notifyConsultation(request: ConsultationNotification): Promise<SmsOutcome> {
     this.calls.push(request);
-    return Promise.resolve();
+    return Promise.resolve(this.outcome);
   }
 }

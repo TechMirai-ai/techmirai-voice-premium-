@@ -55,7 +55,7 @@
             "do": [
               {
                 "type": "say",
-                "prompt": "The caller has gone quiet. Repeat the last question you asked them, in the same language and the same polite tone, using fresh wording. Say only that question — no greeting, no apology, no extra commentary. If your last turn was not a question, gently ask how you can help."
+                "exact": "ゆっくりで大丈夫ですので、ご都合のよいときにお聞かせください。"
               }
             ]
           },
@@ -274,7 +274,7 @@
                       "do": [
                         {
                           "type": "say",
-                          "prompt": "The caller has gone quiet. Repeat the last question you asked them, in the same language and the same polite tone, using fresh wording. Say only that question — no greeting, no apology, no extra commentary. If your last turn was not a question, gently ask how you can help."
+                          "exact": "Take your time. I'm happy to help whenever you're ready."
                         }
                       ]
                     },
@@ -600,7 +600,7 @@
             "do": [
               {
                 "type": "say",
-                "prompt": "The caller has gone quiet. Repeat the last question you asked them, in the same language and the same polite tone, using fresh wording. Say only that question — no greeting, no apology, no extra commentary. If your last turn was not a question, gently ask how you can help."
+                "exact": "Take your time. I'm happy to help whenever you're ready."
               }
             ]
           },
@@ -823,7 +823,7 @@
                       "do": [
                         {
                           "type": "say",
-                          "prompt": "The caller has gone quiet. Repeat the last question you asked them, in the same language and the same polite tone, using fresh wording. Say only that question — no greeting, no apology, no extra commentary. If your last turn was not a question, gently ask how you can help."
+                          "exact": "ゆっくりで大丈夫ですので、ご都合のよいときにお聞かせください。"
                         }
                       ]
                     },
@@ -1161,7 +1161,7 @@
             "do": [
               {
                 "type": "say",
-                "prompt": "The caller has gone quiet. Repeat the last question you asked them, in the same language and the same polite tone, using fresh wording. Say only that question — no greeting, no apology, no extra commentary. If your last turn was not a question, gently ask how you can help."
+                "exact": "ゆっくりで大丈夫ですので、ご都合のよいときにお聞かせください。"
               }
             ]
           },
@@ -1380,7 +1380,7 @@
                       "do": [
                         {
                           "type": "say",
-                          "prompt": "The caller has gone quiet. Repeat the last question you asked them, in the same language and the same polite tone, using fresh wording. Say only that question — no greeting, no apology, no extra commentary. If your last turn was not a question, gently ask how you can help."
+                          "exact": "Take your time. I'm happy to help whenever you're ready."
                         }
                       ]
                     },

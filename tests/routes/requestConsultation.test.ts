@@ -12,6 +12,7 @@ import {
   TECHMIRAI_ID,
   techmiraiResolver,
 } from '../helpers/consultationFixtures.js';
+import type { SmsOutcome } from '../../src/notifications/notificationJobs.js';
 import { AUTH, buildVoiceApp, toolCallsBody } from '../helpers/voiceFixtures.js';
 import {
   MAX_CONTACT_NAME_LENGTH,
@@ -61,7 +62,7 @@ describe('request_consultation', () => {
     const { result, error } = resultOf(response);
     expect(error).toBeUndefined();
     expect(result).toMatch(/^The consultation request was saved\./);
-    expect(result).toMatch(/text message should reach them shortly/);
+    expect(result).toMatch(/text message has just been sent/);
     expect(consultations.rows).toHaveLength(1);
     expect(consultations.rows[0]).toMatchObject({
       clientId: TECHMIRAI_ID,
@@ -225,8 +226,9 @@ describe('request_consultation', () => {
       },
     );
 
-    test('a landline is saved but the result says no text will be sent', async () => {
-      const { app, consultations } = setup();
+    test('a landline is saved but the result says no text was sent', async () => {
+      const { app, consultations, notifier } = setup();
+      notifier.outcome = { status: 'skipped', detail: 'number_type_not_allowed' };
 
       const response = await request(app)
         .post(PATH)
@@ -238,12 +240,13 @@ describe('request_consultation', () => {
           ),
         );
 
-      expect(resultOf(response).result).toMatch(/No text message will be sent/);
+      expect(resultOf(response).result).toMatch(/No text message was sent/);
       expect(consultations.rows[0]?.contactPhone).toBe('0312345678');
     });
 
     test('a non-Japanese number is saved as +digits and gets no text', async () => {
-      const { app, consultations } = setup();
+      const { app, consultations, notifier } = setup();
+      notifier.outcome = { status: 'skipped', detail: 'country_not_allowed' };
 
       const response = await request(app)
         .post(PATH)
@@ -255,8 +258,66 @@ describe('request_consultation', () => {
           ),
         );
 
-      expect(resultOf(response).result).toMatch(/No text message will be sent/);
+      expect(resultOf(response).result).toMatch(/No text message was sent/);
       expect(consultations.rows[0]?.contactPhone).toBe('+14155550100');
+    });
+
+    // The model may mention a text ONLY when one was really sent: every skip/fail reason the
+    // notifier can report must produce a result that forbids it (and never lets the code leak).
+    const NOT_SENT: [string, SmsOutcome][] = [
+      ['cooldown', { status: 'skipped', detail: 'cooldown' }],
+      ['daily cap', { status: 'skipped', detail: 'daily_limit' }],
+      ['per-number cap', { status: 'skipped', detail: 'rate_limited' }],
+      ['call limit', { status: 'skipped', detail: 'call_limit' }],
+      ['not eligible (landline)', { status: 'skipped', detail: 'number_type_not_allowed' }],
+      ['not eligible (foreign)', { status: 'skipped', detail: 'country_not_allowed' }],
+      ['no valid number', { status: 'skipped', detail: 'invalid_caller_number' }],
+      ['missing key', { status: 'skipped', detail: 'missing_credentials' }],
+      ['no template', { status: 'skipped', detail: 'no_template' }],
+      ['SMS not configured', { status: 'skipped', detail: 'sms_not_configured' }],
+      ['provider error', { status: 'failed', detail: 'http_503' }],
+    ];
+
+    test.each(NOT_SENT)('%s: the result forbids mentioning a text', async (_name, outcome) => {
+      const { app, notifier } = setup();
+      notifier.outcome = outcome;
+
+      const response = await request(app)
+        .post(PATH)
+        .set(AUTH)
+        .send(body({ contact_name: 'Taro', phone_source: 'caller_id' }));
+
+      const { result } = resultOf(response);
+      expect(result).toMatch(/No text message was sent/);
+      expect(result).toMatch(/do not mention/i);
+      expect(result).not.toMatch(/should reach them|has just been sent/);
+      // Still a success for the consultation itself.
+      expect(result).toMatch(/staff will contact/i);
+    });
+
+    test('a really sent text is the only case that allows mentioning one', async () => {
+      const { app, notifier } = setup();
+      notifier.outcome = { status: 'sent' };
+
+      const response = await request(app)
+        .post(PATH)
+        .set(AUTH)
+        .send(body({ contact_name: 'Taro', phone_source: 'caller_id' }));
+
+      expect(resultOf(response).result).toMatch(/text message has just been sent/);
+      expect(resultOf(response).result).toMatch(/not a guarantee/);
+    });
+
+    test('with no notifier wired nothing was sent, so no text may be mentioned', async () => {
+      const consultations = new MemoryConsultations();
+      const { app } = buildVoiceApp({ consultations, resolver: techmiraiResolver });
+
+      const response = await request(app)
+        .post(PATH)
+        .set(AUTH)
+        .send(body({ contact_name: 'Taro', phone_source: 'caller_id' }));
+
+      expect(resultOf(response).result).toMatch(/No text message was sent/);
     });
   });
 

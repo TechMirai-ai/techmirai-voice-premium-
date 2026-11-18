@@ -111,11 +111,11 @@ export interface VapiSilenceHangupHook {
 
 /**
  * One action of a `customer.speech.timeout` hook (live OpenAPI `SayHookAction` / `ToolCallHookAction`).
- * `say` takes `exact` (fixed text) or `prompt` (the model writes the line from the conversation).
+ * Only `say.exact` (fixed text) is used: a `say.prompt` line is written by a model call that is not
+ * logged, is absent from the transcript, and has no guaranteed language (call 01a1e78d).
  */
 export type VapiSilenceHookAction =
   | { type: 'say'; exact: string }
-  | { type: 'say'; prompt: string }
   | { type: 'tool'; tool: VapiEndCallToolPayload | VapiSilenceEndToolPayload };
 
 /** The VP-16 tool that speaks the ending announcement and hangs up through our server. */

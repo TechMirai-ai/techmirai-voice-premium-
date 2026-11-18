@@ -110,8 +110,12 @@ export interface ConsultationNotification {
 }
 
 export interface ConsultationNotifier {
-  /** Never rejects. */
-  notifyConsultation(request: ConsultationNotification): Promise<void>;
+  /**
+   * Never rejects. Resolves to how the caller's SMS REALLY ended (sent, or skipped/failed with a
+   * reason code) — the consultation tool tells the model from this, and the staff LINE alert is
+   * built from the very same value, so the two can never disagree.
+   */
+  notifyConsultation(request: ConsultationNotification): Promise<SmsOutcome>;
 }
 
 export interface BookingNotifierDeps {
@@ -147,20 +151,23 @@ const CAP_ALERT_DETAIL = 'cap_alert';
 export class ChannelBookingNotifier implements BookingNotifier, ConsultationNotifier {
   constructor(private readonly deps: BookingNotifierDeps) {}
 
-  notifyBooked(booking: BookingNotification): Promise<void> {
-    return this.notify(bookedJob(booking));
+  async notifyBooked(booking: BookingNotification): Promise<void> {
+    await this.notify(bookedJob(booking));
   }
 
-  notifyChanged(change: AppointmentChangeNotification): Promise<void> {
-    return this.notify(changedJob(change));
+  async notifyChanged(change: AppointmentChangeNotification): Promise<void> {
+    await this.notify(changedJob(change));
   }
 
-  notifyConsultation(request: ConsultationNotification): Promise<void> {
+  async notifyConsultation(request: ConsultationNotification): Promise<SmsOutcome> {
     const cooldown = this.deps.consultations;
-    return this.notify(consultationJob(request, cooldown, this.now()));
+    const outcome = await this.notify(consultationJob(request, cooldown, this.now()));
+    // A consultation job always runs the SMS first; the fallback only guards the type.
+    return outcome ?? { status: 'skipped', detail: 'sms_not_configured' };
   }
 
-  private async notify(job: NotificationJob): Promise<void> {
+  /** Delivers one job on every channel. Resolves to the caller's SMS outcome when it ran first. */
+  private async notify(job: NotificationJob): Promise<SmsOutcome | undefined> {
     try {
       const config = this.deps.loadConfig(job.clientId);
       const sms = config.notifications?.sms;
@@ -173,19 +180,23 @@ export class ChannelBookingNotifier implements BookingNotifier, ConsultationNoti
         if (line) {
           await this.guarded(job, 'line', () => this.sendLine(job, config, line, outcome));
         }
-        return;
+        return outcome;
       }
       await Promise.all([
         sms ? this.guardedSms(job, config, sms) : undefined,
         line ? this.guarded(job, 'line', () => this.sendLine(job, config, line)) : undefined,
       ]);
+      return undefined;
     } catch (error) {
+      const detail = deliveryErrorCode(error);
       logger.error('booking notification failed', {
         clientId: job.clientId,
         appointmentId: job.appointmentId,
         event: job.event,
-        reason: deliveryErrorCode(error),
+        reason: detail,
       });
+      // Nothing is known to have been sent: never report success.
+      return { status: 'failed', detail };
     }
   }
 

@@ -19,6 +19,7 @@ import {
   pick,
 } from './promptTemplate.js';
 import { businessNoun } from './promptShared.js';
+import { consultationLine } from './promptConsultationSection.js';
 import type { ClientConfig } from '../config/schema.js';
 import type { ReservationService } from '../repositories/reservationServiceRepository.js';
 import {
@@ -636,8 +637,10 @@ export function renderAssistant(
   // A client with a `consultation` section takes leads instead of callbacks: its primary tool is
   // request_consultation (same bookkeeping slot), and the callback tool does not exist for it.
   const consultationUrl = `${baseUrl}/api/voice/request-consultation`;
+  // `consultationLine` also fills [[contactHours]] and [[contactEmail]], which the generic
+  // `fillClinicPlaceholders` does not know (the live failure line once spoke "[[contactEmail]]").
   const consultationFailure = config.consultation
-    ? fillClinicPlaceholders(config, language, pick(config.consultation.scripts.failed, language))
+    ? consultationLine(config, language, 'failed')
     : failureMessage;
 
   const callbackTool: VapiFunctionToolPayload = {

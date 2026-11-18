@@ -200,6 +200,10 @@ scripts:
   goodbye:
     en: Thank you for your call. Have a great day.
     ja: お電話いただき、誠にありがとうございました。失礼いたします。   # "Thank you very much for calling. Goodbye."
+  # Fixed nudge after the first few seconds of silence (no model call). It fits after any question.
+  silenceRepeat:
+    en: Take your time. I'm happy to help whenever you're ready.
+    ja: ゆっくりで大丈夫ですので、ご都合のよいときにお聞かせください。   # "Please take your time; tell me whenever convenient." NEEDS NATIVE-SPEAKER REVIEW.
   silenceCheck1:
     en: Hello, can you hear me?
     ja: もしもし、お聞きになれますでしょうか？
