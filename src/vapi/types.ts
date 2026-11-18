@@ -146,12 +146,13 @@ export interface VapiToolServerConfig {
 }
 
 /**
- * A custom endpointing rule matching the assistant's own last message (or the
- * customer's current speech) by regex, overriding the endpointing timeout for
- * that one turn. Highest precedence — see `VapiStartSpeakingPlan` (VP-6 §A).
+ * A custom endpointing rule matching the assistant's own last message by regex, overriding the
+ * endpointing timeout for that one turn. Highest precedence — see `VapiStartSpeakingPlan` (VP-6 §A).
+ * Only the `assistant` kind is used (the SDK types each kind separately, so a wider `type` union
+ * does not fit its handoff-override type).
  */
 export interface VapiCustomEndpointingRule {
-  type: 'assistant' | 'customer' | 'both';
+  type: 'assistant';
   regex: string;
   timeoutSeconds: number;
 }
@@ -161,9 +162,10 @@ export interface VapiCustomEndpointingRule {
  * speaking (VP-6 §A / VAPI-FACTS.md "VP-3 latency investigation"). Narrowed
  * to just what this project sets: Vapi's own text-based smart endpointing
  * (works for any language, unlike LiveKit's endpointing which docs say is
- * English-only) as the general mechanism. `customEndpointingRules` is sent as an empty list:
- * its one use (extra patience while the caller read a phone number back in chunks) went away
- * with the spoken phone-number step, and an explicit empty list clears the rule on a re-sync.
+ * English-only) as the general mechanism. `customEndpointingRules` is sent as an empty list
+ * unless the client has `consultation.numberDictation` (VP-27): its one use is extra patience
+ * while the caller reads a phone number in chunks, and an explicit empty list clears the rule
+ * on a re-sync.
  */
 export interface VapiStartSpeakingPlan {
   smartEndpointingPlan?: { provider: 'vapi' };
@@ -176,7 +178,25 @@ export interface VapiStartSpeakingPlan {
    * Leaving this unset means smartEndpointingPlan silently falls back to
    * that 1.5s default — exactly the wait it was meant to shorten.
    */
-  transcriptionEndpointingPlan?: { onNoPunctuationSeconds: number; onPunctuationSeconds?: number };
+  transcriptionEndpointingPlan?: {
+    onNoPunctuationSeconds: number;
+    onPunctuationSeconds?: number;
+    /** Wait after a transcript that ends in a number (live OpenAPI: 0–3, default 0.5). */
+    onNumberSeconds?: number;
+  };
+}
+
+/**
+ * When the caller's speech makes the assistant stop talking. Field names and bounds are the live
+ * OpenAPI's `StopSpeakingPlan` (checked 2026-11-18). `acknowledgementPhrases` (never interrupt) and
+ * `interruptionPhrases` (always interrupt) are only consulted when `numWords` is at least 1.
+ */
+export interface VapiStopSpeakingPlan {
+  numWords?: number;
+  voiceSeconds?: number;
+  backoffSeconds?: number;
+  acknowledgementPhrases?: string[];
+  interruptionPhrases?: string[];
 }
 
 export interface VapiAssistantPayload {
@@ -187,6 +207,8 @@ export interface VapiAssistantPayload {
   transcriber: VapiTranscriberConfig;
   model: VapiModelConfig;
   startSpeakingPlan?: VapiStartSpeakingPlan;
+  /** VP-27: omitted unless client.yaml sets one for the language (then Vapi's defaults apply). */
+  stopSpeakingPlan?: VapiStopSpeakingPlan;
   /**
    * Spoken automatically whenever the assistant ends the call (e.g. via the
    * `endCall` tool) — "If unspecified, it will hang up without saying
@@ -331,6 +353,9 @@ export interface VapiHandoffDestination {
      */
     endCallPhrases?: string[];
     hooks: VapiSilenceHangupHook[];
+    /** VP-27: threaded through for the same reason, and only when the client configures them. */
+    stopSpeakingPlan?: VapiStopSpeakingPlan;
+    startSpeakingPlan?: VapiStartSpeakingPlan;
     /** VP-12: the end-of-call-report routing, threaded through for the same reason. */
     server?: VapiServerConfig;
     serverMessages?: VapiServerMessage[];

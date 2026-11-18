@@ -44,12 +44,12 @@ import {
   renderHandoffTool,
 } from './squad.js';
 import { renderTransferTool } from './transferTool.js';
+import { buildStartSpeakingPlan, buildStopSpeakingPlan, isFluxModel } from './speechPlans.js';
 import type {
   VapiAssistantPayload,
   VapiFunctionParameterSchema,
   VapiFunctionToolPayload,
   VapiHandoffToolPayload,
-  VapiStartSpeakingPlan,
   VapiToolMessage,
 } from './types.js';
 
@@ -149,27 +149,6 @@ function stripTrailingSlash(url: string): string {
 }
 
 /**
- * VP-6 §A: text-based smart endpointing (works for any language). The "vapi"
- * smartEndpointingPlan provider decides using transcriptionEndpointingPlan's
- * own heuristic rules (VAPI-FACTS.md VP-6 R7) — leaving that unset meant it
- * silently used the default 1.5s `onNoPunctuationSeconds` wait, identical to
- * the behavior it was meant to shorten. Set explicitly here. There is no
- * longer a per-question override: the assistants no longer ask for a spoken
- * phone number, which was the only turn that needed one.
- *
- * NOT applied when the transcriber is Deepgram Flux — see `isFluxModel` below.
- */
-const NO_PUNCTUATION_WAIT_SECONDS = 1.1;
-
-/**
- * Wait after a transcript that ends with punctuation (Vapi default 0.1s). A real English call
- * (2026-10-11, VP-10) showed short punctuated fragments — "Yeah.", "Okay." — each firing the
- * model within ~100ms while the caller was still mid-thought: six model calls in nine seconds,
- * each aborting the last. A longer wait here lets the next fragment arrive first.
- */
-const PUNCTUATION_WAIT_SECONDS = 0.45;
-
-/**
  * Deepgram Flux's own end-of-turn knobs (VAPI-FACTS.md Vendor-swap R6/R7), set on the transcriber
  * itself rather than `startSpeakingPlan`. These are Deepgram's documented *defaults*, not a port of
  * `NO_PUNCTUATION_WAIT_SECONDS` — Flux's confidence-based turn detection is a different mechanism
@@ -202,31 +181,6 @@ const FLUX_EOT_TIMEOUT_MS = 5000;
  * confidence noise. This is a judgment call pending real-call verification, not a confirmed fix.
  */
 const DEEPGRAM_CONFIDENCE_THRESHOLD = 0.2;
-
-/** Deepgram's Flux models are named `flux-general-en` / `flux-general-multi`. */
-function isFluxModel(model: string | undefined): boolean {
-  return model?.startsWith('flux-') ?? false;
-}
-
-function buildStartSpeakingPlan(transcriberModel: string | undefined): VapiStartSpeakingPlan {
-  return {
-    // Vapi's docs say explicitly not to set smartEndpointingPlan for a transcriber with its own
-    // built-in end-of-turn detection (Deepgram Flux) — leaving it set would silently override
-    // Flux's own detection and defeat the reason to use it (VAPI-FACTS.md Vendor-swap R7).
-    ...(isFluxModel(transcriberModel) ? {} : { smartEndpointingPlan: { provider: 'vapi' } }),
-    // Left in place even for Flux, deliberately: whether this text-heuristic wait also gets
-    // bypassed by Flux's built-in EOT, or stacks as a second silence timer on top of it, is the
-    // open question from VAPI-FACTS.md Vendor-swap R7 — a real test call (long/hesitant turn)
-    // decides whether this should be removed for Flux. Do not remove this without that evidence.
-    transcriptionEndpointingPlan: {
-      onNoPunctuationSeconds: NO_PUNCTUATION_WAIT_SECONDS,
-      onPunctuationSeconds: PUNCTUATION_WAIT_SECONDS,
-    },
-    // Explicitly empty (not omitted) so a re-sync clears the old phone-number rule that earlier
-    // syncs put on the live assistant.
-    customEndpointingRules: [],
-  };
-}
 
 /**
  * Silent on every path: an empty message stops Vapi speaking a filler or a
@@ -695,6 +649,7 @@ export function renderAssistant(
   const transferTool = renderTransferTool(config, baseUrl, options.credentialId);
 
   const endCallPhrases = endCallPhrasesFor(config, language);
+  const stopSpeakingPlan = buildStopSpeakingPlan(config, language);
   const reporting = renderReportingConfig(baseUrl, options.credentialId, options.outcomeOutputId);
 
   const assistant: VapiAssistantPayload = {
@@ -713,7 +668,9 @@ export function renderAssistant(
         ? { confidenceThreshold: DEEPGRAM_CONFIDENCE_THRESHOLD }
         : {}),
     },
-    startSpeakingPlan: buildStartSpeakingPlan(settings.transcriber.model),
+    startSpeakingPlan: buildStartSpeakingPlan(config, language),
+    // VP-27: only when client.yaml sets one for this language; otherwise Vapi's defaults apply.
+    ...(stopSpeakingPlan ? { stopSpeakingPlan } : {}),
     model: {
       provider: MODEL_PROVIDER,
       model: MODEL_ID,

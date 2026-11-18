@@ -91,6 +91,14 @@ const businessSchema = z.strictObject({
   }),
 });
 
+const stopSpeakingPlanSchema = z.strictObject({
+  numWords: z.number().int().min(0).max(10).optional(),
+  voiceSeconds: z.number().min(0).max(0.5).optional(),
+  backoffSeconds: z.number().min(0).max(10).optional(),
+  acknowledgementPhrases: z.array(z.string().min(1).max(240)).min(1).optional(),
+  interruptionPhrases: z.array(z.string().min(1).max(240)).min(1).optional(),
+});
+
 const languageSettingsSchema = z.strictObject({
   voice: z.strictObject({ provider: nonEmpty, voiceId: nonEmpty }),
   /**
@@ -150,6 +158,15 @@ const languageSettingsSchema = z.strictObject({
    * book_appointment alike, so keep them neutral — nothing that claims to be "checking".
    */
   pleaseWaitVariants: z.array(nonEmpty).min(1).optional(),
+  /**
+   * VP-27. Vapi's `stopSpeakingPlan` for this language's assistant: when the caller's speech makes
+   * the assistant stop talking. Omitted = nothing is sent and Vapi's defaults apply (numWords 0,
+   * voiceSeconds 0.2, backoffSeconds 1, and an ENGLISH-only list of acknowledgement words, so a
+   * Japanese "はい" ("yes") counts as an interruption). Bounds are the live OpenAPI's
+   * (`StopSpeakingPlan`, checked 2026-11-18). `acknowledgementPhrases` only matter when `numWords`
+   * is at least 1: at 0 Vapi decides by voice activity alone.
+   */
+  stopSpeakingPlan: stopSpeakingPlanSchema.optional(),
 });
 
 const languagesSchema = z.strictObject({
@@ -188,6 +205,12 @@ const promptOverridesSchema = z.strictObject({
   offTopic: nonEmpty.optional(),
   /** Replaces the "visiting or booking" bullet in "Answering questions". */
   visitingOrBooking: nonEmpty.optional(),
+  /**
+   * VP-27. True for a business that takes no bookings: the shared prompt then drops its
+   * appointment / availability / reservation examples (a clinic's) from the style bullets, the
+   * Limits line and the earlier-call section. Default false, so a booking client renders as before.
+   */
+  noBooking: z.boolean().optional(),
   /** Who reads the call summary, for the call-outcome extraction ("clinic staff"). */
   staffLabel: nonEmpty.optional(),
   /**

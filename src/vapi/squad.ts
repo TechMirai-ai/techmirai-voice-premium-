@@ -13,6 +13,7 @@ import {
   pick,
 } from './promptTemplate.js';
 import { endCallPhrasesFor, silenceHooks } from './callEnding.js';
+import { buildStartSpeakingPlan, buildStopSpeakingPlan } from './speechPlans.js';
 import type { ClientConfig, ScriptKey } from '../config/schema.js';
 import type {
   VapiHandoffToolPayload,
@@ -161,6 +162,7 @@ export function renderHandoffTool(
   // full opening greeting, which must never replay mid-call (VP-7 R1).
   const destinationId = to === config.languages.default ? (returnMemberId(config) ?? to) : to;
   const endCallPhrases = endCallPhrasesFor(config, to);
+  const stopSpeakingPlan = buildStopSpeakingPlan(config, to);
 
   return {
     type: 'handoff',
@@ -181,6 +183,12 @@ export function renderHandoffTool(
           // Same reasoning for the platform-level hang-up backstops (VAPI-FACTS.md VP-7 R8).
           ...(endCallPhrases ? { endCallPhrases } : {}),
           hooks: silenceHooks(config, to, silenceEndServer),
+          // VP-27: the speaking plans are not assumed to carry over a handoff either. Only sent
+          // when the client configures them, so other clients' overrides are unchanged.
+          ...(stopSpeakingPlan ? { stopSpeakingPlan } : {}),
+          ...(config.consultation?.numberDictation
+            ? { startSpeakingPlan: buildStartSpeakingPlan(config, to) }
+            : {}),
           // VP-12: a call that was handed off must still report and record (see callReporting.ts).
           ...(reporting ?? {}),
         },

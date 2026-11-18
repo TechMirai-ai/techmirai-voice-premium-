@@ -14,6 +14,7 @@ export const CONSULTATION_PLACEHOLDERS = [
   'contactHours',
   'contactEmail',
   'number',
+  'name',
 ] as const;
 
 const PLACEHOLDER_PATTERN = /\[\[([^\][]*)\]\]/g;

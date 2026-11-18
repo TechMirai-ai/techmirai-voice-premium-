@@ -19,6 +19,8 @@ const localized = z.record(z.string(), text);
 const consultationScriptsSchema = z.strictObject({
   /** Asks for the caller's name. */
   askName: localized,
+  /** Reads the name back as its own turn; the model fills [[name]]. Needs a yes. */
+  confirmName: localized,
   /** Asks whether staff may contact the caller on the number they are calling from. */
   askContactNumber: localized,
   /** Asks for a number to use (caller said "another number", or no caller ID reached us). */
@@ -37,6 +39,19 @@ const consultationScriptsSchema = z.strictObject({
   noTransfer: localized,
 });
 
+/**
+ * VP-27. Protection for a number the caller dictates: how long Vapi waits after the "what number?"
+ * question before deciding the caller has finished. Callers read digits in paused groups, and the
+ * default wait cut in after three digits in real calls (VAPI-FACTS.md Vendor-swap R18).
+ * Omitted = the normal endpointing everywhere.
+ */
+const numberDictationSchema = z.strictObject({
+  /** `customEndpointingRules` timeout for the turn after the number question (Vapi: 0-15). */
+  waitSeconds: z.number().min(0).max(15),
+  /** `transcriptionEndpointingPlan.onNumberSeconds`: the wait after a transcript ending in a number (Vapi: 0-3). */
+  onNumberSeconds: z.number().min(0).max(3).optional(),
+});
+
 export const consultationSchema = z.strictObject({
   /** The address given to callers when the flow cannot finish; also used in the SMS. */
   contactEmail: z.email('must be an e-mail address'),
@@ -46,6 +61,7 @@ export const consultationSchema = z.strictObject({
    */
   contactHours: localized,
   scripts: consultationScriptsSchema,
+  numberDictation: numberDictationSchema.optional(),
 });
 
 export type ConsultationConfig = z.infer<typeof consultationSchema>;

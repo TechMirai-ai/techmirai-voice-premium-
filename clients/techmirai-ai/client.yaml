@@ -64,6 +64,16 @@ languages:
       pleaseWaitVariants:
         - 少々お待ちいただけますでしょうか。
         - 恐れ入ります、少々お待ちくださいませ。
+      # VP-27. Short listening sounds must not cut the assistant off mid-answer. Vapi's own list of
+      # such words is English only, so Japanese ones are listed here. numWords must be at least 1 for
+      # the list to apply (at 0 any voice cuts in). Unverified on real Japanese calls (how Vapi
+      # counts Japanese "words" is undocumented): test with a quick はい during a long answer, and
+      # delete this block to go back to Vapi's defaults.
+      # はい "yes"; ええ "yes/uh-huh"; うん "uh-huh"; そうですね "that's right"; そうですか "I see";
+      # なるほど "I see / indeed"; はいはい "yes, yes"; うんうん "uh-huh, uh-huh"; ああ "ah".
+      stopSpeakingPlan:
+        numWords: 1
+        acknowledgementPhrases: [はい, ええ, うん, そうですね, そうですか, なるほど, はいはい, うんうん, ああ]
     en:
       voice: { provider: cartesia, voiceId: e4d5f4c4-6601-4779-bee1-b3c14d629dc6 }
       transcriber: { provider: deepgram, model: nova-3, language: en }
@@ -94,6 +104,8 @@ safety:
 # Wording overrides for the shared prompt (English meta-instruction to the model, never spoken).
 promptOverrides:
   businessNoun: company
+  # VP-27: this line takes no bookings, so the shared prompt drops its appointment/availability examples.
+  noBooking: true
   staffLabel: TechMirai AI staff
   identity: >-
     You are the AI voice agent on the phone line of [[clinicName]] (TechMirai AI), a Japan-based
@@ -243,11 +255,23 @@ consultation:
   contactHours:
     ja: 平日の午前9時から午後6時（日本時間）の間
     en: on weekdays between 9 a.m. and 6 p.m. Japan time
+  # VP-27. When the caller dictates a number, wait longer after the "what number?" question so the
+  # assistant does not cut in after the first few digits (callers read digits in paused groups).
+  # waitSeconds applies to the turn after that question; onNumberSeconds to any transcript ending in
+  # a number (the fallback if the model rewords the question). Delete the block for normal timing.
+  numberDictation:
+    waitSeconds: 2.5
+    onNumberSeconds: 1.5
   scripts:
     # "May I have your name, please?"
     askName:
       ja: お名前を伺ってもよろしいでしょうか？
       en: May I have your name, please?
+    # "Is that [name]?" (the name is read back as its own turn; the caller must say yes)
+    # NEEDS NATIVE-SPEAKER REVIEW.
+    confirmName:
+      ja: "[[name]]様でよろしいでしょうか？"
+      en: "Just to confirm, that's [[name]], correct?"
     # "May our staff contact you on the number you are calling from now?"
     askContactNumber:
       ja: 今お電話いただいているこちらの番号に、担当者からご連絡してもよろしいでしょうか？

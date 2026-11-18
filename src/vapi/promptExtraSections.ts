@@ -202,8 +202,11 @@ export function callerAdaptationSection(config: ClientConfig): string[] {
         "from turn to turn: keep the chosen adjustment until the caller's manner clearly " +
         'changes, then switch to the one that now dominates (or back to normal).',
       'Limits: these change only how you speak. They never let you skip a required step — ' +
-        'confirming a name or contact number, checking availability before offering a time, a ' +
-        `tool call a flow requires, ${emergencyLimit}or telling the caller something ` +
+        'confirming a name or contact number, ' +
+        (config.promptOverrides?.noBooking
+          ? ''
+          : 'checking availability before offering a time, ') +
+        `a tool call a flow requires, ${emergencyLimit}or telling the caller something ` +
         `untrue about what the ${noun} can do. "Do not re-ask what the caller already clearly ` +
         'said" never means skipping an explicit yes that a flow requires. Any turn another rule ' +
         `says must contain only a tool call, must be silent, or must use exact wording (${fixedTurns}) ` +
