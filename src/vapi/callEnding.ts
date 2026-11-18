@@ -17,35 +17,10 @@
  * Neither can be exercised by the local text-tester and neither is proven by a real call yet.
  */
 import type { ClientConfig } from '../config/schema.js';
+import { DEFAULT_SILENCE_TIMINGS } from '../config/silenceTimingsSchema.js';
 import { fillClinicPlaceholders, pick } from './promptTemplate.js';
 import { SILENCE_END_CALL_FUNCTION_NAME } from './toolNames.js';
 import type { VapiServerConfig, VapiSilenceHangupHook, VapiSilenceHookAction } from './types.js';
-
-/**
- * Graduated caller-silence flow (VP-16), replacing the flat 20s hang-up (VP-7 R10, itself a
- * shortening of the original 40s). Each step is its own `customer.speech.timeout` hook; Vapi's docs
- * describe staggered hooks for exactly this. Offsets are seconds of caller silence counted from
- * when the assistant stopped speaking, read as ABSOLUTE (VAPI-FACTS.md VP-16 R1). Specified by the
- * owner: 4s, +5s, +5s, and a hang-up 3s after the announcement. Whether a hook's own `say` restarts
- * the clock is undocumented and is what the first real call checks; if it does, switch these to
- * the gaps themselves.
- */
-const SILENCE_GAP_SECONDS = {
-  repeatQuestion: 4,
-  check1: 5,
-  check2: 5,
-  /**
-   * ASSUMED TIMING — NOT FROM THE OWNER. The work order gives no delay between the second check and
-   * the end announcement; 5s mirrors the other gaps. Confirm during the real-call test.
-   */
-  announceEnd: 5,
-  /**
-   * BACKSTOP ONLY, counted from the announcement hook. `silence_end_call` normally ends the call
-   * itself (VAPI-FACTS.md VP-16 R3); this built-in `endCall` fires only if it did not, and would
-   * then play the standard goodbye. Long enough that the announcement (~4–6s) finishes first.
-   */
-  hangUp: 12,
-} as const;
 
 /** `language`'s configured hang-up phrases, or `undefined` when the client sets none. */
 export function endCallPhrasesFor(config: ClientConfig, language: string): string[] | undefined {
@@ -110,12 +85,14 @@ export function silenceHooks(
   language: string,
   silenceEndServer: VapiServerConfig,
 ): VapiSilenceHangupHook[] {
-  const gap = SILENCE_GAP_SECONDS;
-  const at1 = gap.repeatQuestion;
-  const at2 = at1 + gap.check1;
-  const at3 = at2 + gap.check2;
-  const at4 = at3 + gap.announceEnd;
-  const at5 = at4 + gap.hangUp;
+  // Per-client `silenceTimings` (client.yaml), else the shared defaults 4 / 9 / 14 / 19 / 31 s:
+  // absolute seconds of caller silence since the assistant stopped speaking (VAPI-FACTS.md VP-16 R1).
+  const timings = config.silenceTimings ?? DEFAULT_SILENCE_TIMINGS;
+  const at1 = timings.nudgeAfterSeconds;
+  const at2 = timings.firstCheckAfterSeconds;
+  const at3 = timings.secondCheckAfterSeconds;
+  const at4 = timings.announceEndAfterSeconds;
+  const at5 = timings.hangUpAfterSeconds;
 
   return [
     // Step 1 is a FIXED per-language line (client.yaml `scripts.silenceRepeat`). It used to be a

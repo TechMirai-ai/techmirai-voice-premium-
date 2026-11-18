@@ -14,6 +14,7 @@ import { changesSchema } from './changesSchema.js';
 import { recallSchema } from './recallSchema.js';
 import { archiveSchema } from './archiveSchema.js';
 import { notificationsSchema } from './notificationsSchema.js';
+import { silenceTimingsSchema } from './silenceTimingsSchema.js';
 import { transferSchema } from './transferSchema.js';
 import { consultationSchema } from './consultationSchema.js';
 
@@ -367,6 +368,8 @@ export const clientConfigSchema = z.looseObject({
   consultation: consultationSchema.optional(),
   // VP-24: hand a live call to a staff phone number. Omitted = no transfer for this client.
   transfer: transferSchema.optional(),
+  // When each caller-silence step fires. Omitted = the shared defaults (4 / 9 / 14 / 19 / 31 s).
+  silenceTimings: silenceTimingsSchema.optional(),
   // Per-client Google archive destination (env var names). REQUIRED: a client with no destination
   // must be a config error, not a silent fall-back to another client's Sheet and folders.
   archive: archiveSchema,

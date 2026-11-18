@@ -60,6 +60,38 @@ describe('silenceHooks (VP-16 graduated silence)', () => {
   });
 
   test.each([
+    ['techmirai-ai', [8, 13, 18, 23, 35]],
+    ['sakura-seikotsuin', [4, 9, 14, 19, 31]],
+    ['kanto-city-gas-demo', [4, 9, 14, 19, 31]],
+  ])('%s: per-client timings, the same in every language', (clientId, expected) => {
+    const client = loadClient(clientId);
+
+    for (const language of client.languages.supported) {
+      const offsets = silenceHooks(client, language, SILENCE_END_SERVER).map(
+        (hook) => hook.options.timeoutSeconds,
+      );
+      expect(offsets).toEqual(expected);
+    }
+  });
+
+  test('a silenceTimings block in the config is what the hooks use', () => {
+    const custom = {
+      ...config,
+      silenceTimings: {
+        nudgeAfterSeconds: 2,
+        firstCheckAfterSeconds: 3,
+        secondCheckAfterSeconds: 5,
+        announceEndAfterSeconds: 8,
+        hangUpAfterSeconds: 21,
+      },
+    };
+
+    expect(
+      silenceHooks(custom, 'ja', SILENCE_END_SERVER).map((hook) => hook.options.timeoutSeconds),
+    ).toEqual([2, 3, 5, 8, 21]);
+  });
+
+  test.each([
     ['ja', hooks],
     ['en', enHooks],
   ])('%s: step 1 is a FIXED configured line, never a model-written prompt', (language, set) => {

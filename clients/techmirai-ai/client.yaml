@@ -283,6 +283,17 @@ consultation:
       ja: 申し訳ございません。この回線では、今すぐ担当者におつなぎすることができません。お名前をお伺いし、担当者から[[contactHours]]にご連絡して、面談の日程を調整いたします。
       en: I am sorry, I cannot connect you to a person on this line right now. I can take your name, and our staff will contact you [[contactHours]] to arrange a meeting.
 
+# When each caller-silence step fires: seconds of silence since the assistant stopped speaking.
+# Vapi's clock follows the caller's FINAL transcript, not their voice, so the first nudge waits 8 s
+# (not the default 4) to avoid talking over a caller who is still mid-sentence. Steps: gentle nudge,
+# "can you hear me?", "still on the line?", end-of-call announcement, built-in hang-up backstop.
+silenceTimings:
+  nudgeAfterSeconds: 8
+  firstCheckAfterSeconds: 13
+  secondCheckAfterSeconds: 18
+  announceEndAfterSeconds: 23
+  hangUpAfterSeconds: 35
+
 # Caller SMS (Telnyx, alphanumeric sender "TechMirai") and a staff alert on LINE. Credentials are env var
 # NAMES only. SMS goes only to Japanese 070/080/090 mobiles, at most one per number per 24 h and
 # `maxPerDay` per rolling 24 h. The sender ID and the messaging profile are set up in Telnyx by Jamal.
